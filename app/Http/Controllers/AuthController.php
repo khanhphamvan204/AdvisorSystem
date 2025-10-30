@@ -99,7 +99,6 @@ class AuthController extends Controller
             // Load thêm thông tin chi tiết tùy theo vai trò
             $user->load(['student.class.faculty', 'advisor.unit']);
 
-            // ⭐ SỬA LỖI: Trả về user trong key "data"
             return response()->json([
                 'success' => true,
                 'data' => $user
@@ -140,9 +139,17 @@ class AuthController extends Controller
     public function refresh()
     {
         try {
-            $newToken = JWTAuth::refresh();
+            $token = JWTAuth::getToken();
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Token missing',
+                    'message' => 'Không tìm thấy token trong request.'
+                ], 401);
+            }
 
-            // ⭐ SỬA LỖI: Gói thông tin token mới vào key "data"
+            $newToken = JWTAuth::refresh($token);
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -150,13 +157,14 @@ class AuthController extends Controller
                     'token_type' => 'bearer',
                     'expires_in' => JWTAuth::factory()->getTTL() * 60
                 ]
-            ], 200);
+            ]);
         } catch (JWTException $e) {
             return response()->json([
                 'success' => false,
                 'error' => 'Refresh failed',
-                'message' => 'Token không hợp lệ.'
+                'message' => $e->getMessage()
             ], 401);
         }
     }
+
 }
