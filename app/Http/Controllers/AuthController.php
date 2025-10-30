@@ -96,8 +96,13 @@ class AuthController extends Controller
                 ], 401);
             }
 
-            // Load thêm thông tin chi tiết tùy theo vai trò
-            $user->load(['student.class.faculty', 'advisor.unit']);
+            if ($user->role === 'advisor') {
+                // Nếu là Advisor, load thông tin đơn vị và các lớp mình quản lý
+                $user->load(['advisor.unit', 'advisor.classes']);
+            } elseif ($user->role === 'student') {
+                // Nếu là Student, load thông tin lớp và khoa
+                $user->load(['student.class.faculty']);
+            }
 
             return response()->json([
                 'success' => true,
@@ -166,5 +171,4 @@ class AuthController extends Controller
             ], 401);
         }
     }
-
 }
