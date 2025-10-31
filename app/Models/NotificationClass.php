@@ -3,22 +3,39 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationClass extends Pivot
 {
-    protected $table = 'notification_class';
+    /**
+     * Tên bảng trung gian
+     */
+    protected $table = 'Notification_Class';
+
+
     public $incrementing = false;
-    protected $primaryKey = ['notification_id', 'class_id'];
+    protected $primaryKey = null;
 
-    protected $fillable = ['notification_id', 'class_id'];
+    protected $fillable = [
+        'notification_id',
+        'class_id'
+    ];
 
-    public function notification()
+    public $timestamps = false;
+
+    /**
+     * Quan hệ: Thông báo
+     */
+    public function notification(): BelongsTo
     {
-        return $this->belongsTo(Notification::class, 'notification_id');
+        return $this->belongsTo(Notification::class, 'notification_id', 'notification_id');
     }
 
-    public function class()
+    /**
+     * Quan hệ: Lớp học
+     */
+    public function class(): BelongsTo
     {
-        return $this->belongsTo(ClassModel::class, 'class_id');
+        return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 }

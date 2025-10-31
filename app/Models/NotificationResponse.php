@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationResponse extends Model
 {
-    protected $primaryKey = 'response_id';
+    protected $table = 'Notification_Responses';
     public $timestamps = false;
+    protected $primaryKey = 'response_id';
+
     protected $fillable = [
         'notification_id',
         'student_id',
@@ -19,25 +22,23 @@ class NotificationResponse extends Model
     ];
 
     protected $casts = [
+        'status' => 'string',
         'response_at' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
-    public function notification()
+    public function notification(): BelongsTo
     {
-        return $this->belongsTo(Notification::class, 'notification_id');
+        return $this->belongsTo(Notification::class, 'notification_id', 'notification_id');
     }
 
-    public function student()
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_id', 'user_id');
+        return $this->belongsTo(Student::class, 'student_id', 'student_id');
     }
 
-    public function advisor()
+    public function advisor(): BelongsTo
     {
-        return $this->belongsTo(Advisor::class, 'advisor_id', 'user_id');
-    }
-    public function advisorUser()
-    {
-        return $this->belongsTo(User::class, 'advisor_id', 'user_id');
+        return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');
     }
 }

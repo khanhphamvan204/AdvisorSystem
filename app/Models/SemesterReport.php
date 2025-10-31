@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SemesterReport extends Model
 {
+    protected $table = 'Semester_Reports';
+    public $timestamps = false;
     protected $primaryKey = 'report_id';
+
     protected $fillable = [
         'student_id',
         'semester_id',
@@ -18,12 +22,17 @@ class SemesterReport extends Model
         'outcome'
     ];
 
-    public function student()
+    protected $casts = [
+        'gpa' => 'decimal:2',
+    ];
+
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_id', 'user_id');
+        return $this->belongsTo(Student::class, 'student_id', 'student_id');
     }
-    public function semester()
+
+    public function semester(): BelongsTo
     {
-        return $this->belongsTo(Semester::class, 'semester_id');
+        return $this->belongsTo(Semester::class, 'semester_id', 'semester_id');
     }
 }

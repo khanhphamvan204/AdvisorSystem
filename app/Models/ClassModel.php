@@ -2,35 +2,40 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ClassModel extends Model
 {
-    use HasFactory;
-
     protected $table = 'Classes';
+    public $timestamps = false;
     protected $primaryKey = 'class_id';
+
     protected $fillable = ['class_name', 'advisor_id', 'faculty_id', 'description'];
 
-    public function advisor()
+    public function advisor(): BelongsTo
     {
-        return $this->belongsTo(Advisor::class, 'advisor_id', 'user_id');
+        return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');
     }
-    public function faculty()
+
+    public function faculty(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'faculty_id', 'unit_id');
     }
-    public function students()
+
+    public function students(): HasMany
     {
-        return $this->hasMany(Student::class, 'class_id');
+        return $this->hasMany(Student::class, 'class_id', 'class_id');
     }
+
     public function notifications()
     {
-        return $this->belongsToMany(Notification::class, 'notification_class');
+        return $this->belongsToMany(Notification::class, 'Notification_Class', 'class_id', 'notification_id')->using(NotificationClass::class);
     }
-    public function meetings()
+
+    public function meetings(): HasMany
     {
-        return $this->hasMany(Meeting::class, 'class_id');
+        return $this->hasMany(Meeting::class, 'class_id', 'class_id');
     }
 }

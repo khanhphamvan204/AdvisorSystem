@@ -4,28 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\NotificationRecipient;
 use Illuminate\Http\Request;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class NotificationRecipientController extends Controller
 {
     /**
      * Lấy danh sách thông báo chưa đọc (cho Student)
-     * Route: GET /api/student/unread-notifications
+     * GET /api/student/unread-notifications
      */
     public function index(Request $request)
     {
-        $user = JWTAuth::user();
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
 
-        if ($user->role !== 'student') {
+        if ($role !== 'student') {
             return response()->json([
                 'success' => false,
                 'message' => 'Chỉ sinh viên mới có thể xem thông báo chưa đọc'
             ], 403);
         }
 
-        $unreadNotifications = NotificationRecipient::where('student_id', $user->user_id)
+        $unreadNotifications = NotificationRecipient::where('student_id', $userId)
             ->where('is_read', false)
-            ->with(['notification.advisor.user', 'notification.attachments'])
+            ->with(['notification.advisor', 'notification.attachments'])
             ->orderBy('notification_id', 'desc')
             ->get();
 
@@ -37,20 +37,21 @@ class NotificationRecipientController extends Controller
 
     /**
      * Đánh dấu tất cả thông báo là đã đọc (cho Student)
-     * Route: POST /api/student/mark-all-notifications-read
+     * POST /api/student/mark-all-notifications-read
      */
     public function markAllAsRead(Request $request)
     {
-        $user = JWTAuth::user();
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
 
-        if ($user->role !== 'student') {
+        if ($role !== 'student') {
             return response()->json([
                 'success' => false,
                 'message' => 'Chỉ sinh viên mới có thể đánh dấu đã đọc'
             ], 403);
         }
 
-        NotificationRecipient::where('student_id', $user->user_id)
+        NotificationRecipient::where('student_id', $userId)
             ->where('is_read', false)
             ->update([
                 'is_read' => true,

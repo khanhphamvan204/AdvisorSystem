@@ -7,19 +7,19 @@ use App\Models\NotificationResponse;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class NotificationResponseController extends Controller
 {
     /**
      * Sinh viên tạo phản hồi thông báo
-     * Route: POST /api/notifications/{notificationId}/responses
+     * POST /api/notifications/{notificationId}/responses
      */
     public function store(Request $request, $notificationId)
     {
-        $user = JWTAuth::user();
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
 
-        if ($user->role !== 'student') {
+        if ($role !== 'student') {
             return response()->json([
                 'success' => false,
                 'message' => 'Chỉ sinh viên mới có quyền phản hồi thông báo'
@@ -51,7 +51,7 @@ class NotificationResponseController extends Controller
         }
 
         // Kiểm tra sinh viên có quyền truy cập thông báo này không
-        $student = Student::where('user_id', $user->user_id)->first();
+        $student = Student::find($userId);
         if (!$student) {
             return response()->json([
                 'success' => false,
@@ -68,21 +68,21 @@ class NotificationResponseController extends Controller
             ], 403);
         }
 
-        // Kiểm tra đã phản hồi chưa
-        $existingResponse = NotificationResponse::where('notification_id', $notificationId)
-            ->where('student_id', $user->user_id)
-            ->first();
+        // // Kiểm tra đã phản hồi chưa
+        // $existingResponse = NotificationResponse::where('notification_id', $notificationId)
+        //     ->where('student_id', $userId)
+        //     ->first();
 
-        if ($existingResponse) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn đã phản hồi thông báo này rồi'
-            ], 400);
-        }
+        // if ($existingResponse) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Bạn đã phản hồi thông báo này rồi'
+        //     ], 400);
+        // }
 
         $response = NotificationResponse::create([
             'notification_id' => $notificationId,
-            'student_id' => $user->user_id,
+            'student_id' => $userId,
             'content' => $request->content,
             'status' => 'pending'
         ]);
@@ -90,19 +90,20 @@ class NotificationResponseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Gửi phản hồi thành công',
-            'data' => $response->load('student.user')
+            'data' => $response->load('student')
         ], 201);
     }
 
     /**
      * Cố vấn xem danh sách phản hồi của một thông báo
-     * Route: GET /api/notifications/{notificationId}/responses
+     * GET /api/notifications/{notificationId}/responses
      */
     public function index(Request $request, $notificationId)
     {
-        $user = JWTAuth::user();
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
 
-        if ($user->role !== 'advisor') {
+        if ($role !== 'advisor') {
             return response()->json([
                 'success' => false,
                 'message' => 'Chỉ cố vấn học tập mới có quyền xem phản hồi'
@@ -118,7 +119,7 @@ class NotificationResponseController extends Controller
             ], 404);
         }
 
-        if ($notification->advisor_id !== $user->user_id) {
+        if ($notification->advisor_id !== $userId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không có quyền xem phản hồi của thông báo này'
@@ -127,7 +128,7 @@ class NotificationResponseController extends Controller
 
         // Lọc theo status nếu có
         $query = NotificationResponse::where('notification_id', $notificationId)
-            ->with(['student.user', 'student.class', 'advisorUser']); // Giả sử Model có các quan hệ này
+            ->with(['student.class', 'advisor']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -143,13 +144,14 @@ class NotificationResponseController extends Controller
 
     /**
      * Cố vấn trả lời/cập nhật phản hồi của sinh viên
-     * Route: PUT /api/notification-responses/{responseId}
+     * PUT /api/notification-responses/{responseId}
      */
     public function update(Request $request, $responseId)
     {
-        $user = JWTAuth::user();
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
 
-        if ($user->role !== 'advisor') {
+        if ($role !== 'advisor') {
             return response()->json([
                 'success' => false,
                 'message' => 'Chỉ cố vấn học tập mới có quyền trả lời phản hồi'
@@ -183,7 +185,7 @@ class NotificationResponseController extends Controller
         }
 
         // Kiểm tra quyền (phải là CVHT của thông báo đó)
-        if ($response->notification->advisor_id !== $user->user_id) {
+        if ($response->notification->advisor_id !== $userId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không có quyền trả lời phản hồi này'
@@ -192,7 +194,7 @@ class NotificationResponseController extends Controller
 
         $response->update([
             'advisor_response' => $request->advisor_response,
-            'advisor_id' => $user->user_id,
+            'advisor_id' => $userId,
             'response_at' => now(),
             'status' => $request->status ?? $response->status
         ]);
@@ -200,8 +202,7 @@ class NotificationResponseController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Trả lời phản hồi thành công',
-            'data' => $response->load(['student.user', 'advisorUser'])
+            'data' => $response->load(['student', 'advisor'])
         ]);
     }
-
 }

@@ -5,68 +5,33 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-use Illuminate\Support\Facades\Log;
 
 class CheckUserRole
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        try {
-            $token = JWTAuth::getToken(); // Lấy token từ request
-            if (!$token) {
-                Log::warning('Không cung cấp token.');
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Yêu cầu xác thực.'
-                ], 401);
-            }
+        // Lấy role đã được gán bởi middleware 'Authenticate'
+        $userRole = $request->current_role;
 
-            $user = JWTAuth::parseToken()->authenticate();
-            $userRole = $user->role;
-            Log::info('Vai trò người dùng: ' . $userRole);
-
-            if (!in_array($userRole, $roles)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Quyền truy cập bị từ chối. Bạn không có vai trò phù hợp.'
-                ], 403);
-            }
-
-            return $next($request);
-
-        } catch (TokenExpiredException $e) {
-            Log::warning('Token đã hết hạn: ' . $e->getMessage());
+        if (!$userRole) {
+            // Lỗi này xảy ra nếu bạn quên bọc 'auth:api' bên ngoài
             return response()->json([
                 'success' => false,
-                'error' => 'Token đã hết hạn. Vui lòng đăng nhập lại.'
-            ], 401);
-        } catch (TokenInvalidException $e) {
-            Log::warning('Token không hợp lệ: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Token không hợp lệ.'
-            ], 401);
-        } catch (JWTException $e) {
-            Log::error('Lỗi JWT: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Không được phép.'
-            ], 401);
-        } catch (\Exception $e) {
-            Log::error('Lỗi không xác định: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Đã có lỗi xảy ra.'
+                'message' => 'Lỗi máy chủ: Vai trò người dùng không được xác định'
             ], 500);
         }
+
+        // Kiểm tra quyền
+        if (!in_array($userRole, $roles)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền truy cập'
+            ], 403); // 403 Forbidden
+        }
+
+        return $next($request);
     }
 }

@@ -3,33 +3,37 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
+    protected $table = 'Messages';
+    public $timestamps = false;
     protected $primaryKey = 'message_id';
-    protected $keyType = 'bigInteger';
-    public $incrementing = true;
+    protected $keyType = 'bigIncrements';
 
     protected $fillable = [
-        'sender_id',
-        'receiver_id',
+        'student_id',
+        'advisor_id',
+        'sender_type',
         'content',
         'attachment_path',
         'is_read'
     ];
 
     protected $casts = [
+        'sender_type' => 'string',
         'is_read' => 'boolean',
         'sent_at' => 'datetime',
     ];
 
-    public function sender()
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'sender_id');
+        return $this->belongsTo(Student::class, 'student_id', 'student_id');
     }
 
-    public function receiver()
+    public function advisor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'receiver_id');
+        return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');
     }
 }

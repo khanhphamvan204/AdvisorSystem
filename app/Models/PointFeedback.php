@@ -3,10 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PointFeedback extends Model
 {
+    protected $table = 'Point_Feedbacks';
+    public $timestamps = false;
     protected $primaryKey = 'feedback_id';
+
     protected $fillable = [
         'student_id',
         'semester_id',
@@ -18,16 +22,24 @@ class PointFeedback extends Model
         'response_at'
     ];
 
-    public function student()
+    protected $casts = [
+        'status' => 'string', // pending, approved, rejected
+        'response_at' => 'datetime',
+        'created_at' => 'datetime',
+    ];
+
+    public function student(): BelongsTo
     {
-        return $this->belongsTo(Student::class, 'student_id', 'user_id');
+        return $this->belongsTo(Student::class, 'student_id', 'student_id');
     }
-    public function semester()
+
+    public function semester(): BelongsTo
     {
-        return $this->belongsTo(Semester::class, 'semester_id');
+        return $this->belongsTo(Semester::class, 'semester_id', 'semester_id');
     }
-    public function advisor()
+
+    public function advisor(): BelongsTo
     {
-        return $this->belongsTo(Advisor::class, 'advisor_id', 'user_id');
+        return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');
     }
 }
