@@ -168,35 +168,15 @@ Route::middleware(['auth.api', 'check_role:advisor'])->prefix('activities/{activ
 // ============================================================
 // QUẢN LÝ ĐIỂM RÈN LUYỆN, ĐIỂM CTXH
 // ============================================================
-Route::middleware(['auth:api'])->prefix('points')->group(function () {
+Route::middleware(['auth.api'])->prefix('student-points')->group(function () {
 
     // Xem điểm rèn luyện, CTXH
     // Student: Xem điểm của chính mình
     // Advisor: Xem điểm của sinh viên trong lớp
-    Route::get('/student', [PointManagementController::class, 'getStudentPoints'])
-        ->middleware('check.role:student,advisor');
-
-    // Cập nhật điểm (Advisor only)
-    Route::put('/student', [PointManagementController::class, 'updateStudentPoints'])
-        ->middleware('check.role:advisor');
-
-    // Cập nhật điểm hàng loạt (Advisor only)
-    Route::put('/batch-update', [PointManagementController::class, 'batchUpdatePoints'])
-        ->middleware('check.role:advisor');
+    Route::get('/', [PointManagementController::class, 'getStudentPoints'])
+        ->middleware('check_role:student,advisor');
 
     // Xem tổng hợp điểm cả lớp (Advisor only)
     Route::get('/class-summary', [PointManagementController::class, 'getClassPointsSummary'])
-        ->middleware('check.role:advisor');
-
-    // Thống kê điểm rèn luyện theo lớp (Advisor only)
-    Route::get('/class-statistics', [PointManagementController::class, 'getClassStatistics'])
-        ->middleware('check.role:advisor');
-
-    // So sánh điểm giữa các học kỳ (Student, Advisor)
-    Route::get('/compare-semesters', [PointManagementController::class, 'comparePointsBySemesters'])
-        ->middleware('check.role:student,advisor');
-
-    // Tra cứu điểm theo nhiều tiêu chí (Advisor only)
-    Route::get('/search', [PointManagementController::class, 'searchPoints'])
-        ->middleware('check.role:advisor');
+        ->middleware('check_role:advisor');
 });

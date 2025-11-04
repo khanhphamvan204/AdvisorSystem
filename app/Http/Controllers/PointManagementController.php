@@ -1,10 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Student;
-use App\Models\SemesterReport;
-use App\Models\Semester;
 use App\Models\ActivityRegistration;
 use App\Models\Activity;
 use Illuminate\Http\Request;
@@ -14,7 +11,7 @@ use Illuminate\Support\Facades\Validator;
 class PointManagementController extends Controller
 {
     /**
-     * Xem thông tin điểm rèn luyện, điểm CTXH của sinh viên
+     * Xem tổng điểm rèn luyện, điểm CTXH của sinh viên từ tất cả hoạt động
      * Role: Student, Advisor
      */
     public function getStudentPoints(Request $request)
@@ -22,10 +19,9 @@ class PointManagementController extends Controller
         $currentRole = $request->current_role;
         $currentUserId = $request->current_user_id;
 
-        // Validate input
+        // Validate: Bỏ 'semester_id'
         $validator = Validator::make($request->all(), [
             'student_id' => 'required_if:current_role,advisor|integer|exists:Students,student_id',
-            'semester_id' => 'nullable|integer|exists:Semesters,semester_id'
         ]);
 
         if ($validator->fails()) {
@@ -41,69 +37,29 @@ class PointManagementController extends Controller
             $studentId = $currentUserId;
         } else {
             $studentId = $request->student_id;
-
-            // Advisor chỉ xem được sinh viên trong lớp mình phụ trách
             $student = Student::find($studentId);
             if (!$student) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Sinh viên không tồn tại'
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Sinh viên không tồn tại'], 404);
             }
-
             $class = $student->class;
             if ($class->advisor_id != $currentUserId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Bạn không có quyền xem thông tin sinh viên này'
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'Bạn không có quyền xem thông tin sinh viên này'], 403);
             }
         }
 
-        // Lấy semester_id
-        $semesterId = $request->semester_id;
+        // Lấy thông tin sinh viên
+        $student = Student::find($studentId);
 
-        // Nếu không có semester_id, lấy học kỳ hiện tại
-        if (!$semesterId) {
-            $currentSemester = Semester::where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
-                ->first();
-
-            if (!$currentSemester) {
-                // Lấy học kỳ gần nhất
-                $currentSemester = Semester::orderBy('end_date', 'desc')->first();
-            }
-
-            $semesterId = $currentSemester ? $currentSemester->semester_id : null;
-        }
-
-        if (!$semesterId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không tìm thấy học kỳ'
-            ], 404);
-        }
-
-        // Lấy thông tin học kỳ
-        $semester = Semester::find($semesterId);
-        if (!$semester) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Học kỳ không tồn tại'
-            ], 404);
-        }
-
-        // Lấy chi tiết các hoạt động đã tham gia trong học kỳ
+        // Lấy chi tiết TẤT CẢ các hoạt động đã tham gia (bỏ lọc theo học kỳ)
         $activities = ActivityRegistration::where('student_id', $studentId)
-            ->where('status', 'attended')
-            ->whereHas('role.activity', function ($q) use ($semester) {
-                $q->whereBetween('start_time', [$semester->start_date, $semester->end_date]);
-            })
+            ->where('status', 'attended') // Chỉ tính hoạt động đã tham gia
             ->with([
                 'role.activity' => function ($q) {
                     $q->select('activity_id', 'title', 'start_time');
                 },
-                'role'
+                'role' => function ($q) {
+                    $q->select('activity_role_id', 'role_name', 'points_awarded', 'point_type', 'activity_id');
+                }
             ])
             ->get()
             ->map(function ($reg) {
@@ -116,17 +72,9 @@ class PointManagementController extends Controller
                 ];
             });
 
-        // Tính tổng điểm từ hoạt động
-        $ctxhFromActivities = $activities->where('point_type', 'ctxh')->sum('points_awarded');
-        $renLuyenFromActivities = $activities->where('point_type', 'ren_luyen')->sum('points_awarded');
-
-        // Lấy báo cáo học kỳ (nếu có)
-        $report = SemesterReport::where('student_id', $studentId)
-            ->where('semester_id', $semesterId)
-            ->first();
-
-        // Lấy thông tin sinh viên
-        $student = Student::find($studentId);
+        // Tính tổng điểm từ TẤT CẢ hoạt động
+        $totalCtxh = $activities->where('point_type', 'ctxh')->sum('points_awarded');
+        $totalRenLuyen = $activities->where('point_type', 'ren_luyen')->sum('points_awarded');
 
         // Chuẩn bị dữ liệu response
         $responseData = [
@@ -135,30 +83,12 @@ class PointManagementController extends Controller
                 'full_name' => $student->full_name,
                 'user_code' => $student->user_code
             ],
-            'semester' => [
-                'semester_id' => $semester->semester_id,
-                'semester_name' => $semester->semester_name,
-                'academic_year' => $semester->academic_year
-            ],
             'summary' => [
-                'training_point_from_activities' => $renLuyenFromActivities,
-                'social_point_from_activities' => $ctxhFromActivities,
-                'has_official_report' => $report ? true : false
+                'total_training_points' => $totalRenLuyen, // Tổng điểm rèn luyện
+                'total_social_points' => $totalCtxh,   // Tổng điểm CTXH
             ],
-            'activities' => $activities
+            'activities' => $activities // Danh sách chi tiết
         ];
-
-        // Nếu có báo cáo chính thức, thêm thông tin báo cáo
-        if ($report) {
-            $responseData['summary']['training_point_summary'] = $report->training_point_summary;
-            $responseData['summary']['social_point_summary'] = $report->social_point_summary;
-            $responseData['outcome'] = $report->outcome;
-        } else {
-            $responseData['summary']['training_point_summary'] = null;
-            $responseData['summary']['social_point_summary'] = null;
-            $responseData['outcome'] = 'Chưa có báo cáo chính thức';
-            $responseData['note'] = 'Điểm hiển thị là tổng điểm từ các hoạt động đã tham gia. Chưa có điểm đánh giá chính thức từ GVCN.';
-        }
 
         return response()->json([
             'success' => true,
@@ -166,80 +96,19 @@ class PointManagementController extends Controller
         ], 200);
     }
 
-    /**
-     * Cập nhật điểm rèn luyện, điểm CTXH cho sinh viên
-     * Role: Advisor only
-     */
-    public function updateStudentPoints(Request $request)
-    {
-        $currentUserId = $request->current_user_id;
 
-        // Validate input
-        $validator = Validator::make($request->all(), [
-            'student_id' => 'required|integer|exists:Students,student_id',
-            'semester_id' => 'required|integer|exists:Semesters,semester_id',
-            'training_point_summary' => 'nullable|integer|min:0|max:100',
-            'social_point_summary' => 'nullable|integer|min:0|max:100',
-            'outcome' => 'nullable|string|max:255'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dữ liệu không hợp lệ',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Kiểm tra quyền: Advisor chỉ cập nhật được sinh viên trong lớp mình
-        $student = Student::find($request->student_id);
-        if (!$student) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Sinh viên không tồn tại'
-            ], 404);
-        }
-
-        $class = $student->class;
-        if ($class->advisor_id != $currentUserId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bạn không có quyền cập nhật điểm cho sinh viên này'
-            ], 403);
-        }
-
-        // Tìm hoặc tạo mới báo cáo học kỳ
-        $report = SemesterReport::updateOrCreate(
-            [
-                'student_id' => $request->student_id,
-                'semester_id' => $request->semester_id
-            ],
-            [
-                'training_point_summary' => $request->training_point_summary ?? 0,
-                'social_point_summary' => $request->social_point_summary ?? 0,
-                'outcome' => $request->outcome
-            ]
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật điểm thành công',
-            'data' => $report
-        ], 200);
-    }
 
     /**
-     * Lấy danh sách điểm của toàn bộ sinh viên trong lớp
+     * Lấy danh sách tổng điểm của toàn bộ sinh viên trong lớp
      * Role: Advisor only
      */
     public function getClassPointsSummary(Request $request)
     {
         $currentUserId = $request->current_user_id;
 
-        // Validate
+        // Validate: Bỏ 'semester_id'
         $validator = Validator::make($request->all(), [
             'class_id' => 'required|integer|exists:Classes,class_id',
-            'semester_id' => 'required|integer|exists:Semesters,semester_id'
         ]);
 
         if ($validator->fails()) {
@@ -259,26 +128,13 @@ class PointManagementController extends Controller
             ], 403);
         }
 
-        // Lấy thông tin học kỳ
-        $semester = Semester::find($request->semester_id);
-
-        // Lấy danh sách sinh viên và điểm
+        // Lấy danh sách sinh viên
         $students = Student::where('class_id', $request->class_id)
-            ->with([
-                'semesterReports' => function ($q) use ($request) {
-                    $q->where('semester_id', $request->semester_id);
-                }
-            ])
             ->get()
-            ->map(function ($student) use ($request, $semester) {
-                $report = $student->semesterReports->first();
-
-                // Tính điểm từ hoạt động
+            ->map(function ($student) {
+                // Tính điểm từ TẤT CẢ hoạt động (bỏ lọc theo học kỳ)
                 $activities = ActivityRegistration::where('student_id', $student->student_id)
                     ->where('status', 'attended')
-                    ->whereHas('role.activity', function ($q) use ($semester) {
-                    $q->whereBetween('start_time', [$semester->start_date, $semester->end_date]);
-                })
                     ->with('role')
                     ->get();
 
@@ -289,12 +145,8 @@ class PointManagementController extends Controller
                     'student_id' => $student->student_id,
                     'user_code' => $student->user_code,
                     'full_name' => $student->full_name,
-                    'training_point_from_activities' => $renLuyenFromActivities,
-                    'social_point_from_activities' => $ctxhFromActivities,
-                    'training_point_summary' => $report->training_point_summary ?? null,
-                    'social_point_summary' => $report->social_point_summary ?? null,
-                    'outcome' => $report->outcome ?? 'Chưa có báo cáo',
-                    'has_official_report' => $report ? true : false
+                    'total_training_points' => $renLuyenFromActivities, // Tổng rèn luyện
+                    'total_social_points' => $ctxhFromActivities,   // Tổng CTXH
                 ];
             });
 
@@ -302,7 +154,6 @@ class PointManagementController extends Controller
             'success' => true,
             'data' => [
                 'class_name' => $class->class_name,
-                'semester_id' => $request->semester_id,
                 'total_students' => $students->count(),
                 'students' => $students
             ]

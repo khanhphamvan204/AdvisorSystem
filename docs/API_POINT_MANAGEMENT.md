@@ -1,55 +1,26 @@
-# Point Management Controller - Quản lý Điểm Rèn Luyện & CTXH
+# API_POINT_MANAGEMENT
 
-## 📋 Mục lục
-- [Tổng quan](#tổng-quan)
-- [Các chức năng](#các-chức-năng)
-- [API Endpoints](#api-endpoints)
-- [Quyền truy cập](#quyền-truy-cập)
-- [Cấu trúc dữ liệu](#cấu-trúc-dữ-liệu)
-- [Ví dụ sử dụng](#ví-dụ-sử-dụng)
+## Tổng quan
+API quản lý điểm rèn luyện và điểm công tác xã hội (CTXH) của sinh viên từ các hoạt động đã tham gia.
 
-## 🎯 Tổng quan
+**Base URL:** `/api`
 
-Controller này quản lý việc xem và cập nhật điểm rèn luyện, điểm CTXH (Công tác xã hội) của sinh viên theo từng học kỳ.
-
-**Đặc điểm nổi bật:**
-- ✅ Xem điểm ngay cả khi chưa có báo cáo chính thức
-- ✅ Tự động tính điểm từ các hoạt động đã tham gia
-- ✅ Phân quyền rõ ràng giữa Sinh viên và GVCN
-- ✅ Hỗ trợ xem theo học kỳ cụ thể hoặc học kỳ hiện tại
-
-## 🔧 Các chức năng
-
-### 1. Xem điểm sinh viên (`getStudentPoints`)
-- **Mô tả:** Xem chi tiết điểm rèn luyện và CTXH của một sinh viên
-- **Vai trò:** Student (xem điểm của mình), Advisor (xem điểm sinh viên trong lớp)
-- **Tính năng:**
-  - Tự động tính điểm từ các hoạt động đã tham gia
-  - Hiển thị cả điểm tạm tính và điểm chính thức (nếu có)
-  - Liệt kê chi tiết các hoạt động đã tham gia
-
-### 2. Cập nhật điểm sinh viên (`updateStudentPoints`)
-- **Mô tả:** GVCN cập nhật điểm đánh giá chính thức cho sinh viên
-- **Vai trò:** Advisor only
-- **Tính năng:**
-  - Tạo hoặc cập nhật báo cáo học kỳ
-  - Nhập điểm rèn luyện và CTXH chính thức
-  - Ghi nhận kết quả đánh giá (outcome)
-
-### 3. Xem tổng quan điểm cả lớp (`getClassPointsSummary`)
-- **Mô tả:** GVCN xem điểm của toàn bộ sinh viên trong lớp
-- **Vai trò:** Advisor only
-- **Tính năng:**
-  - Hiển thị danh sách điểm của tất cả sinh viên
-  - So sánh điểm từ hoạt động và điểm chính thức
-  - Theo dõi tiến độ đánh giá của cả lớp
-
-## 🌐 API Endpoints
-
-### 1. Xem điểm sinh viên
-```http
-GET /api/student-points
+**Authentication:** Tất cả các endpoint yêu cầu Bearer Token trong header
 ```
+Authorization: Bearer {access_token}
+```
+
+---
+
+## Endpoints
+
+### 1. Xem điểm của sinh viên
+
+Lấy tổng điểm rèn luyện, điểm CTXH và danh sách chi tiết các hoạt động đã tham gia.
+
+**Endpoint:** `GET /api/student-points`
+
+**Role:** Student, Advisor
 
 **Headers:**
 ```
@@ -57,8 +28,19 @@ Authorization: Bearer {token}
 ```
 
 **Query Parameters:**
-- `student_id` (integer, required nếu role là advisor) - ID sinh viên cần xem
-- `semester_id` (integer, optional) - ID học kỳ (mặc định: học kỳ hiện tại)
+
+| Tham số | Bắt buộc | Kiểu | Mô tả |
+|---------|----------|------|-------|
+| student_id | Có (nếu role = advisor) | integer | ID của sinh viên cần xem điểm |
+
+**Lưu ý:**
+- **Student:** Tự động xem điểm của chính mình, không cần truyền `student_id`
+- **Advisor:** Bắt buộc truyền `student_id`, chỉ xem được điểm của sinh viên trong lớp mình quản lý
+
+**Request Example (Advisor):**
+```
+GET /api/student-points?student_id=123
+```
 
 **Response Success (200):**
 ```json
@@ -66,96 +48,72 @@ Authorization: Bearer {token}
   "success": true,
   "data": {
     "student_info": {
-      "student_id": 1,
+      "student_id": 123,
       "full_name": "Nguyễn Văn A",
-      "user_code": "2021001"
-    },
-    "semester": {
-      "semester_id": 1,
-      "semester_name": "Học kỳ 1",
-      "academic_year": "2024-2025"
+      "user_code": "SV001"
     },
     "summary": {
-      "training_point_from_activities": 45,
-      "social_point_from_activities": 30,
-      "training_point_summary": 50,
-      "social_point_summary": 35,
-      "has_official_report": true
+      "total_training_points": 85,
+      "total_social_points": 45
     },
     "activities": [
       {
-        "activity_title": "Ngày hội tình nguyện",
-        "role_name": "Thành viên",
-        "points_awarded": 10,
+        "activity_title": "Hiến máu nhân đạo",
+        "role_name": "Tình nguyện viên",
+        "points_awarded": 15,
         "point_type": "ctxh",
         "activity_date": "2024-10-15 08:00:00"
+      },
+      {
+        "activity_title": "Hội thảo kỹ năng mềm",
+        "role_name": "Người tham gia",
+        "points_awarded": 10,
+        "point_type": "ren_luyen",
+        "activity_date": "2024-10-20 14:00:00"
       }
-    ],
-    "outcome": "Xuất sắc"
+    ]
   }
 }
 ```
 
-**Response khi chưa có báo cáo (200):**
+**Response Error:**
+
+*422 - Validation Error:*
 ```json
 {
-  "success": true,
-  "data": {
-    "summary": {
-      "training_point_from_activities": 45,
-      "social_point_from_activities": 30,
-      "training_point_summary": null,
-      "social_point_summary": null,
-      "has_official_report": false
-    },
-    "outcome": "Chưa có báo cáo chính thức",
-    "note": "Điểm hiển thị là tổng điểm từ các hoạt động đã tham gia..."
+  "success": false,
+  "message": "Dữ liệu không hợp lệ",
+  "errors": {
+    "student_id": ["The student_id field is required when current_role is advisor."]
   }
 }
 ```
 
-### 2. Cập nhật điểm sinh viên
-```http
-POST /api/student-points/update
-```
-
-**Headers:**
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-**Request Body:**
+*403 - Forbidden:*
 ```json
 {
-  "student_id": 1,
-  "semester_id": 1,
-  "training_point_summary": 85,
-  "social_point_summary": 40,
-  "outcome": "Xuất sắc"
+  "success": false,
+  "message": "Bạn không có quyền xem thông tin sinh viên này"
 }
 ```
 
-**Response Success (200):**
+*404 - Not Found:*
 ```json
 {
-  "success": true,
-  "message": "Cập nhật điểm thành công",
-  "data": {
-    "report_id": 1,
-    "student_id": 1,
-    "semester_id": 1,
-    "training_point_summary": 85,
-    "social_point_summary": 40,
-    "outcome": "Xuất sắc"
-  }
+  "success": false,
+  "message": "Sinh viên không tồn tại"
 }
 ```
 
-### 3. Xem tổng quan điểm cả lớp
-```http
-GET /api/class-points-summary
-```
+---
+
+### 2. Xem tổng hợp điểm cả lớp
+
+Lấy danh sách tổng điểm của tất cả sinh viên trong một lớp.
+
+**Endpoint:** `GET /api/student-points/class-summary`
+
+**Role:** Advisor only
 
 **Headers:**
 ```
@@ -163,157 +121,148 @@ Authorization: Bearer {token}
 ```
 
 **Query Parameters:**
-- `class_id` (integer, required) - ID lớp học
-- `semester_id` (integer, required) - ID học kỳ
+
+| Tham số | Bắt buộc | Kiểu | Mô tả |
+|---------|----------|------|-------|
+| class_id | Có | integer | ID của lớp cần xem |
+
+**Request Example:**
+```
+GET /api/student-points/class-summary?class_id=5
+```
 
 **Response Success (200):**
 ```json
 {
   "success": true,
   "data": {
-    "class_name": "CNTT K16",
-    "semester_id": 1,
-    "total_students": 35,
+    "class_name": "CNTT K15A",
+    "total_students": 45,
     "students": [
       {
-        "student_id": 1,
-        "user_code": "2021001",
+        "student_id": 123,
+        "user_code": "SV001",
         "full_name": "Nguyễn Văn A",
-        "training_point_from_activities": 45,
-        "social_point_from_activities": 30,
-        "training_point_summary": 85,
-        "social_point_summary": 40,
-        "outcome": "Xuất sắc",
-        "has_official_report": true
+        "total_training_points": 85,
+        "total_social_points": 45
       },
       {
-        "student_id": 2,
-        "user_code": "2021002",
+        "student_id": 124,
+        "user_code": "SV002",
         "full_name": "Trần Thị B",
-        "training_point_from_activities": 25,
-        "social_point_from_activities": 15,
-        "training_point_summary": null,
-        "social_point_summary": null,
-        "outcome": "Chưa có báo cáo",
-        "has_official_report": false
+        "total_training_points": 70,
+        "total_social_points": 60
       }
     ]
   }
 }
 ```
 
-## 🔐 Quyền truy cập
+**Response Error:**
 
-| Endpoint | Student | Advisor |
-|----------|---------|---------|
-| `getStudentPoints` | ✅ (chỉ xem điểm của mình) | ✅ (xem sinh viên trong lớp) |
-| `updateStudentPoints` | ❌ | ✅ |
-| `getClassPointsSummary` | ❌ | ✅ |
-
-**Lưu ý:**
-- Advisor chỉ có thể xem/cập nhật điểm cho sinh viên trong lớp mình phụ trách
-- Student chỉ có thể xem điểm của chính mình
-
-## 📊 Cấu trúc dữ liệu
-
-### Bảng liên quan:
-- `Students` - Thông tin sinh viên
-- `SemesterReports` - Báo cáo điểm học kỳ
-- `Semesters` - Thông tin học kỳ
-- `ActivityRegistrations` - Đăng ký tham gia hoạt động
-- `Activities` - Các hoạt động
-- `ActivityRoles` - Vai trò trong hoạt động và điểm
-
-### Loại điểm:
-- **training_point** (điểm rèn luyện): 0-100
-- **social_point** (điểm CTXH): 0-100
-
-### Trạng thái tham gia:
-- `attended` - Đã tham gia (được tính điểm)
-- `registered` - Đã đăng ký (chưa tính điểm)
-- `cancelled` - Đã hủy (không tính điểm)
-
-## 💡 Ví dụ sử dụng
-
-### Ví dụ 1: Sinh viên xem điểm của mình
-```bash
-curl -X GET "http://localhost:8000/api/student-points" \
-  -H "Authorization: Bearer {student_token}"
+*422 - Validation Error:*
+```json
+{
+  "success": false,
+  "message": "Dữ liệu không hợp lệ",
+  "errors": {
+    "class_id": ["The class_id field is required."]
+  }
+}
 ```
 
-### Ví dụ 2: GVCN xem điểm sinh viên cụ thể
-```bash
-curl -X GET "http://localhost:8000/api/student-points?student_id=5&semester_id=2" \
-  -H "Authorization: Bearer {advisor_token}"
+*403 - Forbidden:*
+```json
+{
+  "success": false,
+  "message": "Bạn không có quyền xem thông tin lớp này"
+}
 ```
 
-### Ví dụ 3: GVCN cập nhật điểm cho sinh viên
-```bash
-curl -X POST "http://localhost:8000/api/student-points/update" \
-  -H "Authorization: Bearer {advisor_token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "student_id": 5,
-    "semester_id": 2,
-    "training_point_summary": 80,
-    "social_point_summary": 35,
-    "outcome": "Tốt"
-  }'
-```
+---
 
-### Ví dụ 4: GVCN xem tổng quan điểm cả lớp
-```bash
-curl -X GET "http://localhost:8000/api/class-points-summary?class_id=10&semester_id=2" \
-  -H "Authorization: Bearer {advisor_token}"
-```
+## Models và Quan hệ
 
-## 🔍 Validation Rules
+### Student
+- Có nhiều `ActivityRegistration`
+- Thuộc về một `Class`
 
-### getStudentPoints:
-- `student_id`: required nếu role là advisor, phải tồn tại trong DB
-- `semester_id`: optional, phải tồn tại trong DB
+### ActivityRegistration
+- Thuộc về một `Student`
+- Thuộc về một `ActivityRole`
+- Có trạng thái: `registered`, `attended`, `cancelled`
 
-### updateStudentPoints:
-- `student_id`: required, phải tồn tại
-- `semester_id`: required, phải tồn tại
-- `training_point_summary`: optional, 0-100
-- `social_point_summary`: optional, 0-100
-- `outcome`: optional, max 255 ký tự
+### ActivityRole
+- Thuộc về một `Activity`
+- Có các thuộc tính:
+  - `role_name`: Tên vai trò
+  - `points_awarded`: Điểm thưởng
+  - `point_type`: Loại điểm (`ren_luyen` hoặc `ctxh`)
 
-### getClassPointsSummary:
-- `class_id`: required, phải tồn tại
-- `semester_id`: required, phải tồn tại
+### Activity
+- Có nhiều `ActivityRole`
+- Có thuộc tính `start_time`: Thời gian bắt đầu hoạt động
 
-## ⚠️ Error Codes
+---
+
+## Quy tắc tính điểm
+
+1. **Chỉ tính điểm từ hoạt động đã tham gia:** Status = `attended`
+2. **Tính tổng từ TẤT CẢ hoạt động:** Không giới hạn theo học kỳ
+3. **Hai loại điểm:**
+   - `ren_luyen`: Điểm rèn luyện
+   - `ctxh`: Điểm công tác xã hội
+4. **Điểm được tính theo vai trò:** Mỗi vai trò trong hoạt động có số điểm khác nhau
+
+---
+
+## Error Codes
 
 | Code | Message | Mô tả |
 |------|---------|-------|
-| 401 | Token không hợp lệ | Chưa đăng nhập hoặc token hết hạn |
-| 403 | Không có quyền truy cập | Cố gắng truy cập dữ liệu không được phép |
-| 404 | Không tìm thấy | Sinh viên, học kỳ hoặc lớp không tồn tại |
-| 422 | Dữ liệu không hợp lệ | Validation lỗi |
+| 200 | Success | Thành công |
+| 401 | Unauthorized | Chưa đăng nhập hoặc token không hợp lệ |
+| 403 | Forbidden | Không có quyền truy cập |
+| 404 | Not Found | Không tìm thấy dữ liệu |
+| 422 | Validation Error | Dữ liệu không hợp lệ |
 
-## 🚀 Tính năng nổi bật
+---
 
-### 1. Tự động tính điểm từ hoạt động
-Hệ thống tự động tính tổng điểm từ các hoạt động sinh viên đã tham gia:
-- Chỉ tính hoạt động có trạng thái `attended`
-- Chỉ tính hoạt động trong khoảng thời gian của học kỳ
-- Phân loại theo `point_type`: ctxh hoặc ren_luyen
+## Ví dụ sử dụng
 
-### 2. Xem điểm linh hoạt
-- Không cần có báo cáo chính thức vẫn xem được điểm tạm tính
-- Phân biệt rõ ràng giữa điểm tạm tính và điểm chính thức
-- Tự động lấy học kỳ hiện tại nếu không chỉ định
+### Student xem điểm của mình
+```bash
+curl -X GET "http://localhost:8000/api/student-points" \
+  -H "Authorization: Bearer {student_token}" \
+  -H "Accept: application/json"
+```
 
-### 3. Bảo mật và phân quyền
-- GVCN chỉ xem/sửa sinh viên trong lớp mình
-- Sinh viên chỉ xem được điểm của mình
-- Sử dụng JWT middleware để xác thực
+### Advisor xem điểm của sinh viên
+```bash
+curl -X GET "http://localhost:8000/api/student-points?student_id=123" \
+  -H "Authorization: Bearer {advisor_token}" \
+  -H "Accept: application/json"
+```
 
-## 📝 Notes
+### Advisor xem tổng hợp điểm lớp
+```bash
+curl -X GET "http://localhost:8000/api/student-points/class-summary?class_id=5" \
+  -H "Authorization: Bearer {advisor_token}" \
+  -H "Accept: application/json"
+```
 
-- Điểm từ hoạt động được tính tự động, không cần cập nhật thủ công
-- Báo cáo chính thức (training_point_summary, social_point_summary) do GVCN nhập
-- Có thể có sự chênh lệch giữa điểm từ hoạt động và điểm báo cáo chính thức
-- Hệ thống tự động lấy học kỳ hiện tại dựa trên ngày hiện tại
+---
+
+## Lưu ý quan trọng
+
+1. **Phân quyền:**
+   - Student chỉ xem được điểm của chính mình
+   - Advisor chỉ xem được điểm sinh viên trong lớp mình quản lý
+
+2. **Tính toán điểm:**
+   - Điểm được tính từ tất cả các hoạt động đã tham gia (không phân biệt học kỳ)
+   - Chỉ tính hoạt động có status = `attended`
+
+3. **Middleware:**
+   - `auth.api`: Kiểm tra authentication
+   - `check_role:student,advisor`: Kiểm tra role của user
