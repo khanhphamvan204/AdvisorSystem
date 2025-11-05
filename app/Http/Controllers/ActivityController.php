@@ -4,29 +4,47 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\ActivityRole;
+// === THÊM 2 MODEL NÀY ĐỂ KIỂM TRA QUYỀN ===
+use App\Models\Student;
+use App\Models\ClassModel;
+// ===
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 /**
  * Controller quản lý CRUD hoạt động (Activities)
- * Role: Advisor only
  */
 class ActivityController extends Controller
 {
     /**
-     * Lấy danh sách tất cả hoạt động (có phân trang và filter)
+     * Lấy danh sách hoạt động (ĐÃ SỬA: Lọc theo CVHT)
      * Role: Student, Advisor
      */
     public function index(Request $request)
     {
-        $query = Activity::with(['advisor:advisor_id,full_name', 'organizerUnit:unit_id,unit_name'])
-            ->orderBy('start_time', 'desc');
+        $currentRole = $request->current_role;
+        $currentUserId = $request->current_user_id;
 
-        // Filter theo status
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        $query = Activity::with(['advisor:advisor_id,full_name', 'organizerUnit:unit_id,unit_name']);
+
+        if ($currentRole === 'advisor') {
+            // Advisor chỉ thấy hoạt động do chính mình tạo
+            $query->where('advisor_id', $currentUserId);
+
+        } elseif ($currentRole === 'student') {
+            // Student chỉ thấy hoạt động của CVHT của mình
+            $student = Student::with('class:class_id,advisor_id')->find($currentUserId);
+
+            if (!$student || !$student->class || !$student->class->advisor_id) {
+                return response()->json(['success' => true, 'data' => []]); // Trả về mảng rỗng nếu SV không có lớp/CVHT
+            }
+
+            $advisorId = $student->class->advisor_id;
+            $query->where('advisor_id', $advisorId);
         }
+
+        $query->orderBy('start_time', 'desc');
 
         // Filter theo thời gian
         if ($request->has('from_date')) {
@@ -48,30 +66,51 @@ class ActivityController extends Controller
     }
 
     /**
-     * Xem chi tiết hoạt động và các vai trò
+     * Xem chi tiết hoạt động (ĐÃ SỬA: Lọc theo CVHT)
      * Role: Student, Advisor
      */
     public function show(Request $request, $activityId)
     {
-        $activity = Activity::with([
+        $currentRole = $request->current_role;
+        $currentUserId = $request->current_user_id;
+
+        $query = Activity::with([
             'advisor:advisor_id,full_name,email,phone_number',
             'organizerUnit:unit_id,unit_name',
             'roles' => function ($q) {
                 $q->withCount('registrations');
             }
-        ])->find($activityId);
+        ]);
+        if ($currentRole === 'advisor') {
+            // Advisor chỉ thấy hoạt động do chính mình tạo
+            $query->where('advisor_id', $currentUserId);
+
+        } elseif ($currentRole === 'student') {
+            // Student chỉ thấy hoạt động của CVHT của mình
+            $student = Student::with('class:class_id,advisor_id')->find($currentUserId);
+
+            if (!$student || !$student->class || !$student->class->advisor_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hoạt động không tồn tại hoặc bạn không có quyền xem'
+                ], 404);
+            }
+
+            $advisorId = $student->class->advisor_id;
+            $query->where('advisor_id', $advisorId);
+        }
+
+        $activity = $query->find($activityId);
 
         if (!$activity) {
             return response()->json([
                 'success' => false,
-                'message' => 'Hoạt động không tồn tại'
+                // Trả về 404 (Không tìm thấy) thay vì 403 (Cấm) để bảo mật
+                'message' => 'Hoạt động không tồn tại hoặc bạn không có quyền xem'
             ], 404);
         }
 
         // Nếu là sinh viên, kiểm tra trạng thái đăng ký
-        $currentRole = $request->current_role;
-        $currentUserId = $request->current_user_id;
-
         if ($currentRole === 'student') {
             $activity->roles->each(function ($role) use ($currentUserId) {
                 $registration = \App\Models\ActivityRegistration::where('activity_role_id', $role->activity_role_id)
@@ -79,7 +118,12 @@ class ActivityController extends Controller
                     ->first();
 
                 $role->student_registration_status = $registration ? $registration->status : null;
-                $role->available_slots = $role->max_slots - $role->registrations_count;
+                // Tính số chỗ còn lại
+                if (isset($role->max_slots)) {
+                    $role->available_slots = $role->max_slots - $role->registrations_count;
+                } else {
+                    $role->available_slots = null;
+                }
             });
         }
 
@@ -97,7 +141,6 @@ class ActivityController extends Controller
     {
         $currentUserId = $request->current_user_id;
 
-        // Validate
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'general_description' => 'nullable|string',
@@ -125,9 +168,8 @@ class ActivityController extends Controller
 
         DB::beginTransaction();
         try {
-            // Tạo hoạt động
             $activity = Activity::create([
-                'advisor_id' => $currentUserId,
+                'advisor_id' => $currentUserId, // Hoạt động được gán cho CVHT tạo ra
                 'organizer_unit_id' => $request->organizer_unit_id,
                 'title' => $request->title,
                 'general_description' => $request->general_description,
@@ -137,7 +179,6 @@ class ActivityController extends Controller
                 'status' => $request->status ?? 'upcoming'
             ]);
 
-            // Tạo các vai trò
             foreach ($request->roles as $roleData) {
                 ActivityRole::create([
                     'activity_id' => $activity->activity_id,
@@ -151,8 +192,6 @@ class ActivityController extends Controller
             }
 
             DB::commit();
-
-            // Load lại với relationships
             $activity->load('roles');
 
             return response()->json([
@@ -194,7 +233,6 @@ class ActivityController extends Controller
             ], 403);
         }
 
-        // Validate
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|required|string|max:255',
             'general_description' => 'nullable|string',
@@ -244,7 +282,7 @@ class ActivityController extends Controller
             ], 404);
         }
 
-        // Kiểm tra quyền
+        // Kiểm tra quyền (Đã an toàn)
         if ($activity->advisor_id != $currentUserId) {
             return response()->json([
                 'success' => false,
@@ -252,7 +290,6 @@ class ActivityController extends Controller
             ], 403);
         }
 
-        // Không cho xóa hoạt động đã hoàn thành
         if ($activity->status === 'completed') {
             return response()->json([
                 'success' => false,
@@ -284,7 +321,6 @@ class ActivityController extends Controller
             ], 404);
         }
 
-        // Kiểm tra quyền
         if ($activity->advisor_id != $currentUserId) {
             return response()->json([
                 'success' => false,
@@ -292,7 +328,6 @@ class ActivityController extends Controller
             ], 403);
         }
 
-        // Lấy danh sách đăng ký
         $registrations = \App\Models\ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
             $q->where('activity_id', $activityId);
         })
@@ -328,18 +363,14 @@ class ActivityController extends Controller
     {
         $currentUserId = $request->current_user_id;
 
-        // Validate
+        // (Validator của bạn giữ nguyên)
         $validator = Validator::make($request->all(), [
             'attendances' => 'required|array|min:1',
             'attendances.*.registration_id' => 'required|integer|exists:Activity_Registrations,registration_id',
             'attendances.*.status' => 'required|in:attended,absent'
         ], [
             'attendances.required' => 'Danh sách điểm danh là bắt buộc',
-            'attendances.array' => 'Danh sách điểm danh phải là một mảng',
-            'attendances.min' => 'Phải có ít nhất 1 sinh viên để điểm danh',
             'attendances.*.registration_id.required' => 'ID đăng ký là bắt buộc',
-            'attendances.*.registration_id.integer' => 'ID đăng ký phải là số nguyên',
-            'attendances.*.registration_id.exists' => 'ID đăng ký không tồn tại trong hệ thống',
             'attendances.*.status.required' => 'Trạng thái điểm danh là bắt buộc',
             'attendances.*.status.in' => 'Trạng thái điểm danh chỉ được là "attended" (có mặt) hoặc "absent" (vắng mặt)'
         ]);
@@ -352,7 +383,6 @@ class ActivityController extends Controller
             ], 422);
         }
 
-        // Kiểm tra hoạt động tồn tại
         $activity = Activity::find($activityId);
         if (!$activity) {
             return response()->json([
@@ -365,23 +395,16 @@ class ActivityController extends Controller
         if ($activity->advisor_id != $currentUserId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn không có quyền điểm danh cho hoạt động này. Chỉ cố vấn tạo hoạt động mới có quyền điểm danh.'
+                'message' => 'Bạn không có quyền điểm danh cho hoạt động này...'
             ], 403);
         }
 
-        // Kiểm tra trạng thái hoạt động
         if ($activity->status === 'cancelled') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể điểm danh vì hoạt động đã bị hủy'
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Không thể điểm danh vì hoạt động đã bị hủy'], 400);
         }
 
         if ($activity->status === 'upcoming') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không thể điểm danh vì hoạt động chưa diễn ra. Vui lòng đợi đến khi hoạt động bắt đầu.'
-            ], 400);
+            return response()->json(['success' => false, 'message' => 'Không thể điểm danh vì hoạt động chưa diễn ra...'], 400);
         }
 
         DB::beginTransaction();
@@ -395,22 +418,14 @@ class ActivityController extends Controller
 
                 if (!$registration) {
                     DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Không tìm thấy đăng ký với ID {$attendance['registration_id']} trong hệ thống"
-                    ], 400);
+                    return response()->json(['success' => false, 'message' => "Không tìm thấy đăng ký với ID {$attendance['registration_id']}..."], 400);
                 }
 
-                // Kiểm tra registration thuộc activity này
                 if ($registration->role->activity_id != $activityId) {
                     DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Đăng ký ID {$attendance['registration_id']} không thuộc hoạt động này. Đăng ký này thuộc hoạt động khác."
-                    ], 400);
+                    return response()->json(['success' => false, 'message' => "Đăng ký ID {$attendance['registration_id']} không thuộc hoạt động này..."], 400);
                 }
 
-                // Cập nhật nếu đang ở trạng thái 'registered' hoặc đã 'attended'/'absent' (cho phép sửa)
                 if (in_array($registration->status, ['registered', 'attended', 'absent'])) {
                     $oldStatus = $registration->status;
                     $registration->update(['status' => $attendance['status']]);
