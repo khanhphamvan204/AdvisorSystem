@@ -84,12 +84,41 @@ class AuthController extends Controller
 
             // Thêm thông tin đặc thù theo role
             if ($role === 'student') {
-                $user->load('class.faculty');
-                $userData['class'] = $user->class;
+                $user->load(['class.faculty', 'class.advisor']);
+                $userData['class'] = [
+                    'class_id' => $user->class->class_id,
+                    'class_name' => $user->class->class_name,
+                    'description' => $user->class->description,
+                    'faculty' => [
+                        'unit_id' => $user->class->faculty->unit_id,
+                        'unit_name' => $user->class->faculty->unit_name,
+                        'type' => $user->class->faculty->type
+                    ],
+                    'advisor' => $user->class->advisor ? [
+                        'advisor_id' => $user->class->advisor->advisor_id,
+                        'full_name' => $user->class->advisor->full_name,
+                        'email' => $user->class->advisor->email,
+                        'phone_number' => $user->class->advisor->phone_number
+                    ] : null
+                ];
                 $userData['status'] = $user->status;
             } elseif ($role === 'advisor') {
-                $user->load('unit');
-                $userData['unit'] = $user->unit;
+                $user->load(['unit', 'classes']);
+
+                $userData['unit'] = [
+                    'unit_id' => $user->unit->unit_id,
+                    'unit_name' => $user->unit->unit_name,
+                    'type' => $user->unit->type,
+                    'description' => $user->unit->description
+                ];
+
+                $userData['classes'] = $user->classes->map(function ($class) {
+                    return [
+                        'class_id' => $class->class_id,
+                        'class_name' => $class->class_name,
+                        'description' => $class->description
+                    ];
+                });
             }
 
             return response()->json([
@@ -135,32 +164,93 @@ class AuthController extends Controller
             $id = $payload->get('id');
 
             $user = null;
-            if ($role === 'student') {
-                $user = Student::with('class.faculty', 'class.advisor')->find($id);
-            } elseif ($role === 'advisor') {
-                $user = Advisor::with('unit', 'classes')->find($id);
-            }
+            $userData = [
+                'id' => $id,
+                'role' => $role
+            ];
 
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthorized',
-                    'message' => 'Token không hợp lệ.'
-                ], 401);
+            if ($role === 'student') {
+                $user = Student::with(['class.faculty', 'class.advisor'])->find($id);
+
+                if (!$user) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Unauthorized',
+                        'message' => 'Token không hợp lệ.'
+                    ], 401);
+                }
+
+                $userData = array_merge($userData, [
+                    'user_code' => $user->user_code,
+                    'full_name' => $user->full_name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'phone_number' => $user->phone_number,
+                    'status' => $user->status,
+                    'created_at' => $user->created_at,
+                    'last_login' => $user->last_login,
+                    'class' => [
+                        'class_id' => $user->class->class_id,
+                        'class_name' => $user->class->class_name,
+                        'description' => $user->class->description,
+                        'faculty' => [
+                            'unit_id' => $user->class->faculty->unit_id,
+                            'unit_name' => $user->class->faculty->unit_name,
+                            'type' => $user->class->faculty->type
+                        ],
+                        'advisor' => $user->class->advisor ? [
+                            'advisor_id' => $user->class->advisor->advisor_id,
+                            'full_name' => $user->class->advisor->full_name,
+                            'email' => $user->class->advisor->email,
+                            'phone_number' => $user->class->advisor->phone_number
+                        ] : null
+                    ]
+                ]);
+
+            } elseif ($role === 'advisor') {
+                $user = Advisor::with([
+                    'unit',
+                    'classes' => function ($query) {
+                        $query->withCount('students')
+                            ->with('faculty');
+                    }
+                ])->find($id);
+
+                if (!$user) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Unauthorized',
+                        'message' => 'Token không hợp lệ.'
+                    ], 401);
+                }
+
+                $userData = array_merge($userData, [
+                    'user_code' => $user->user_code,
+                    'full_name' => $user->full_name,
+                    'email' => $user->email,
+                    'avatar_url' => $user->avatar_url,
+                    'phone_number' => $user->phone_number,
+                    'created_at' => $user->created_at,
+                    'last_login' => $user->last_login,
+                    'unit' => [
+                        'unit_id' => $user->unit->unit_id,
+                        'unit_name' => $user->unit->unit_name,
+                        'type' => $user->unit->type,
+                        'description' => $user->unit->description
+                    ],
+                    'classes' => $user->classes->map(function ($class) {
+                        return [
+                            'class_id' => $class->class_id,
+                            'class_name' => $class->class_name,
+                            'description' => $class->description,
+                        ];
+                    })
+                ]);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $id,
-                    'user_code' => $user->user_code,
-                    'full_name' => $user->full_name,
-                    'email' => $user->email,
-                    'role' => $role,
-                    'avatar_url' => $user->avatar_url,
-                    'phone_number' => $user->phone_number,
-                    'details' => $user
-                ]
+                'data' => $userData
             ], 200);
 
         } catch (\Exception $e) {
@@ -218,7 +308,7 @@ class AuthController extends Controller
                     'token_type' => 'bearer',
                     'expires_in' => JWTAuth::factory()->getTTL() * 60
                 ]
-            ]);
+            ], 200);
         } catch (JWTException $e) {
             return response()->json([
                 'success' => false,
@@ -227,4 +317,6 @@ class AuthController extends Controller
             ], 401);
         }
     }
+
+
 }
