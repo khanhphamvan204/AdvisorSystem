@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\ActivityRole;
-// === THÊM 2 MODEL NÀY ĐỂ KIỂM TRA QUYỀN ===
 use App\Models\Student;
 use App\Models\ClassModel;
 // ===
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use App\Models\ActivityRegistration;
+
 
 /**
  * Controller quản lý CRUD hoạt động (Activities)
@@ -113,7 +114,7 @@ class ActivityController extends Controller
         // Nếu là sinh viên, kiểm tra trạng thái đăng ký
         if ($currentRole === 'student') {
             $activity->roles->each(function ($role) use ($currentUserId) {
-                $registration = \App\Models\ActivityRegistration::where('activity_role_id', $role->activity_role_id)
+                $registration = ActivityRegistration::where('activity_role_id', $role->activity_role_id)
                     ->where('student_id', $currentUserId)
                     ->first();
 
@@ -328,9 +329,10 @@ class ActivityController extends Controller
             ], 403);
         }
 
-        $registrations = \App\Models\ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
+        $registrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
             $q->where('activity_id', $activityId);
         })
+            ->whereIn('status', ['registered', 'attended', 'absent']) // Chỉ lấy các đăng ký còn active
             ->with(['student:student_id,user_code,full_name,email,phone_number', 'role'])
             ->get()
             ->map(function ($reg) {
@@ -413,7 +415,7 @@ class ActivityController extends Controller
             $skipped = [];
 
             foreach ($request->attendances as $attendance) {
-                $registration = \App\Models\ActivityRegistration::with(['role', 'student'])
+                $registration = ActivityRegistration::with(['role', 'student'])
                     ->find($attendance['registration_id']);
 
                 if (!$registration) {
@@ -486,5 +488,371 @@ class ActivityController extends Controller
                 'message' => 'Có lỗi xảy ra khi cập nhật điểm danh: ' . $e->getMessage()
             ], 500);
         }
+    }
+    public function getAvailableStudents(Request $request, $activityId)
+    {
+        $currentUserId = $request->current_user_id;
+
+        // Kiểm tra quyền sở hữu hoạt động
+        $activity = Activity::find($activityId);
+        if (!$activity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hoạt động không tồn tại'
+            ], 404);
+        }
+
+        if ($activity->advisor_id != $currentUserId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền xem danh sách này'
+            ], 403);
+        }
+
+        // Kiểm tra trạng thái hoạt động
+        if ($activity->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xem danh sách sinh viên vì hoạt động đã hoàn thành'
+            ], 400);
+        }
+
+        if ($activity->status === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xem danh sách sinh viên vì hoạt động đã bị hủy'
+            ], 400);
+        }
+
+        // Lấy kỳ học gần nhất (theo end_date gần nhất với hiện tại)
+        $latestSemester = \App\Models\Semester::orderBy('end_date', 'desc')->first();
+
+        // Lấy danh sách lớp mà CVHT đang quản lý
+        $classes = ClassModel::where('advisor_id', $currentUserId)->pluck('class_id');
+
+        // Lấy TẤT CẢ sinh viên trong các lớp
+        $students = Student::whereIn('class_id', $classes)
+            ->with(['class:class_id,class_name'])
+            ->get()
+            ->map(function ($student) use ($activityId, $latestSemester) {
+                // Kiểm tra đã đăng ký hoạt động này chưa
+                $registration = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
+                    $q->where('activity_id', $activityId);
+                })
+                    ->where('student_id', $student->student_id)
+                    ->with('role:activity_role_id,role_name,activity_id')
+                    ->first();
+
+                // Xác định có thể phân công được không
+                $canAssign = true;
+                $reasonCannotAssign = null;
+
+                if ($registration) {
+                    $canAssign = false;
+                    $reasonCannotAssign = "Đã đăng ký vai trò '{$registration->role->role_name}' với trạng thái '{$registration->status}'";
+                }
+
+                // Lấy tất cả hoạt động đã tham dự để tính điểm
+                $allActivities = ActivityRegistration::where('student_id', $student->student_id)
+                    ->where('status', 'attended')
+                    ->with([
+                        'role.activity:activity_id,start_time',
+                        'role:activity_role_id,activity_id,points_awarded,point_type'
+                    ])
+                    ->get();
+
+                // Tính điểm rèn luyện từ KỲ GẦN NHẤT
+                $training_point = 0;
+                if ($latestSemester) {
+                    $training_point = $allActivities->filter(function ($reg) use ($latestSemester) {
+                        if ($reg->role->point_type !== 'ren_luyen') {
+                            return false;
+                        }
+
+                        $activityDate = $reg->role->activity->start_time ?? null;
+                        if (!$activityDate) {
+                            return false;
+                        }
+
+                        return $activityDate >= $latestSemester->start_date
+                            && $activityDate <= $latestSemester->end_date;
+                    })->sum('role.points_awarded');
+                }
+
+                // Tính tổng điểm CTXH từ TẤT CẢ hoạt động
+                $social_point = $allActivities
+                    ->where('role.point_type', 'ctxh')
+                    ->sum('role.points_awarded');
+
+                return [
+                    'student_id' => $student->student_id,
+                    'user_code' => $student->user_code,
+                    'full_name' => $student->full_name,
+                    'email' => $student->email,
+                    'phone_number' => $student->phone_number,
+                    'class_name' => $student->class->class_name,
+                    'training_point' => $training_point, // Điểm rèn luyện (kỳ gần nhất)
+                    'social_point' => $social_point,   // Điểm CTXH (tất cả)
+                    'current_semester' => $latestSemester ? $latestSemester->semester_name : null,
+                    'status' => $student->status,
+                    'can_assign' => $canAssign, // Có thể phân công được không
+                    'reason_cannot_assign' => $reasonCannotAssign, // Lý do không thể phân công
+                    'current_registration' => $registration ? [
+                        'registration_id' => $registration->registration_id,
+                        'role_name' => $registration->role->role_name,
+                        'registration_status' => $registration->status
+                    ] : null
+                ];
+            })
+            ->values();
+
+        // Tách sinh viên thành 2 nhóm
+        $availableStudents = $students->where('can_assign', true)->values();
+        $unavailableStudents = $students->where('can_assign', false)->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'activity' => $activity,
+                'current_semester' => $latestSemester ? [
+                    'semester_id' => $latestSemester->semester_id,
+                    'semester_name' => $latestSemester->semester_name,
+                    'academic_year' => $latestSemester->academic_year
+                ] : null,
+                'summary' => [
+                    'total_students' => $students->count(),
+                    'available_count' => $availableStudents->count(),
+                    'unavailable_count' => $unavailableStudents->count()
+                ],
+                'available_students' => $availableStudents,
+                'unavailable_students' => $unavailableStudents
+            ]
+        ], 200);
+    }
+
+    /**
+     * Phân công sinh viên tham gia hoạt động (role cụ thể)
+     * Role: Advisor only
+     * 
+     * Endpoint: POST /api/activities/{activityId}/assign-students
+     */
+    public function assignStudents(Request $request, $activityId)
+    {
+        $currentUserId = $request->current_user_id;
+
+        // Validate
+        $validator = Validator::make($request->all(), [
+            'assignments' => 'required|array|min:1',
+            'assignments.*.student_id' => 'required|integer|exists:Students,student_id',
+            'assignments.*.activity_role_id' => 'required|integer|exists:Activity_Roles,activity_role_id'
+        ], [
+            'assignments.required' => 'Danh sách phân công là bắt buộc',
+            'assignments.*.student_id.required' => 'ID sinh viên là bắt buộc',
+            'assignments.*.student_id.exists' => 'Sinh viên không tồn tại',
+            'assignments.*.activity_role_id.required' => 'ID vai trò là bắt buộc',
+            'assignments.*.activity_role_id.exists' => 'Vai trò không tồn tại'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dữ liệu không hợp lệ',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Kiểm tra quyền
+        $activity = Activity::find($activityId);
+        if (!$activity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hoạt động không tồn tại'
+            ], 404);
+        }
+
+        if ($activity->advisor_id != $currentUserId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền phân công cho hoạt động này'
+            ], 403);
+        }
+
+        // Kiểm tra trạng thái hoạt động
+        if (in_array($activity->status, ['completed', 'cancelled'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể phân công cho hoạt động đã hoàn thành hoặc bị hủy'
+            ], 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            $assigned = [];
+            $skipped = [];
+
+            foreach ($request->assignments as $assignment) {
+                $studentId = $assignment['student_id'];
+                $roleId = $assignment['activity_role_id'];
+
+                // Kiểm tra vai trò có thuộc hoạt động này không
+                $role = ActivityRole::where('activity_role_id', $roleId)
+                    ->where('activity_id', $activityId)
+                    ->first();
+
+                if (!$role) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Vai trò ID {$roleId} không thuộc hoạt động này"
+                    ], 400);
+                }
+
+                // Kiểm tra sinh viên có thuộc lớp của CVHT không
+                $student = Student::with('class')->find($studentId);
+                if (!$student || $student->class->advisor_id != $currentUserId) {
+                    $skipped[] = [
+                        'student_id' => $studentId,
+                        'reason' => 'Sinh viên không thuộc lớp bạn quản lý'
+                    ];
+                    continue;
+                }
+
+                // Kiểm tra đã đăng ký chưa
+                $existingRegistration = ActivityRegistration::where('activity_role_id', $roleId)
+                    ->where('student_id', $studentId)
+                    ->first();
+
+                if ($existingRegistration) {
+                    $skipped[] = [
+                        'student_id' => $studentId,
+                        'student_name' => $student->full_name,
+                        'student_code' => $student->user_code,
+                        'role_name' => $role->role_name,
+                        'reason' => 'Sinh viên đã đăng ký vai trò này rồi',
+                        'current_status' => $existingRegistration->status
+                    ];
+                    continue;
+                }
+
+                // Kiểm tra số lượng slot còn trống
+                if ($role->max_slots) {
+                    $registeredCount = ActivityRegistration::where('activity_role_id', $roleId)
+                        ->whereIn('status', ['registered', 'attended'])
+                        ->count();
+
+                    if ($registeredCount >= $role->max_slots) {
+                        $skipped[] = [
+                            'student_id' => $studentId,
+                            'student_name' => $student->full_name,
+                            'student_code' => $student->user_code,
+                            'role_name' => $role->role_name,
+                            'reason' => 'Vai trò này đã hết chỗ'
+                        ];
+                        continue;
+                    }
+                }
+
+                // Tạo đăng ký mới với status = 'registered'
+                $registration = ActivityRegistration::create([
+                    'activity_role_id' => $roleId,
+                    'student_id' => $studentId,
+                    'status' => 'registered'
+                ]);
+
+                $assigned[] = [
+                    'registration_id' => $registration->registration_id,
+                    'student_id' => $studentId,
+                    'student_name' => $student->full_name,
+                    'student_code' => $student->user_code,
+                    'role_name' => $role->role_name,
+                    'points_awarded' => $role->points_awarded,
+                    'point_type' => $role->point_type
+                ];
+            }
+
+            DB::commit();
+
+            $message = 'Phân công thành công';
+            if (count($assigned) > 0 && count($skipped) > 0) {
+                $message = 'Đã phân công ' . count($assigned) . ' sinh viên, bỏ qua ' . count($skipped) . ' sinh viên';
+            } elseif (count($assigned) === 0 && count($skipped) > 0) {
+                $message = 'Không có sinh viên nào được phân công. Tất cả ' . count($skipped) . ' sinh viên đều bị bỏ qua';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'total_assigned' => count($assigned),
+                    'total_skipped' => count($skipped),
+                    'assigned' => $assigned,
+                    'skipped' => $skipped
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi phân công: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Hủy phân công sinh viên (chỉ với status = 'registered')
+     * Role: Advisor only
+     * 
+     * Endpoint: DELETE /api/activities/{activityId}/assignments/{registrationId}
+     */
+    public function removeAssignment(Request $request, $activityId, $registrationId)
+    {
+        $currentUserId = $request->current_user_id;
+
+        $registration = ActivityRegistration::with('role.activity', 'student')
+            ->find($registrationId);
+
+        if (!$registration) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đăng ký không tồn tại'
+            ], 404);
+        }
+
+        // Kiểm tra quyền
+        if ($registration->role->activity->advisor_id != $currentUserId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền hủy phân công này'
+            ], 403);
+        }
+
+        // Kiểm tra có thuộc hoạt động này không
+        if ($registration->role->activity_id != $activityId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đăng ký không thuộc hoạt động này'
+            ], 400);
+        }
+
+        // Chỉ cho phép hủy nếu status = 'registered'
+        if ($registration->status !== 'registered') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể hủy phân công ở trạng thái "đã đăng ký"'
+            ], 400);
+        }
+
+        $registration->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Hủy phân công thành công',
+            'data' => [
+                'student_name' => $registration->student->full_name,
+                'student_code' => $registration->student->user_code,
+                'role_name' => $registration->role->role_name
+            ]
+        ], 200);
     }
 }

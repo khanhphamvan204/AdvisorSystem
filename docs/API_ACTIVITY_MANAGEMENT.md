@@ -4,20 +4,27 @@
 - [1. Tổng quan](#1-tổng-quan)
 - [2. Authentication](#2-authentication)
 - [3. Activity APIs](#3-activity-apis)
-- [4. Activity Role APIs](#4-activity-role-apis)
-- [5. Activity Registration APIs](#5-activity-registration-apis)
-- [6. Cancellation Request APIs](#6-cancellation-request-apis)
-- [7. Error Codes](#7-error-codes)
+  - [3.1. Lấy danh sách hoạt động](#31-lấy-danh-sách-hoạt-động)
+  - [3.2. Xem chi tiết hoạt động](#32-xem-chi-tiết-hoạt-động)
+  - [3.3. Tạo hoạt động mới](#33-tạo-hoạt-động-mới)
+  - [3.4. Cập nhật hoạt động](#34-cập-nhật-hoạt-động)
+  - [3.5. Xóa hoạt động](#35-xóa-hoạt-động)
+  - [3.6. Xem danh sách sinh viên đã đăng ký](#36-xem-danh-sách-sinh-viên-đã-đăng-ký)
+  - [3.7. Điểm danh sinh viên](#37-điểm-danh-sinh-viên)
+  - [3.8. Lấy danh sách sinh viên có thể phân công](#38-lấy-danh-sách-sinh-viên-có-thể-phân-công)
+  - [3.9. Phân công sinh viên](#39-phân-công-sinh-viên)
+  - [3.10. Hủy phân công sinh viên](#310-hủy-phân-công-sinh-viên)
+- [4. Error Codes](#4-error-codes)
 
 ---
 
 ## 1. Tổng quan
 
 Hệ thống quản lý hoạt động ngoại khóa cho phép:
-- **Advisor**: Tạo, quản lý hoạt động, vai trò, duyệt đăng ký, điểm danh
-- **Student**: Xem hoạt động, đăng ký tham gia, hủy đăng ký
+- **Advisor (CVHT)**: Tạo, quản lý hoạt động, vai trò, phân công sinh viên, điểm danh
+- **Student (Sinh viên)**: Xem hoạt động của CVHT, xem trạng thái đăng ký
 
-**Base URL**: `http://your-domain.com/api`
+**Base URL**: `/api`
 
 **Content-Type**: `application/json`
 
@@ -46,6 +53,10 @@ Token payload bao gồm:
 
 ### 3.1. Lấy danh sách hoạt động
 
+Lấy danh sách hoạt động theo quyền:
+- **Student**: Chỉ thấy hoạt động của CVHT quản lý lớp mình
+- **Advisor**: Chỉ thấy hoạt động do chính mình tạo
+
 **Endpoint**: `GET /activities`
 
 **Role**: Student, Advisor
@@ -53,13 +64,13 @@ Token payload bao gồm:
 **Query Parameters**:
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| status | string | No | Filter theo trạng thái: `upcoming`, `ongoing`, `completed`, `cancelled` |
-| from_date | date | No | Lọc từ ngày (format: YYYY-MM-DD) |
-| to_date | date | No | Lọc đến ngày (format: YYYY-MM-DD) |
+| from_date | datetime | No | Lọc từ ngày (format: YYYY-MM-DD) |
+| to_date | datetime | No | Lọc đến ngày (format: YYYY-MM-DD) |
+| per_page | integer | No | Số bản ghi mỗi trang (mặc định: 15) |
 
 **Request Example**:
 ```http
-GET /activities?status=upcoming
+GET /api/activities?from_date=2025-01-01&to_date=2025-12-31
 Authorization: Bearer {token}
 ```
 
@@ -67,33 +78,41 @@ Authorization: Bearer {token}
 ```json
 {
   "success": true,
-    "data": [
-      {
-        "activity_id": 1,
-        "title": "Hiến máu nhân đạo 2025",
-        "general_description": "Hoạt động hiến máu cứu người",
-        "location": "Sảnh A, Cơ sở 1",
-        "start_time": "2025-03-15 08:00:00",
-        "end_time": "2025-03-15 11:30:00",
-        "status": "upcoming",
-        "advisor": {
-          "advisor_id": 3,
-          "full_name": "ThS. Lê Hoàng Cường"
-        },
-        "organizer_unit": {
-          "unit_id": 3,
-          "unit_name": "Phòng Công tác Sinh viên"
-        }
+  "data": [
+    {
+      "activity_id": 1,
+      "title": "Hiến máu nhân đạo 2025",
+      "general_description": "Hoạt động hiến máu cứu người",
+      "location": "Sảnh A, Cơ sở 1",
+      "start_time": "2025-03-15 08:00:00",
+      "end_time": "2025-03-15 11:30:00",
+      "status": "upcoming",
+      "advisor": {
+        "advisor_id": 3,
+        "full_name": "ThS. Lê Hoàng Cường"
+      },
+      "organizer_unit": {
+        "unit_id": 3,
+        "unit_name": "Phòng Công tác Sinh viên"
       }
-    ],
+    }
+  ]
 }
 ```
+
+**Trạng thái hoạt động**:
+- `upcoming`: Sắp diễn ra
+- `ongoing`: Đang diễn ra
+- `completed`: Đã hoàn thành
+- `cancelled`: Đã hủy
 
 ---
 
 ### 3.2. Xem chi tiết hoạt động
 
-**Endpoint**: `GET /activities/{activityId}`
+Xem thông tin chi tiết hoạt động bao gồm các vai trò và số lượng đăng ký.
+
+**Endpoint**: `GET /api/activities/{activityId}`
 
 **Role**: Student, Advisor
 

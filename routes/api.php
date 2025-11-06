@@ -95,6 +95,16 @@ Route::middleware(['auth.api'])->prefix('activities')->group(function () {
 
         // Cập nhật điểm danh
         Route::post('/{activityId}/attendance', [ActivityController::class, 'updateAttendance']);
+
+        // ===== PHÂN CÔNG SINH VIÊN (MỚI) =====
+        // Xem danh sách sinh viên có thể phân công (trong lớp của CVHT)
+        Route::get('/{activityId}/available-students', [ActivityController::class, 'getAvailableStudents']);
+
+        // Phân công sinh viên tham gia hoạt động
+        Route::post('/{activityId}/assign-students', [ActivityController::class, 'assignStudents']);
+
+        // Hủy phân công sinh viên
+        Route::delete('/{activityId}/assignments/{registrationId}', [ActivityController::class, 'removeAssignment']);
     });
 });
 
@@ -124,6 +134,8 @@ Route::middleware(['auth.api'])->prefix('activities/{activityId}/roles')->group(
 
         // Xem danh sách sinh viên đã đăng ký vai trò này
         Route::get('/{roleId}/registrations', [ActivityRoleController::class, 'getRegistrations']);
+
+
     });
 });
 

@@ -16,7 +16,7 @@ Authorization: Bearer {access_token}
 
 ### 1. Xem điểm của sinh viên
 
-Lấy tổng điểm rèn luyện, điểm CTXH và danh sách chi tiết các hoạt động đã tham gia.
+Lấy tổng điểm rèn luyện (theo kỳ học), điểm CTXH (tổng tất cả) và danh sách chi tiết các hoạt động đã tham gia.
 
 **Endpoint:** `GET /api/student-points`
 
@@ -32,14 +32,22 @@ Authorization: Bearer {token}
 | Tham số | Bắt buộc | Kiểu | Mô tả |
 |---------|----------|------|-------|
 | student_id | Có (nếu role = advisor) | integer | ID của sinh viên cần xem điểm |
+| semester_id | Không | integer | ID kỳ học để lọc điểm rèn luyện. Nếu không truyền, lấy tất cả |
 
 **Lưu ý:**
 - **Student:** Tự động xem điểm của chính mình, không cần truyền `student_id`
 - **Advisor:** Bắt buộc truyền `student_id`, chỉ xem được điểm của sinh viên trong lớp mình quản lý
+- **Điểm rèn luyện:** Được lọc theo kỳ học (nếu có `semester_id`)
+- **Điểm CTXH:** Luôn tính tổng từ tất cả hoạt động (không lọc theo thời gian)
 
-**Request Example (Advisor):**
+**Request Example (Advisor - lọc theo kỳ):**
 ```
-GET /api/student-points?student_id=123
+GET /api/student-points?student_id=123&semester_id=1
+```
+
+**Request Example (Student - xem tất cả):**
+```
+GET /api/student-points
 ```
 
 **Response Success (200):**
@@ -52,11 +60,25 @@ GET /api/student-points?student_id=123
       "full_name": "Nguyễn Văn A",
       "user_code": "SV001"
     },
-    "summary": {
-      "total_training_points": 85,
-      "total_social_points": 45
+    "filter_info": {
+      "semester_id": 1,
+      "semester_name": "HK1 2024-2025",
+      "academic_year": "2024-2025"
     },
-    "activities": [
+    "summary": {
+      "total_training_points": 50,
+      "total_social_points": 120
+    },
+    "training_activities": [
+      {
+        "activity_title": "Hội thảo kỹ năng mềm",
+        "role_name": "Người tham gia",
+        "points_awarded": 10,
+        "point_type": "ren_luyen",
+        "activity_date": "2024-10-20 14:00:00"
+      }
+    ],
+    "social_activities": [
       {
         "activity_title": "Hiến máu nhân đạo",
         "role_name": "Tình nguyện viên",
@@ -65,11 +87,11 @@ GET /api/student-points?student_id=123
         "activity_date": "2024-10-15 08:00:00"
       },
       {
-        "activity_title": "Hội thảo kỹ năng mềm",
-        "role_name": "Người tham gia",
-        "points_awarded": 10,
-        "point_type": "ren_luyen",
-        "activity_date": "2024-10-20 14:00:00"
+        "activity_title": "Chương trình từ thiện",
+        "role_name": "Ban tổ chức",
+        "points_awarded": 25,
+        "point_type": "ctxh",
+        "activity_date": "2024-09-10 08:00:00"
       }
     ]
   }
@@ -109,7 +131,7 @@ GET /api/student-points?student_id=123
 
 ### 2. Xem tổng hợp điểm cả lớp
 
-Lấy danh sách tổng điểm của tất cả sinh viên trong một lớp.
+Lấy danh sách tổng điểm của tất cả sinh viên trong một lớp. Điểm rèn luyện có thể lọc theo kỳ học, điểm CTXH luôn tính tổng tất cả.
 
 **Endpoint:** `GET /api/student-points/class-summary`
 
@@ -125,8 +147,14 @@ Authorization: Bearer {token}
 | Tham số | Bắt buộc | Kiểu | Mô tả |
 |---------|----------|------|-------|
 | class_id | Có | integer | ID của lớp cần xem |
+| semester_id | Không | integer | ID kỳ học để lọc điểm rèn luyện. Nếu không truyền, lấy tất cả |
 
-**Request Example:**
+**Request Example (với filter kỳ học):**
+```
+GET /api/student-points/class-summary?class_id=5&semester_id=1
+```
+
+**Request Example (không filter):**
 ```
 GET /api/student-points/class-summary?class_id=5
 ```
@@ -137,21 +165,26 @@ GET /api/student-points/class-summary?class_id=5
   "success": true,
   "data": {
     "class_name": "CNTT K15A",
+    "filter_info": {
+      "semester_id": 1,
+      "semester_name": "HK1 2024-2025",
+      "academic_year": "2024-2025"
+    },
     "total_students": 45,
     "students": [
       {
         "student_id": 123,
         "user_code": "SV001",
         "full_name": "Nguyễn Văn A",
-        "total_training_points": 85,
-        "total_social_points": 45
+        "total_training_points": 50,
+        "total_social_points": 120
       },
       {
         "student_id": 124,
         "user_code": "SV002",
         "full_name": "Trần Thị B",
-        "total_training_points": 70,
-        "total_social_points": 60
+        "total_training_points": 45,
+        "total_social_points": 95
       }
     ]
   }
@@ -207,12 +240,29 @@ GET /api/student-points/class-summary?class_id=5
 
 ## Quy tắc tính điểm
 
-1. **Chỉ tính điểm từ hoạt động đã tham gia:** Status = `attended`
-2. **Tính tổng từ TẤT CẢ hoạt động:** Không giới hạn theo học kỳ
-3. **Hai loại điểm:**
-   - `ren_luyen`: Điểm rèn luyện
-   - `ctxh`: Điểm công tác xã hội
-4. **Điểm được tính theo vai trò:** Mỗi vai trò trong hoạt động có số điểm khác nhau
+### Điểm Rèn Luyện (Training Points)
+1. **Lọc theo KỲ HỌC:**
+   - Sử dụng parameter `semester_id` để lọc
+   - Chỉ tính các hoạt động có `start_time` nằm trong khoảng `start_date` và `end_date` của kỳ học
+   - Nếu không truyền `semester_id`, lấy tất cả điểm rèn luyện
+
+2. **Chỉ tính hoạt động đã tham gia:** Status = `attended`
+
+### Điểm CTXH (Social Points)
+1. **Tính TỔNG từ TẤT CẢ hoạt động:**
+   - Không lọc theo thời gian
+   - Cộng tất cả điểm CTXH từ mọi hoạt động đã tham gia
+
+2. **Chỉ tính hoạt động đã tham gia:** Status = `attended`
+
+### Chung
+1. **Hai loại điểm:**
+   - `ren_luyen`: Điểm rèn luyện (tính theo kỳ)
+   - `ctxh`: Điểm công tác xã hội (tính tổng tất cả)
+
+2. **Điểm được tính theo vai trò:** Mỗi vai trò trong hoạt động có số điểm khác nhau
+
+3. **Hoạt động hợp lệ:** Chỉ tính các hoạt động có status = `attended`
 
 ---
 

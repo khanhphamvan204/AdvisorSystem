@@ -28,10 +28,14 @@ class ActivityRoleController extends Controller
         }
 
         $roles = ActivityRole::where('activity_id', $activityId)
-            ->withCount('registrations')
+            ->withCount([
+                'registrations as active_registrations_count' => function ($query) {
+                    $query->whereIn('status', ['registered', 'attended']);
+                }
+            ])
             ->get()
             ->map(function ($role) {
-                $role->available_slots = $role->max_slots ? ($role->max_slots - $role->registrations_count) : null;
+                $role->available_slots = $role->max_slots ? ($role->max_slots - $role->active_registrations_count) : null;
                 return $role;
             });
 
@@ -53,7 +57,11 @@ class ActivityRoleController extends Controller
         $role = ActivityRole::with('activity')
             ->where('activity_id', $activityId)
             ->where('activity_role_id', $roleId)
-            ->withCount('registrations')
+            ->withCount([
+                'registrations as active_registrations_count' => function ($query) {
+                    $query->whereIn('status', ['registered', 'attended']);
+                }
+            ])
             ->first();
 
         if (!$role) {
@@ -63,7 +71,7 @@ class ActivityRoleController extends Controller
             ], 404);
         }
 
-        $role->available_slots = $role->max_slots ? ($role->max_slots - $role->registrations_count) : null;
+        $role->available_slots = $role->max_slots ? ($role->max_slots - $role->active_registrations_count) : null;
 
         return response()->json([
             'success' => true,

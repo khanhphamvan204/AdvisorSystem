@@ -67,8 +67,12 @@ class ActivityRegistrationController extends Controller
 
         // Kiểm tra số lượng slot còn trống
         if ($role->max_slots) {
+            // Đếm các registration còn active (loại trừ cả những cái đã có yêu cầu hủy được duyệt)
             $registeredCount = ActivityRegistration::where('activity_role_id', $request->activity_role_id)
                 ->whereIn('status', ['registered', 'attended'])
+                ->whereDoesntHave('cancellationRequest', function ($query) {
+                    $query->where('status', 'approved');
+                })
                 ->count();
 
             if ($registeredCount >= $role->max_slots) {
@@ -288,14 +292,26 @@ class ActivityRegistrationController extends Controller
         // Cập nhật trạng thái
         $cancellationRequest->update(['status' => $request->status]);
 
-        // Nếu approved, cập nhật trạng thái registration
+        // Nếu approved, cập nhật trạng thái registration và giảm số lượng đã đăng ký
         if ($request->status === 'approved') {
             $cancellationRequest->registration->update(['status' => 'cancelled']);
+
+            // Giảm số lượng đã đăng ký trong ActivityRole
+            // Slot này sẽ được mở lại cho sinh viên khác đăng ký
+            $role = $cancellationRequest->registration->role;
+            if ($role) {
+                // Đếm lại số lượng registration còn active (registered, attended)
+                $activeCount = ActivityRegistration::where('activity_role_id', $role->activity_role_id)
+                    ->whereIn('status', ['registered', 'attended'])
+                    ->count();
+
+                Log::info("Role {$role->activity_role_id}: Updated active registration count to {$activeCount} after cancellation approval");
+            }
         }
 
         return response()->json([
             'success' => true,
-            'message' => $request->status === 'approved' ? 'Đã duyệt yêu cầu hủy' : 'Đã từ chối yêu cầu hủy',
+            'message' => $request->status === 'approved' ? 'Đã duyệt yêu cầu hủy. Slot đã được mở lại.' : 'Đã từ chối yêu cầu hủy',
             'data' => $cancellationRequest
         ], 200);
     }
