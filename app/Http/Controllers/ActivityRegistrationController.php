@@ -7,6 +7,7 @@ use App\Models\ActivityRegistration;
 use App\Models\CancellationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Controller quản lý đăng ký hoạt động của sinh viên
@@ -265,9 +266,8 @@ class ActivityRegistrationController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
         $cancellationRequest = CancellationRequest::with('registration.role.activity')
-            ->find($requestId);
+            ->find($request->requestId);
 
         if (!$cancellationRequest) {
             return response()->json([
