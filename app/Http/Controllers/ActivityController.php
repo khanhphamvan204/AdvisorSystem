@@ -45,7 +45,8 @@ class ActivityController extends Controller
             $query->where('advisor_id', $advisorId);
         }
 
-        $query->orderBy('start_time', 'desc');
+        // Sắp xếp theo ID giảm dần (hoạt động mới tạo nhất)
+        $query->orderBy('activity_id', 'desc');
 
         // Filter theo thời gian
         if ($request->has('from_date')) {
@@ -332,7 +333,6 @@ class ActivityController extends Controller
         $registrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
             $q->where('activity_id', $activityId);
         })
-            ->whereIn('status', ['registered', 'attended', 'absent']) // Chỉ lấy các đăng ký còn active
             ->with(['student:student_id,user_code,full_name,email,phone_number', 'role'])
             ->get()
             ->map(function ($reg) {
