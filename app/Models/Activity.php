@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\ActivityClass;
 
 class Activity extends Model
 {
@@ -41,5 +43,21 @@ class Activity extends Model
     public function roles(): HasMany
     {
         return $this->hasMany(ActivityRole::class, 'activity_id', 'activity_id');
+    }
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(ClassModel::class, 'Activity_Class', 'activity_id', 'class_id')
+            ->using(ActivityClass::class);
+    }
+    public function registrations(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ActivityRegistration::class,
+            ActivityRole::class,
+            'activity_id',
+            'activity_role_id',
+            'activity_id',
+            'activity_role_id'
+        );
     }
 }

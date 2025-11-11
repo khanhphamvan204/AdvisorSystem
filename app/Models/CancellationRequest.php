@@ -11,7 +11,7 @@ class CancellationRequest extends Model
     public $timestamps = false;
     protected $primaryKey = 'request_id';
 
-    protected $fillable = ['registration_id', 'reason', 'status'];
+    protected $fillable = ['registration_id', 'reason', 'status', 'requested_at'];
 
     protected $casts = [
         'status' => 'string',

@@ -12,7 +12,7 @@ class ActivityRegistration extends Model
     public $timestamps = false;
     protected $primaryKey = 'registration_id';
 
-    protected $fillable = ['activity_role_id', 'student_id', 'status'];
+    protected $fillable = ['activity_role_id', 'student_id', 'status', 'registration_time'];
 
     protected $casts = [
         'registration_time' => 'datetime',

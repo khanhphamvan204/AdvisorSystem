@@ -26,73 +26,67 @@ class Student extends Model implements JWTSubject
         'status'
     ];
 
+    protected $hidden = [
+        'password_hash',
+    ];
+
     protected $casts = [
         'created_at' => 'datetime',
         'last_login' => 'datetime',
         'status' => 'string',
     ];
 
-    // Quan hệ: Sinh viên thuộc 1 lớp
+    // (Các hàm quan hệ của bạn giữ nguyên)
     public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
     }
 
-    // Quan hệ: Sinh viên có nhiều điểm môn học
     public function courseGrades(): HasMany
     {
         return $this->hasMany(CourseGrade::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên có nhiều báo cáo học kỳ
     public function semesterReports(): HasMany
     {
         return $this->hasMany(SemesterReport::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên nhận nhiều cảnh cáo
     public function academicWarnings(): HasMany
     {
         return $this->hasMany(AcademicWarning::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên gửi khiếu nại điểm
     public function pointFeedbacks(): HasMany
     {
         return $this->hasMany(PointFeedback::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên đăng ký hoạt động
     public function activityRegistrations(): HasMany
     {
         return $this->hasMany(ActivityRegistration::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên nhận thông báo
     public function notificationRecipients(): HasMany
     {
         return $this->hasMany(NotificationRecipient::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên phản hồi thông báo
     public function notificationResponses(): HasMany
     {
         return $this->hasMany(NotificationResponse::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên tham gia họp
     public function meetingStudents(): HasMany
     {
         return $this->hasMany(MeetingStudent::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Sinh viên phản hồi biên bản họp
     public function meetingFeedbacks(): HasMany
     {
         return $this->hasMany(MeetingFeedback::class, 'student_id', 'student_id');
     }
 
-    // Quan hệ: Tin nhắn (gửi & nhận)
     public function sentMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'student_id', 'student_id')
@@ -105,12 +99,12 @@ class Student extends Model implements JWTSubject
             ->where('sender_type', 'advisor');
     }
 
-    // Quan hệ: Ghi chú theo dõi
     public function monitoringNotes(): HasMany
     {
         return $this->hasMany(StudentMonitoringNote::class, 'student_id', 'student_id');
     }
 
+    // === HÀM JWT (CỦA BẠN ĐÃ ĐÚNG) ===
     public function getJWTIdentifier()
     {
         return $this->getKey();

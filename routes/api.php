@@ -9,6 +9,10 @@ use App\Http\Controllers\PointManagementController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ActivityRoleController;
 use App\Http\Controllers\ActivityRegistrationController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\AcademicMonitoringController;
+use App\Http\Controllers\ActivityStatisticsController;
 
 
 
@@ -144,6 +148,9 @@ Route::middleware(['auth.api'])->prefix('activities/{activityId}/roles')->group(
 // =====================================================
 Route::middleware(['auth.api', 'check_role:student'])->prefix('activity-registrations')->group(function () {
 
+    // Xem danh sách hoạt động đã tham gia kèm vai trò
+    Route::get('/my-participated-activities', [ActivityRegistrationController::class, 'getMyParticipatedActivities']);
+
     // Đăng ký tham gia hoạt động (role cụ thể)
     Route::post('/register', [ActivityRegistrationController::class, 'register']);
 
@@ -157,6 +164,7 @@ Route::middleware(['auth.api', 'check_role:student'])->prefix('activity-registra
     Route::get('/my-cancellation-requests', [ActivityRegistrationController::class, 'myCancellationRequests']);
 });
 
+
 // =====================================================
 // YÊU CẦU HỦY ĐĂNG KÝ - Dành cho Advisor
 // =====================================================
@@ -167,6 +175,15 @@ Route::middleware(['auth.api', 'check_role:advisor'])->prefix('activities/{activ
 
     // Duyệt/từ chối yêu cầu hủy
     Route::patch('/{requestId}', [ActivityRegistrationController::class, 'approveCancellation']);
+});
+
+
+Route::middleware(['auth.api', 'check_role:admin'])->group(function () {
+    Route::prefix('activities/statistics')->group(function () {
+        Route::get('/class/{classId}', [ActivityStatisticsController::class, 'getClassActivityStatistics']);
+        Route::get('/activity/{activityId}', [ActivityStatisticsController::class, 'getActivityClassStatistics']);
+        Route::get('/faculty/overview', [ActivityStatisticsController::class, 'getFacultyOverviewStatistics']);
+    });
 });
 
 
@@ -192,3 +209,237 @@ Route::middleware(['auth.api'])->prefix('student-points')->group(function () {
     Route::get('/class-summary', [PointManagementController::class, 'getClassPointsSummary'])
         ->middleware('check_role:advisor');
 });
+
+
+/**
+ * ============================================================
+ * ROUTES QUẢN LÝ MÔN HỌC (COURSES)
+ * ============================================================
+ */
+
+Route::middleware(['auth.api'])->group(function () {
+
+    /**
+     * ROUTES CHO ADMIN - QUẢN LÝ MÔN HỌC
+     * Admin chỉ được quản lý môn học thuộc khoa của mình
+     */
+    Route::middleware(['check_role:admin'])->prefix('courses')->group(function () {
+
+        // Xem danh sách môn học thuộc khoa của admin
+        Route::get('/my-unit-courses', [CourseController::class, 'getMyUnitCourses']);
+
+        // Tạo môn học mới (chỉ thuộc khoa của mình)
+        Route::post('/', [CourseController::class, 'store']);
+
+        // Cập nhật môn học (chỉ môn học thuộc khoa của mình)
+        Route::put('/{course_id}', [CourseController::class, 'update']);
+
+        // Xóa môn học (chỉ môn học thuộc khoa của mình)
+        Route::delete('/{course_id}', [CourseController::class, 'destroy']);
+    });
+
+    /**
+     * ROUTES CHO STUDENT - MÔN HỌC
+     */
+    Route::middleware(['check_role:student'])->prefix('courses')->group(function () {
+
+        // Xem danh sách môn học của mình
+        Route::get('/my-courses', [CourseController::class, 'getMyCourses']);
+    });
+
+    /**
+     * ROUTES PUBLIC - Xem danh sách môn học
+     */
+    Route::prefix('courses')->group(function () {
+
+        // Danh sách tất cả môn học (có phân trang và tìm kiếm)
+        Route::get('/', [CourseController::class, 'index']);
+
+        // Chi tiết môn học
+        Route::get('/{course_id}', [CourseController::class, 'show']);
+    });
+
+
+
+    /**
+     * ROUTES CHO ADVISOR - MÔN HỌC
+     */
+    Route::middleware(['check_role:advisor'])->prefix('courses')->group(function () {
+
+        // Xem danh sách sinh viên học một môn
+        Route::get('/{course_id}/students', [CourseController::class, 'getCourseStudents']);
+    });
+
+
+});
+
+/**
+ * ============================================================
+ * ROUTES QUẢN LÝ ĐIỂM (GRADES)
+ * ============================================================
+ */
+
+Route::middleware(['auth.api'])->group(function () {
+
+    /**
+     * ROUTES CHO STUDENT - ĐIỂM
+     */
+    Route::middleware(['check_role:student'])->prefix('grades')->group(function () {
+
+        // Xem điểm của chính mình
+        Route::get('/my-grades', [GradeController::class, 'getMyGrades']);
+    });
+
+    /**
+     * ROUTES CHO ADVISOR - ĐIỂM
+     */
+    Route::middleware(['check_role:advisor'])->prefix('grades')->group(function () {
+
+        // Xem điểm của sinh viên trong lớp
+        Route::get('/student/{student_id}', [GradeController::class, 'getStudentGrades']);
+
+        // Xuất điểm cả lớp
+        Route::get(
+            '/export-class-grades/{class_id}/{semester_id}',
+            [GradeController::class, 'exportClassGrades']
+        );
+    });
+
+    /**
+     * ROUTES CHO ADMIN - QUẢN LÝ ĐIỂM
+     * Admin chỉ được nhập/sửa/xóa điểm cho sinh viên thuộc các lớp trong khoa mình
+     */
+    Route::middleware(['check_role:admin'])->prefix('grades')->group(function () {
+
+        // Nhập điểm cho sinh viên (chỉ sinh viên thuộc lớp trong khoa mình)
+        Route::post('/', [GradeController::class, 'store']);
+
+        // Cập nhật điểm (chỉ sinh viên thuộc lớp trong khoa mình)
+        Route::put('/{grade_id}', [GradeController::class, 'update']);
+
+        // Nhập điểm hàng loạt (chỉ sinh viên thuộc lớp trong khoa mình)
+        Route::post('/batch-import', [GradeController::class, 'batchImport']);
+
+        // Xóa điểm (chỉ sinh viên thuộc lớp trong khoa mình)
+        Route::delete('/{grade_id}', [GradeController::class, 'destroy']);
+    });
+});
+
+
+/**
+ * ============================================================
+ * ROUTES THEO DÕI HỌC VỤ VÀ CẢNH CÁO HỌC VỤ
+ * ============================================================
+ */
+
+Route::middleware(['auth.api'])->group(function () {
+
+    /**
+     * ROUTES CHO STUDENT - HỌC VỤ
+     */
+    Route::middleware(['check_role:student'])->prefix('academic')->group(function () {
+
+        // Xem báo cáo học kỳ của chính mình
+        Route::get('/my-semester-report/{semester_id}', function ($semesterId) {
+            $request = request();
+            $studentId = $request->current_user_id;
+            return app(AcademicMonitoringController::class)
+                ->getSemesterReport($request, $studentId, $semesterId);
+        });
+
+        // Xem danh sách cảnh cáo học vụ của mình
+        Route::get('/my-warnings', [AcademicMonitoringController::class, 'getMyWarnings']);
+    });
+
+    /**
+     * ROUTES CHO ADVISOR - HỌC VỤ
+     */
+    Route::middleware(['check_role:advisor'])->prefix('academic')->group(function () {
+
+        // Xem báo cáo học kỳ của sinh viên (trong lớp mình quản lý)
+        Route::get(
+            '/semester-report/{student_id}/{semester_id}',
+            [AcademicMonitoringController::class, 'getSemesterReport']
+        );
+
+        // Xem danh sách sinh viên có nguy cơ bỏ học
+        Route::get('/at-risk-students', [AcademicMonitoringController::class, 'getAtRiskStudents']);
+
+        // Tự động tạo cảnh cáo học vụ
+        Route::post('/create-warnings', [AcademicMonitoringController::class, 'createAcademicWarnings']);
+
+        // Xem danh sách cảnh cáo đã tạo
+        Route::get('/warnings-created', [AcademicMonitoringController::class, 'getWarningsCreated']);
+
+        // Thống kê tổng quan học vụ
+        Route::get('/statistics', [AcademicMonitoringController::class, 'getAcademicStatistics']);
+
+        // Cập nhật báo cáo học kỳ (tính lại GPA, CPA, điểm DRL/CTXH)
+        Route::post('/update-semester-report', [AcademicMonitoringController::class, 'updateSemesterReport']);
+
+        // Cập nhật báo cáo hàng loạt cho cả lớp
+        Route::post('/batch-update-semester-reports', [AcademicMonitoringController::class, 'batchUpdateSemesterReports']);
+    });
+
+    /**
+     * ROUTES CHO STUDENT - ĐIỂM RÈN LUYỆN & CTXH
+     */
+    Route::middleware(['check_role:student'])->prefix('points')->group(function () {
+
+        // Xem điểm rèn luyện và CTXH của chính mình trong học kỳ
+        Route::get(
+            '/my-semester-points/{semester_id}',
+            [PointManagementController::class, 'getMySemesterPoints']
+        );
+
+        // Xem lịch sử tham gia hoạt động
+        Route::get(
+            '/my-activity-history',
+            [PointManagementController::class, 'getMyActivityHistory']
+        );
+
+        // Xem tổng điểm tích lũy
+        Route::get(
+            '/my-total-points',
+            [PointManagementController::class, 'getMyTotalPoints']
+        );
+    });
+
+    /**
+     * ROUTES CHO ADVISOR - ĐIỂM RÈN LUYỆN & CTXH
+     */
+    Route::middleware(['check_role:advisor'])->prefix('points')->group(function () {
+
+        // Xem điểm của sinh viên trong lớp mình
+        Route::get(
+            '/student-semester-points/{student_id}/{semester_id}',
+            [PointManagementController::class, 'getStudentSemesterPoints']
+        );
+
+        // Cập nhật điểm cho một sinh viên
+        Route::post(
+            '/update-student-points',
+            [PointManagementController::class, 'updateStudentPoints']
+        );
+
+        // Cập nhật điểm hàng loạt cho cả lớp
+        Route::post(
+            '/batch-update-class-points',
+            [PointManagementController::class, 'batchUpdateClassPoints']
+        );
+
+        // Xem tổng hợp điểm của cả lớp
+        Route::get(
+            '/class-points-summary/{class_id}/{semester_id}',
+            [PointManagementController::class, 'getClassPointsSummary']
+        );
+
+        // Xem sinh viên có điểm thấp
+        Route::get(
+            '/low-points-students',
+            [PointManagementController::class, 'getLowPointsStudents']
+        );
+    });
+});
+
+

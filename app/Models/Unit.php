@@ -31,4 +31,8 @@ class Unit extends Model
     {
         return $this->hasMany(Activity::class, 'organizer_unit_id', 'unit_id');
     }
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class, 'unit_id', 'unit_id');
+    }
 }

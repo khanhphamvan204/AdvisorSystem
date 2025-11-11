@@ -11,11 +11,21 @@ class CourseGrade extends Model
     public $timestamps = false;
     protected $primaryKey = 'grade_id';
 
-    protected $fillable = ['student_id', 'course_id', 'semester_id', 'grade_value', 'status'];
+    protected $fillable = [
+        'student_id',
+        'course_id',
+        'semester_id',
+        'grade_value',
+        'status',
+        'grade_letter',
+        'grade_4_scale'
+    ];
 
     protected $casts = [
         'grade_value' => 'decimal:2',
-        'status' => 'string', // passed, failed, studying
+        'status' => 'string',
+        'grade_letter' => 'string',
+        'grade_4_scale' => 'decimal:2'
     ];
 
     public function student(): BelongsTo
