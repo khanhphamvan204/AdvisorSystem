@@ -1,10 +1,11 @@
 {
 	"info": {
-		"_postman_id": "674fc6ce-35b3-43b3-be2d-5ffc2d335f86",
+		"_postman_id": "1a8bcadd-9b77-48e5-ba36-22e75215416c",
 		"name": "AdvisorSystem",
 		"description": "# 🚀 Get started here\n\nThis template guides you through CRUD operations (GET, POST, PUT, DELETE), variables, and tests.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Send requests**\n\nRESTful APIs allow you to perform CRUD operations using the POST, GET, PUT, and DELETE HTTP methods.\n\nThis collection contains each of these [request](https://learning.postman.com/docs/sending-requests/requests/) types. Open each request and click \"Send\" to see what happens.\n\n#### **Step 2: View responses**\n\nObserve the response tab for status code (200 OK), response time, and size.\n\n#### **Step 3: Send new Body data**\n\nUpdate or add new data in \"Body\" in the POST request. Typically, Body data is also used in PUT request.\n\n```\n{\n    \"name\": \"Add your name in the body\"\n}\n\n ```\n\n#### **Step 4: Update the variable**\n\nVariables enable you to store and reuse values in Postman. We have created a [variable](https://learning.postman.com/docs/sending-requests/variables/) called `base_url` with the sample request [https://postman-api-learner.glitch.me](https://postman-api-learner.glitch.me). Replace it with your API endpoint to customize this collection.\n\n#### **Step 5: Add tests in the \"Scripts\" tab**\n\nAdding tests to your requests can help you confirm that your API is working as expected. You can write test scripts in JavaScript and view the output in the \"Test Results\" tab.\n\n<img src=\"https://content.pstmn.io/fa30ea0a-373d-4545-a668-e7b283cca343/aW1hZ2UucG5n\" alt=\"\" height=\"1530\" width=\"2162\">\n\n## 💪 Pro tips\n\n- Use folders to group related requests and organize the collection.\n    \n- Add more [scripts](https://learning.postman.com/docs/writing-scripts/intro-to-scripts/) to verify if the API works as expected and execute workflows.\n    \n\n## 💡Related templates\n\n[API testing basics](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9a37a28-055b-49cd-8c7e-97494a21eb54&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[API documentation](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=e9c28f47-1253-44af-a2f3-20dce4da1f18&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)  \n[Authorization methods](https://go.postman.co/redirect/workspace?type=personal&collectionTemplateId=31a9a6ed-4cdf-4ced-984c-d12c9aec1c27&sourceTemplateId=ddb19591-3097-41cf-82af-c84273e56719)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "44309294"
+		"_exporter_id": "44309294",
+		"_collection_link": "https://khanh-9716692.postman.co/workspace/Khanh's-Workspace~21028e77-adbc-4196-8de6-0d5da9d6039a/collection/44309294-1a8bcadd-9b77-48e5-ba36-22e75215416c?action=share&source=collection_link&creator=44309294"
 	},
 	"item": [
 		{
@@ -35,7 +36,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"user_code\":\"GV001\",\r\n    \"password\":\"123456\"\r\n}\r\n\r\n// {\r\n//     \"user_code\":\"210001\",\r\n//     \"password\":\"123456\"\r\n// }",
+							"raw": "// {\r\n//     \"user_code\":\"GV001\",\r\n//     \"password\":\"123456\",\r\n//     \"role\":\"advisor\"\r\n// }\r\n\r\n// {\r\n//     \"user_code\":\"230001\",\r\n//     \"password\":\"123456\",\r\n//     \"role\":\"student\"\r\n// }\r\n\r\n{\r\n    \"user_code\":\"ADMIN001\",\r\n    \"password\":\"123456\",\r\n    \"role\":\"admin\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -65,7 +66,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTAyMDgsImV4cCI6MTc2MTc5MzgwOCwibmJmIjoxNzYxNzkwMjA4LCJqdGkiOiJZREZYSVhVR0NabmlVa2xlIiwic3ViIjoiNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoic3R1ZGVudCJ9.ueUbIzxEbbhEC54ykgTTR3zU3404wbr1A-5ZrN33rlQ",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjIzMTU5NTEsImV4cCI6MTc2MjY3NTk1MSwibmJmIjoxNzYyMzE1OTUxLCJqdGkiOiI2Nnk0QXYzckphbEpoVzVqIiwic3ViIjoiMSIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6MSwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoiTmd1eeG7hW4gVsSDbiBIw7luZyJ9.xCMy_KDlZIiArF38HtG0vwwWZtAio_XZj5GbRGcDl5g",
 									"type": "string"
 								}
 							]
@@ -94,7 +95,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3NTg1MjMsImV4cCI6MTc2MTc2MjEyMywibmJmIjoxNzYxNzU4NTIzLCJqdGkiOiJ0UjNzT0lGdTRZa29QZlVOIiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.R9fzcoja9f5dryC-KbGYaHsVXNIEQugvOgtpVzymKfk",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvcmVmcmVzaCIsImlhdCI6MTc2MTkyMzI1NSwiZXhwIjoxNzYxOTI2ODcyLCJuYmYiOjE3NjE5MjMyNzIsImp0aSI6IldUS0pJN095N1lpSFcyejQiLCJzdWIiOiIxIiwicHJ2IjoiOGVlOWU2YTQwY2Y2NjllOWY5MDg0NGE3YjExNzFmYjUzN2UzNWM2OCIsImlkIjoxLCJyb2xlIjoiYWR2aXNvciIsIm5hbWUiOiJUaFMuIFRy4bqnbiBWxINuIEFuIn0.glHrpjj8MvrKzLpJAujvp2HX0EH4odD9gEykgknaTw8",
 									"type": "string"
 								}
 							]
@@ -119,7 +120,14 @@
 					"name": "Refresh",
 					"request": {
 						"auth": {
-							"type": "noauth"
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvcmVmcmVzaCIsImlhdCI6MTc2MTkyMzI1NSwiZXhwIjoxNzYxOTI2ODY0LCJuYmYiOjE3NjE5MjMyNjQsImp0aSI6InN3b3FURXRLRlJCTm1LcEciLCJzdWIiOiIxIiwicHJ2IjoiOGVlOWU2YTQwY2Y2NjllOWY5MDg0NGE3YjExNzFmYjUzN2UzNWM2OCIsImlkIjoxLCJyb2xlIjoiYWR2aXNvciIsIm5hbWUiOiJUaFMuIFRy4bqnbiBWxINuIEFuIn0.DdjhvPKZSoJll1fMX3s78lY-RuT-5F_b-0BmkSvTYJo",
+									"type": "string"
+								}
+							]
 						},
 						"method": "POST",
 						"header": [],
@@ -150,7 +158,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3NjgxMTAsImV4cCI6MTc2MTc3MTcxMCwibmJmIjoxNzYxNzY4MTEwLCJqdGkiOiJRQm5SN3RPTjBwamd5eFU5Iiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.PcTxN9YK22fwLk8ahNN73cgJVHVC8n1AeFMv2JiRGPE",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0MzU5OTMsImV4cCI6MTc2Mjc5NTk5MywibmJmIjoxNzYyNDM1OTkzLCJqdGkiOiJKWkVtT0ZJSjFMRW5wOVFrIiwic3ViIjoiMSIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6MSwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoiTmd1eeG7hW4gVsSDbiBIw7luZyJ9.0bgizifGLdOpfYaD5FGd06yGtePgZfNMYcdvZ6Lqzww",
 									"type": "string"
 								}
 							]
@@ -178,7 +186,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3ODkxMjQsImV4cCI6MTc2MTc5MjcyNSwibmJmIjoxNzYxNzg5MTI1LCJqdGkiOiJrcVF1TkVMWllzWWx2cmRTIiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.hjcXTUERK92016-TyU6USTHtgDOLfjBhAPhhVqY5hAA",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0MzU2NzksImV4cCI6MTc2Mjc5NTY3OSwibmJmIjoxNzYyNDM1Njc5LCJqdGkiOiJsNUNhNGs4b1lENUJVSTgwIiwic3ViIjoiMiIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6Miwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVFMuIE5ndXnhu4VuIFRo4buLIELDrWNoIn0.WMdu6LwSpxim9yGM4W0ngsKQxNqcDQvitKX0o7ee0FE",
 									"type": "string"
 								}
 							]
@@ -206,23 +214,23 @@
 								{
 									"key": "class_ids[]",
 									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "class_ids[]",
-									"value": "2",
 									"type": "text",
 									"disabled": true
 								},
 								{
+									"key": "class_ids[]",
+									"value": "2",
+									"type": "text"
+								},
+								{
 									"key": "attachments[]",
 									"type": "file",
-									"src": "/C:/Users/Lenovo/Desktop/Huấn luyện định giá xe cũ Việt Nam.docx"
+									"src": []
 								},
 								{
 									"key": "attachments[1]",
 									"type": "file",
-									"src": "/C:/Users/Lenovo/Desktop/Huấn luyện định giá xe cũ Việt Nam.docx"
+									"src": []
 								},
 								{
 									"key": "link",
@@ -252,7 +260,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTAyMDgsImV4cCI6MTc2MTc5MzgwOCwibmJmIjoxNzYxNzkwMjA4LCJqdGkiOiJZREZYSVhVR0NabmlVa2xlIiwic3ViIjoiNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoic3R1ZGVudCJ9.ueUbIzxEbbhEC54ykgTTR3zU3404wbr1A-5ZrN33rlQ",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjUxNDMsImV4cCI6MTc2MTkyODc0MywibmJmIjoxNzYxOTI1MTQzLCJqdGkiOiJrc29XbzdUWW9MbHN5cTN2Iiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.Y2ASaar3hbkrj1q_mrHsYebW8uopmD9RCFyMhG9_nu4",
 									"type": "string"
 								}
 							]
@@ -260,14 +268,14 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/notifications/6",
+							"raw": "{{base_url}}/api/notifications/8",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"notifications",
-								"6"
+								"8"
 							]
 						}
 					},
@@ -281,7 +289,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTEyMzksImV4cCI6MTc2MTc5NDgzOSwibmJmIjoxNzYxNzkxMjM5LCJqdGkiOiJKZk9hdWNtSGNtdlNkbHN2Iiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.wIuivlWC03IJfjFgOEe1U_YvNrYE97mpK0jxtuwa2WE",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjUxNDMsImV4cCI6MTc2MTkyODc0MywibmJmIjoxNzYxOTI1MTQzLCJqdGkiOiJrc29XbzdUWW9MbHN5cTN2Iiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.Y2ASaar3hbkrj1q_mrHsYebW8uopmD9RCFyMhG9_nu4",
 									"type": "string"
 								}
 							]
@@ -318,26 +326,25 @@
 								},
 								{
 									"key": "attachment_ids_to_delete[]",
-									"value": "",
-									"type": "text",
-									"disabled": true
+									"value": "4",
+									"type": "text"
 								},
 								{
 									"key": "attachments_to_add[]",
 									"type": "file",
-									"src": "/E:/Internship/Khoa_CNTT/gioi_thieu_khoa/CÁC ĐỀ TÀI NGHIÊN CỨU CỦA GIẢNG VIÊN VÀ SINH VIÊN KHOA CÔNG NGHỆ THÔNG TIN.docx"
+									"src": "/E:/Internship/Khoa_CNTT/gioi_thieu_khoa/NGÀNH AN TOÀN THÔNG TIN HỆ ĐẠI HỌC.docx"
 								}
 							]
 						},
 						"url": {
-							"raw": "{{base_url}}/api/notifications/6",
+							"raw": "{{base_url}}/api/notifications/8",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"notifications",
-								"6"
+								"8"
 							]
 						}
 					},
@@ -351,7 +358,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTEyMzksImV4cCI6MTc2MTc5NDgzOSwibmJmIjoxNzYxNzkxMjM5LCJqdGkiOiJKZk9hdWNtSGNtdlNkbHN2Iiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.wIuivlWC03IJfjFgOEe1U_YvNrYE97mpK0jxtuwa2WE",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjUxNDMsImV4cCI6MTc2MTkyODc0MywibmJmIjoxNzYxOTI1MTQzLCJqdGkiOiJrc29XbzdUWW9MbHN5cTN2Iiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.Y2ASaar3hbkrj1q_mrHsYebW8uopmD9RCFyMhG9_nu4",
 									"type": "string"
 								}
 							]
@@ -359,12 +366,13 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/notification-statistics",
+							"raw": "{{base_url}}/api/notifications/notification-statistics",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
+								"notifications",
 								"notification-statistics"
 							]
 						}
@@ -379,7 +387,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTEyMzksImV4cCI6MTc2MTc5NDgzOSwibmJmIjoxNzYxNzkxMjM5LCJqdGkiOiJKZk9hdWNtSGNtdlNkbHN2Iiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.wIuivlWC03IJfjFgOEe1U_YvNrYE97mpK0jxtuwa2WE",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjUxNDMsImV4cCI6MTc2MTkyODc0MywibmJmIjoxNzYxOTI1MTQzLCJqdGkiOiJrc29XbzdUWW9MbHN5cTN2Iiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.Y2ASaar3hbkrj1q_mrHsYebW8uopmD9RCFyMhG9_nu4",
 									"type": "string"
 								}
 							]
@@ -387,14 +395,14 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/notifications/6",
+							"raw": "{{base_url}}/api/notifications/8",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"notifications",
-								"6"
+								"8"
 							]
 						}
 					},
@@ -413,7 +421,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTYzNzgsImV4cCI6MTc2MTc5OTk3OCwibmJmIjoxNzYxNzk2Mzc4LCJqdGkiOiJ4dEpITkU1Mm1GdlUzSXdLIiwic3ViIjoiNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoic3R1ZGVudCJ9.1YYexBjMmPJAFzgE7Tn3OWz-riHxLzfYO9eeNyMaOSw",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjYxNDQsImV4cCI6MTc2MTkyOTc0NCwibmJmIjoxNzYxOTI2MTQ0LCJqdGkiOiI5OHNjOWttaEdETXZyYm55Iiwic3ViIjoiMSIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6MSwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoiTmd1eeG7hW4gVsSDbiBIw7luZyJ9.uyyCI2bn9YshRN0_ZYXqvXQzGT5a4qHFBNhYlm4xpvs",
 									"type": "string"
 								}
 							]
@@ -482,7 +490,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTY2NTEsImV4cCI6MTc2MTgwMDI1MSwibmJmIjoxNzYxNzk2NjUxLCJqdGkiOiJWNE9rVEREeXVPR05mS2VzIiwic3ViIjoiMSIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoiYWR2aXNvciJ9.wDtu7XaQWr6RnsTH_7IdMfDrQeo8C9OtAFRYAqvNx6g",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5Mjc0MTgsImV4cCI6MTc2MTkzMTAxOCwibmJmIjoxNzYxOTI3NDE4LCJqdGkiOiJmZDF3SXlFRUJlczIzVzFlIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.h-KToOSM6U7dYc-ae7T0Juw-5jmnfm5cRwr4siJsLNE",
 									"type": "string"
 								}
 							]
@@ -499,14 +507,14 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/notification-responses/3",
+							"raw": "{{base_url}}/api/notification-responses/4",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"notification-responses",
-								"3"
+								"4"
 							]
 						}
 					},
@@ -525,7 +533,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE3OTYzNzgsImV4cCI6MTc2MTc5OTk3OCwibmJmIjoxNzYxNzk2Mzc4LCJqdGkiOiJ4dEpITkU1Mm1GdlUzSXdLIiwic3ViIjoiNCIsInBydiI6IjIzYmQ1Yzg5NDlmNjAwYWRiMzllNzAxYzQwMDg3MmRiN2E1OTc2ZjciLCJyb2xlIjoic3R1ZGVudCJ9.1YYexBjMmPJAFzgE7Tn3OWz-riHxLzfYO9eeNyMaOSw",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjE5MjYxNDQsImV4cCI6MTc2MTkyOTc0NCwibmJmIjoxNzYxOTI2MTQ0LCJqdGkiOiI5OHNjOWttaEdETXZyYm55Iiwic3ViIjoiMSIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6MSwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoiTmd1eeG7hW4gVsSDbiBIw7luZyJ9.uyyCI2bn9YshRN0_ZYXqvXQzGT5a4qHFBNhYlm4xpvs",
 									"type": "string"
 								}
 							]
@@ -570,6 +578,2555 @@
 								"api",
 								"student",
 								"mark-all-notifications-read"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ActivityRegistrationController",
+			"item": [
+				{
+					"name": "RegisterActivity",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NzI3NDMsImV4cCI6MTc2MzEzMjc0MywibmJmIjoxNzYyNzcyNzQzLCJqdGkiOiJRakN1WnIzM1liUVlnOHRiIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.9xgUPDsMwXJshNgl4UdTKcfbuJxyF-Hmvl-vZi0MZbo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"activity_role_id\": 5\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activity-registrations/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activity-registrations",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CancelRegistration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NzM2MjIsImV4cCI6MTc2MzEzMzYyMiwibmJmIjoxNzYyNzczNjIyLCJqdGkiOiJtRkdyeDFsOWlBcXhHYWNmIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.fNYRJoDZsSyALRZ9t0CvIEfieywFgN0T91F_l6T_qyo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"registration_id\": 14,\r\n  \"reason\": \"Trùng lịch học\"\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activity-registrations/cancel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activity-registrations",
+								"cancel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ApproveCancellation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NzM2OTAsImV4cCI6MTc2MzEzMzY5MCwibmJmIjoxNzYyNzczNjkwLCJqdGkiOiJLdTJkN2YwWlhIbUxsT2RJIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.9-6R_goO47dTaBrbmzmqGNcOERijHGDOFT4MmHa-mtc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"status\": \"approved\"  // hoặc \"rejected\"\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/cancellation-requests/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"cancellation-requests",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MyRegistration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3OTM2MDMsImV4cCI6MTc2MzE1MzYwMywibmJmIjoxNzYyNzkzNjAzLCJqdGkiOiJ1aXhtTWh3cTRid1ZBd0d6Iiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.KBGRJKvyxlt69fRuXrdOvyBuRsSWoNh0zSZJgEZrrAQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activity-registrations/my-registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activity-registrations",
+								"my-registrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MyCancellation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NzM2MjIsImV4cCI6MTc2MzEzMzYyMiwibmJmIjoxNzYyNzczNjIyLCJqdGkiOiJtRkdyeDFsOWlBcXhHYWNmIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.fNYRJoDZsSyALRZ9t0CvIEfieywFgN0T91F_l6T_qyo",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activity-registrations/my-cancellation-requests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activity-registrations",
+								"my-cancellation-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CacellationRequests",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0NDA4NTUsImV4cCI6MTc2MjgwMDg1NSwibmJmIjoxNzYyNDQwODU1LCJqdGkiOiJHRERncllXZVllMkQ0RERrIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.CZftlGQ37aV7yS2831xBVrhnIC1_Ufub0NxcllKnUA8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/cancellation-requests",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"cancellation-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MyParticipatedActivities",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3OTM2MDMsImV4cCI6MTc2MzE1MzYwMywibmJmIjoxNzYyNzkzNjAzLCJqdGkiOiJ1aXhtTWh3cTRid1ZBd0d6Iiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.KBGRJKvyxlt69fRuXrdOvyBuRsSWoNh0zSZJgEZrrAQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activity-registrations/my-participated-activities",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activity-registrations",
+								"my-participated-activities"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ActivityController",
+			"item": [
+				{
+					"name": "GetActivities",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/activities",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "upcoming",
+									"disabled": true
+								},
+								{
+									"key": "from_date",
+									"value": "2025-01-01",
+									"disabled": true
+								},
+								{
+									"key": "to_date",
+									"value": "2025-12-31",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DetailActivity",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/activities/2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateActivity",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Workshop: Giới thiệu về AI tạo sinh\",\r\n  \"general_description\": \"Workshop chuyên đề cho SV Khoa CNTT\",\r\n  \"location\": \"Phòng Hội thảo H.201\",\r\n  \"start_time\": \"2026-03-20 14:00:00\",\r\n  \"end_time\": \"2026-03-20 16:00:00\",\r\n  \"organizer_unit_id\": 1,\r\n  \"status\": \"upcoming\",\r\n  \"class_ids\": [1, 4],\r\n  \"roles\": [\r\n    {\r\n      \"role_name\": \"Người tham dự\",\r\n      \"description\": \"Tham gia buổi workshop\",\r\n      \"requirements\": \"Có kiến thức cơ bản về lập trình\",\r\n      \"points_awarded\": 10,\r\n      \"point_type\": \"ren_luyen\",\r\n      \"max_slots\": 50\r\n    },\r\n    {\r\n      \"role_name\": \"Tình nguyện viên hỗ trợ\",\r\n      \"description\": \"Hỗ trợ tổ chức sự kiện\",\r\n      \"requirements\": null,\r\n      \"points_awarded\": 15,\r\n      \"point_type\": \"ctxh\",\r\n      \"max_slots\": 5\r\n    }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateActivity",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/vnd.api+json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Chiến dịch Xuân Tình Nguyện 2025\",\r\n  \"status\": \"ongoing\",\r\n  \"location\": \"Phường Linh Trung, TP Thủ Đức\",\r\n  \"general_description\":\"Hello\",\r\n  \"start_time\":\"2025-11-10\",\r\n  \"end_time\":\"2025-11-12\",\r\n  \"class_ids\": [1]\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteActivity",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/vnd.api+json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetRegistrations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3OTM2MDMsImV4cCI6MTc2MzE1MzYwMywibmJmIjoxNzYyNzkzNjAzLCJqdGkiOiJ1aXhtTWh3cTRid1ZBd0d6Iiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.KBGRJKvyxlt69fRuXrdOvyBuRsSWoNh0zSZJgEZrrAQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/2/registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"2",
+								"registrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateAttendance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"attendances\": [\r\n    {\r\n      \"registration_id\": 3,\r\n      \"status\": \"absent\"\r\n    },\r\n    {\r\n      \"registration_id\": 4,\r\n      \"status\": \"absent\"\r\n    }\r\n  ]\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/2/attendance",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"2",
+								"attendance"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AvailableStudents",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/available-students",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"available-students"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AssignStudents",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"assignments\": [\r\n    {\r\n      \"student_id\": 1,\r\n      \"activity_role_id\": 5\r\n    },\r\n    {\r\n      \"student_id\": 2,\r\n      \"activity_role_id\": 5\r\n    }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/assign-students",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"assign-students"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RemoveAssignment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/assignments/8",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"assignments",
+								"8"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ActivityRoleController",
+			"item": [
+				{
+					"name": "GetRole",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/roles/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"roles",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateRole",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"role_name\": \"Tình nguyện viên cao cấp\",\r\n  \"points_awarded\": 15,\r\n  \"max_slots\": 15,\r\n  \"description\":\"hello\",\r\n  \"requirements\":\"Có tinh thần trách nhiệm\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/roles/8",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"roles",
+								"8"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteRole",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3NjczMDUsImV4cCI6MTc2MzEyNzMwNSwibmJmIjoxNzYyNzY3MzA1LCJqdGkiOiIweVd6NG5hYnlKYVdibUdtIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIc-DLvFWBLUJEUmWp_H3podYlmxy0gabr-B27A0XfQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/roles/8",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"roles",
+								"8"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetRoleRegistration",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3OTM2MDMsImV4cCI6MTc2MzE1MzYwMywibmJmIjoxNzYyNzkzNjAzLCJqdGkiOiJ1aXhtTWh3cTRid1ZBd0d6Iiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.KBGRJKvyxlt69fRuXrdOvyBuRsSWoNh0zSZJgEZrrAQ",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/1/roles/2/registrations",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"1",
+								"roles",
+								"2",
+								"registrations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ShowRole",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/roles/5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"roles",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AddRole",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzg4NTcsImV4cCI6MTc2Mjc5ODg1NywibmJmIjoxNzYyNDM4ODU3LCJqdGkiOiJZTW84eDY5cDZOaEVTVlBxIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.MIzuir9imi0IH-7UCutb2zTEdAdoODhy0lLfiHehGCc",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"role_name\": \"MC dẫn chương trình\",\r\n  \"description\": \"Dẫn chương trình sự kiện\",\r\n  \"requirements\": \"Có kỹ năng giao tiếp tốt\",\r\n  \"points_awarded\": 15,\r\n  \"point_type\": \"ren_luyen\",\r\n  \"max_slots\": 2\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/activities/4/roles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"4",
+								"roles"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PointManagementController",
+			"item": [
+				{
+					"name": "GetStudentPoint",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0Mzc4MzIsImV4cCI6MTc2Mjc5NzgzMiwibmJmIjoxNzYyNDM3ODMyLCJqdGkiOiJlYjNhUW5rUXlmS0tVaUNqIiwic3ViIjoiMyIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6Mywicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoiTMOqIFbEg24gRMWpbmcifQ.cmqVsh1SNniKKusdy1UrZ-Q-4VbSLu6bgZF89T1GNZk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/student-points?student_id=1&semester_id=3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"student-points"
+							],
+							"query": [
+								{
+									"key": "student_id",
+									"value": "1"
+								},
+								{
+									"key": "semester_id",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ClassSummary",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI0MzY2MDIsImV4cCI6MTc2Mjc5NjYwMiwibmJmIjoxNzYyNDM2NjAyLCJqdGkiOiIyRjFETFN3SjM2UTVsU0FLIiwic3ViIjoiMiIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6Miwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVFMuIE5ndXnhu4VuIFRo4buLIELDrWNoIn0.wIR4wbVAV5DvX5yrAmFEDn2SRMDd5wlvuZ2wG4e-az4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/student-points/class-summary?class_id=2&semester_id=3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"student-points",
+								"class-summary"
+							],
+							"query": [
+								{
+									"key": "class_id",
+									"value": "2"
+								},
+								{
+									"key": "semester_id",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CourseController",
+			"item": [
+				{
+					"name": "GetCourses",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/courses/?unit_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								""
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "Kinh tế",
+									"disabled": true
+								},
+								{
+									"key": "unit_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ShowCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/courses/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"course_code\": \"CS103\",\r\n  \"course_name\": \"Cấu trúc dữ liệu và giải thuật\",\r\n  \"credits\": 4,\r\n  \"unit_id\": 1\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdatCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"course_code\": \"CS102\",\r\n  \"course_name\": \"Cấu trúc dữ liệu\",\r\n  \"credits\": 3\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/courses/7",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"7"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/courses/7",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"7"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MyCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/courses/my-courses?semester_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"my-courses"
+							],
+							"query": [
+								{
+									"key": "semester_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StudentCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/courses/1/students?semester_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"1",
+								"students"
+							],
+							"query": [
+								{
+									"key": "semester_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UnitCourse",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/courses/my-unit-courses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"courses",
+								"my-unit-courses"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GradeController",
+			"item": [
+				{
+					"name": "MyGrades",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades/my-grades?semester_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"my-grades"
+							],
+							"query": [
+								{
+									"key": "semester_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StudentGrades",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/grades/student/1?semester_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"student",
+								"1"
+							],
+							"query": [
+								{
+									"key": "semester_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AddGrade",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {}
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"student_id\": 5,\r\n  \"course_id\": 1,\r\n  \"semester_id\": 1,\r\n  \"grade_value\": 8.5\r\n}\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateGrade",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"grade_value\": 9.0\r\n}\r\n\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "BatchGrade",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"semester_id\": 1,\r\n  \"course_id\": 1,\r\n  \"grades\": [\r\n    { \"student_id\": 1, \"grade_value\": 8.5 },\r\n    { \"student_id\": 2, \"grade_value\": 6.0 }\r\n  ]\r\n}\r\n\r\n"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/grades/batch-import",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"batch-import"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteGrade",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5NjIsImV4cCI6MTc2MzI0MDk2MiwibmJmIjoxNzYyODgwOTYyLCJqdGkiOiJJMEo5R0dWb0JLa1B5M1JIIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.YwOIx_vd4VBdWJ349CmJGYdRq6pFsh1BUziiKfsDpT4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/grades/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ClassGrade",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/grades/export-class-grades/1/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"grades",
+								"export-class-grades",
+								"1",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ActivityStatisticsController",
+			"item": [
+				{
+					"name": "StatisticClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3ODkwOTksImV4cCI6MTc2MzE0OTA5OSwibmJmIjoxNzYyNzg5MDk5LCJqdGkiOiJQa1c2N21hZXI0bEdXZG9xIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.Snxpsed6c4KuS5HpD89NSB-rYtSWnDqhxyOA9o8AFgA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/statistics/class/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"statistics",
+								"class",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StatisticActivity",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3ODkwOTksImV4cCI6MTc2MzE0OTA5OSwibmJmIjoxNzYyNzg5MDk5LCJqdGkiOiJQa1c2N21hZXI0bEdXZG9xIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.Snxpsed6c4KuS5HpD89NSB-rYtSWnDqhxyOA9o8AFgA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/statistics/activity/4",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"statistics",
+								"activity",
+								"4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StatisticOverview",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI3ODkwOTksImV4cCI6MTc2MzE0OTA5OSwibmJmIjoxNzYyNzg5MDk5LCJqdGkiOiJQa1c2N21hZXI0bEdXZG9xIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.Snxpsed6c4KuS5HpD89NSB-rYtSWnDqhxyOA9o8AFgA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/activities/statistics/faculty/overview",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"activities",
+								"statistics",
+								"faculty",
+								"overview"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AcademicMonitoring",
+			"item": [
+				{
+					"name": "MySemesterReport",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/my-semester-report/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"my-semester-report",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MyWarning",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA3NDYsImV4cCI6MTc2MzI0MDc0NiwibmJmIjoxNzYyODgwNzQ2LCJqdGkiOiJkYVdWYVhvQ3hETkxBYThMIiwic3ViIjoiNCIsInBydiI6IjljNDI5ZTZhNjBjZDUyODU0NzNmMmM4YmM3MDFlYzA5NDhkZjRkOGMiLCJpZCI6NCwicm9sZSI6InN0dWRlbnQiLCJuYW1lIjoixJDhu5cgTWluaCBOYW0ifQ.ZoSo1PxfPNGEbzv_NgEyk27PFxSQreMy-MeIxquDbWA",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/my-warnings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"my-warnings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StudentReport",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/semester-report/1/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"semester-report",
+								"1",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RiskStudents",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/at-risk-students?semester_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"at-risk-students"
+							],
+							"query": [
+								{
+									"key": "semester_id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateWarnings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"semester_id\": 1,\r\n  \"student_ids\": [1, 2]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/academic/create-warnings",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"create-warnings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetWarnings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/warnings-created",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"warnings-created"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "StatisticWarnings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/academic/statistics?semester_id\t=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"statistics"
+							],
+							"query": [
+								{
+									"key": "semester_id\t",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateReport",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"student_id\": 1,\r\n  \"semester_id\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/academic/update-semester-report",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"update-semester-report"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdaeReportClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODA5MTUsImV4cCI6MTc2MzI0MDkxNSwibmJmIjoxNzYyODgwOTE1LCJqdGkiOiIwUTdySENPVmhUUWVqMkpCIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.2BYWPVnf2EzFR4l5BEEPBjtLxoz64j6CA4LweCMkcEI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"class_id\": 1,\r\n  \"semester_id\": 1\r\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/academic/batch-update-semester-reports",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"academic",
+								"batch-update-semester-reports"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ClassController",
+			"item": [
+				{
+					"name": "GetClasses",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ShowClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/classes/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ4MDksImV4cCI6MTc2MzI0NDgwOSwibmJmIjoxNzYyODg0ODA5LCJqdGkiOiI3b0xPOWxpUXg5ajM3c2RQIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.ENqz1cgZOWS3-JbL00qY9LCgAVyOm_XeOoKli_joREE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"class_name\": \"DH24CNTT\",\r\n  \"advisor_id\": 1,\r\n  \"faculty_id\": 1,\r\n  \"description\": \"Lớp Đại học 2024 ngành Công nghệ Thông tin\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/classes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdatClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"class_name\": \"DH24CNTT_Updated\",\r\n  \"advisor_id\": 2,\r\n  \"description\": \"Mô tả đã cập nhật\"\r\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/classes/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteClass",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ4MDksImV4cCI6MTc2MzI0NDgwOSwibmJmIjoxNzYyODg0ODA5LCJqdGkiOiI3b0xPOWxpUXg5ajM3c2RQIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.ENqz1cgZOWS3-JbL00qY9LCgAVyOm_XeOoKli_joREE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/classes/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetStudents",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/classes/1/students",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"classes",
+								"1",
+								"students"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SemesterController",
+			"item": [
+				{
+					"name": "GetSemesters",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/semesters",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ShowSemester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/semesters/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateSemester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ4MDksImV4cCI6MTc2MzI0NDgwOSwibmJmIjoxNzYyODg0ODA5LCJqdGkiOiI3b0xPOWxpUXg5ajM3c2RQIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.ENqz1cgZOWS3-JbL00qY9LCgAVyOm_XeOoKli_joREE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"semester_name\": \"Học kỳ hè\",\r\n  \"academic_year\": \"2024-2025\",\r\n  \"start_date\": \"2025-07-01\",\r\n  \"end_date\": \"2025-08-31\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/semesters",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateSemester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ4MDksImV4cCI6MTc2MzI0NDgwOSwibmJmIjoxNzYyODg0ODA5LCJqdGkiOiI3b0xPOWxpUXg5ajM3c2RQIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.ENqz1cgZOWS3-JbL00qY9LCgAVyOm_XeOoKli_joREE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"semester_name\": \"Học kỳ 1 (Cập nhật)\",\r\n  \"start_date\": \"2024-09-10\",\r\n  \"end_date\": \"2025-01-20\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/semesters/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteSemester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ4MDksImV4cCI6MTc2MzI0NDgwOSwibmJmIjoxNzYyODg0ODA5LCJqdGkiOiI3b0xPOWxpUXg5ajM3c2RQIiwic3ViIjoiNSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6NSwicm9sZSI6ImFkbWluIiwibmFtZSI6IlF14bqjbiB0cuG7iyB2acOqbiBI4buHIHRo4buRbmcifQ.ENqz1cgZOWS3-JbL00qY9LCgAVyOm_XeOoKli_joREE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{base_url}}/api/semesters/6",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SemesterReport",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/semesters/1/reports",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"1",
+								"reports"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SemesterReportStudent",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/semesters/1/students/1/report",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"1",
+								"students",
+								"1",
+								"report"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CurrentSemester",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvYXBpL2F1dGgvbG9naW4iLCJpYXQiOjE3NjI4ODQ3OTcsImV4cCI6MTc2MzI0NDc5NywibmJmIjoxNzYyODg0Nzk3LCJqdGkiOiJyVXZPblUxeWFoMlFLWFhpIiwic3ViIjoiMSIsInBydiI6IjhlZTllNmE0MGNmNjY5ZTlmOTA4NDRhN2IxMTcxZmI1MzdlMzVjNjgiLCJpZCI6MSwicm9sZSI6ImFkdmlzb3IiLCJuYW1lIjoiVGhTLiBUcuG6p24gVsSDbiBBbiJ9.ptO_ssOiWRSDLO2nBQ5xZ9AnMaE7la73KUYFzIrkWs0",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/semesters/current",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"semesters",
+								"current"
 							]
 						}
 					},

@@ -13,6 +13,8 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\AcademicMonitoringController;
 use App\Http\Controllers\ActivityStatisticsController;
+use App\Http\Controllers\ClassController;
+use App\Http\Controllers\SemesterController;
 
 
 
@@ -439,6 +441,48 @@ Route::middleware(['auth.api'])->group(function () {
             '/low-points-students',
             [PointManagementController::class, 'getLowPointsStudents']
         );
+    });
+});
+
+
+// Routes cho Class Management
+Route::middleware(['auth.api'])->group(function () {
+
+    // Routes cho tất cả roles (xem danh sách và chi tiết)
+    Route::get('/classes', [ClassController::class, 'index']);
+    Route::get('/classes/{id}', [ClassController::class, 'show']);
+    Route::get('/classes/{id}/students', [ClassController::class, 'getStudents']);
+
+    // Routes chỉ cho Admin (tạo, sửa, xóa)
+    Route::middleware(['check_role:admin'])->group(function () {
+        Route::post('/classes', [ClassController::class, 'store']);
+        Route::put('/classes/{id}', [ClassController::class, 'update']);
+        Route::delete('/classes/{id}', [ClassController::class, 'destroy']);
+    });
+});
+
+// Routes cho Semester Management
+Route::middleware(['auth.api'])->group(function () {
+
+    Route::get('/semesters/current', [SemesterController::class, 'getCurrentSemester']);
+
+    // Xem báo cáo học kỳ (có phân quyền trong controller)
+    Route::get('/semesters/{semesterId}/students/{studentId}/report', [SemesterController::class, 'getStudentReport']);
+    Route::get('/semesters/{id}/reports', [SemesterController::class, 'getSemesterReports']);
+
+
+    // Routes cho tất cả roles (xem học kỳ)
+    Route::get('/semesters', [SemesterController::class, 'index']);
+    Route::get('/semesters/{id}', [SemesterController::class, 'show']);
+
+
+
+
+    // Routes chỉ cho Admin (quản lý học kỳ)
+    Route::middleware(['check_role:admin'])->group(function () {
+        Route::post('/semesters', [SemesterController::class, 'store']);
+        Route::put('/semesters/{id}', [SemesterController::class, 'update']);
+        Route::delete('/semesters/{id}', [SemesterController::class, 'destroy']);
     });
 });
 
