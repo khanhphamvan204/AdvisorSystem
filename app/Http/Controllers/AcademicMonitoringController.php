@@ -145,6 +145,23 @@ class AcademicMonitoringController extends Controller
             $riskInfo = AcademicMonitoringService::checkDropoutRisk($student->student_id, $semesterId);
 
             if ($riskInfo['is_at_risk']) {
+                // Lấy toàn bộ cảnh cáo học vụ của sinh viên trong kỳ này
+                $warnings = AcademicWarning::where('student_id', $student->student_id)
+                    ->where('semester_id', $semesterId)
+                    ->with('semester')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($warning) {
+                        return [
+                            'warning_id' => $warning->warning_id,
+                            'title' => $warning->title,
+                            'content' => $warning->content,
+                            'advice' => $warning->advice,
+                            'semester' => $warning->semester->semester_name . ' ' . $warning->semester->academic_year,
+                            'created_at' => $warning->created_at->format('d/m/Y H:i')
+                        ];
+                    });
+
                 $atRiskStudents[] = [
                     'student_id' => $student->student_id,
                     'user_code' => $student->user_code,
@@ -155,7 +172,10 @@ class AcademicMonitoringController extends Controller
                     'warning_threshold' => $riskInfo['threshold'],
                     'risk_level' => $riskInfo['risk_level'],
                     'risk_reasons' => $riskInfo['reasons'],
-                    'failed_courses_count' => $riskInfo['failed_courses_count']
+                    'failed_courses_count' => $riskInfo['failed_courses_count'],
+                    'has_academic_warning' => $warnings->isNotEmpty(),
+                    'warnings' => $warnings,
+                    'warnings_count' => $warnings->count()
                 ];
             }
         }

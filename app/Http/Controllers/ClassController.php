@@ -350,9 +350,40 @@ class ClassController extends Controller
                     break;
             }
 
+            // Lấy thông tin sinh viên kèm theo cảnh cáo học vụ
+            $studentsWithWarnings = $class->students->map(function ($student) {
+                // Lấy toàn bộ cảnh cáo học vụ của sinh viên
+                $warnings = \App\Models\AcademicWarning::where('student_id', $student->student_id)
+                    ->with('semester')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($warning) {
+                        return [
+                            'warning_id' => $warning->warning_id,
+                            'title' => $warning->title,
+                            'content' => $warning->content,
+                            'advice' => $warning->advice,
+                            'semester' => $warning->semester->semester_name . ' ' . $warning->semester->academic_year,
+                            'created_at' => $warning->created_at->format('d/m/Y H:i')
+                        ];
+                    });
+
+                return [
+                    'student_id' => $student->student_id,
+                    'user_code' => $student->user_code,
+                    'full_name' => $student->full_name,
+                    'email' => $student->email,
+                    'phone' => $student->phone,
+                    'status' => $student->status,
+                    'has_academic_warning' => $warnings->isNotEmpty(),
+                    'warnings' => $warnings,
+                    'warnings_count' => $warnings->count()
+                ];
+            });
+
             return response()->json([
                 'success' => true,
-                'data' => $class->students,
+                'data' => $studentsWithWarnings,
                 'message' => 'Lấy danh sách sinh viên thành công'
             ], 200);
 
