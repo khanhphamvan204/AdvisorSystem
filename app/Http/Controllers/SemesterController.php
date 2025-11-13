@@ -19,7 +19,7 @@ class SemesterController extends Controller
     {
         try {
             $semesters = Semester::orderBy('academic_year', 'desc')
-                ->orderBy('semester_name', 'desc')
+                ->orderBy('start_date', 'desc')
                 ->get();
 
             return response()->json([
