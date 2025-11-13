@@ -40,7 +40,8 @@ class ActivityController extends Controller
         $query = Activity::with([
             'advisor:advisor_id,full_name',
             'organizerUnit:unit_id,unit_name',
-            'classes:class_id,class_name'
+            'classes:class_id,class_name',
+            'roles'
         ]);
 
         if ($currentRole === 'advisor') {
@@ -72,6 +73,25 @@ class ActivityController extends Controller
         // Filter theo status
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+
+        // Filter theo title (tên hoạt động)
+        if ($request->has('title')) {
+            $query->where('title', 'like', '%' . $request->title . '%');
+        }
+
+        // Filter theo point_type từ bảng Activity_Roles
+        if ($request->has('point_type')) {
+            $query->whereHas('roles', function ($q) use ($request) {
+                $q->where('point_type', $request->point_type);
+            });
+        }
+
+        // Filter theo organizer_unit (tên đơn vị tổ chức)
+        if ($request->has('organizer_unit')) {
+            $query->whereHas('organizerUnit', function ($q) use ($request) {
+                $q->where('unit_name', 'like', '%' . $request->organizer_unit . '%');
+            });
         }
 
         $query->orderBy('start_time', 'desc');
