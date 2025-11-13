@@ -8,7 +8,10 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
+        "laravel/telescope": "^5.15",
         "laravel/tinker": "^2.10.1",
+        "mongodb/laravel-mongodb": "*",
+        "phpoffice/phpspreadsheet": "*",
         "tymon/jwt-auth": "^2.2"
     },
     "require-dev": {

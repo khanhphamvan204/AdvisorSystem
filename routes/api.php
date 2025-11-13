@@ -15,7 +15,7 @@ use App\Http\Controllers\AcademicMonitoringController;
 use App\Http\Controllers\ActivityStatisticsController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\SemesterController;
-
+use App\Http\Controllers\ScheduleImportController;
 
 
 // ========== Authentication Routes ==========
@@ -324,7 +324,13 @@ Route::middleware(['auth.api'])->group(function () {
 
         // Xóa điểm (chỉ sinh viên thuộc lớp trong khoa mình)
         Route::delete('/{grade_id}', [GradeController::class, 'destroy']);
+
+        // Excel Import/Export
+        Route::get('/download-template', [GradeController::class, 'downloadTemplate']);
+        Route::post('/import-excel', [GradeController::class, 'importFromExcel']);
+        Route::get('/export-excel/{class_id}/{semester_id}', [GradeController::class, 'exportToExcel']);
     });
+
 });
 
 
@@ -484,6 +490,16 @@ Route::middleware(['auth.api'])->group(function () {
         Route::put('/semesters/{id}', [SemesterController::class, 'update']);
         Route::delete('/semesters/{id}', [SemesterController::class, 'destroy']);
     });
+});
+
+Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->group(function () {
+    // Import lịch học
+    Route::post('/import', [ScheduleImportController::class, 'import']);
+});
+
+Route::middleware(['auth.api'])->prefix('schedules')->group(function () {
+    // Kiểm tra xung đột lịch
+    Route::post('/check-conflict', [ScheduleImportController::class, 'checkConflict']);
 });
 
 

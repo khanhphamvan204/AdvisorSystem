@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use App\Models\Semester;
 use App\Services\PointCalculationService;
+use Carbon\Carbon;
+use App\Services\ScheduleService;
 
 class ActivityController extends Controller
 {
@@ -651,8 +653,161 @@ class ActivityController extends Controller
         }
     }
 
+    // /**
+    //  * Lấy danh sách sinh viên có thể phân công (trong các lớp được gán hoạt động)
+    //  * Role: Advisor only
+    //  */
+    // public function getAvailableStudents(Request $request, $activityId)
+    // {
+    //     $currentUserId = $request->current_user_id;
+
+    //     $activity = Activity::with('classes')->find($activityId);
+
+    //     if (!$activity) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Hoạt động không tồn tại'
+    //         ], 404);
+    //     }
+
+    //     if ($activity->advisor_id != $currentUserId) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Bạn không có quyền xem danh sách này'
+    //         ], 403);
+    //     }
+
+    //     if (in_array($activity->status, ['completed', 'cancelled'])) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Không thể xem danh sách sinh viên cho hoạt động đã hoàn thành hoặc bị hủy'
+    //         ], 400);
+    //     }
+
+    //     $assignedClassIds = $activity->classes->pluck('class_id');
+
+    //     if ($assignedClassIds->isEmpty()) {
+    //         return response()->json([
+    //             'success' => true,
+    //             'data' => [
+    //                 'activity' => $activity,
+    //                 'summary' => [
+    //                     'total_students' => 0,
+    //                     'available_count' => 0,
+    //                     'unavailable_count' => 0
+    //                 ],
+    //                 'available_students' => [],
+    //                 'unavailable_students' => []
+    //             ]
+    //         ]);
+    //     }
+
+    //     // Lấy học kỳ gần nhất
+    //     $latestSemester = Semester::orderBy('end_date', 'desc')->first();
+
+    //     // Query tất cả sinh viên trong các lớp được gán
+    //     $students = Student::whereIn('class_id', $assignedClassIds)
+    //         ->with(['class:class_id,class_name'])
+    //         ->get();
+
+    //     // Query tất cả đăng ký của hoạt động này một lần (tránh N+1)
+    //     $existingRegistrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
+    //         $q->where('activity_id', $activityId);
+    //     })
+    //         ->whereIn('student_id', $students->pluck('student_id'))
+    //         ->whereIn('status', ['registered', 'attended'])
+    //         ->with('role:activity_role_id,role_name,activity_id')
+    //         ->get()
+    //         ->keyBy('student_id');
+
+    //     // Map students với thông tin đăng ký
+    //     $studentsData = $students->map(function ($student) use ($existingRegistrations, $latestSemester) {
+    //         $registration = $existingRegistrations->get($student->student_id);
+
+    //         $canAssign = true;
+    //         $reasonCannotAssign = null;
+
+    //         if ($registration) {
+    //             $canAssign = false;
+    //             $reasonCannotAssign = "Đã đăng ký vai trò '{$registration->role->role_name}' (Trạng thái: {$registration->status})";
+    //         }
+
+    //         // Tính điểm
+    //         $training_point = 0;
+    //         $social_point = 0;
+
+    //         if ($latestSemester) {
+    //             try {
+    //                 $training_point = PointCalculationService::calculateTrainingPoints(
+    //                     $student->student_id,
+    //                     $latestSemester->semester_id
+    //                 );
+
+    //                 $social_point = PointCalculationService::calculateSocialPoints(
+    //                     $student->student_id,
+    //                     $latestSemester->semester_id
+    //                 );
+    //             } catch (\Exception $e) {
+    //                 Log::warning('Lỗi khi tính điểm cho sinh viên', [
+    //                     'student_id' => $student->student_id,
+    //                     'error' => $e->getMessage()
+    //                 ]);
+    //             }
+    //         }
+
+    //         return [
+    //             'student_id' => $student->student_id,
+    //             'user_code' => $student->user_code,
+    //             'full_name' => $student->full_name,
+    //             'email' => $student->email,
+    //             'phone_number' => $student->phone_number,
+    //             'class_name' => $student->class->class_name,
+    //             'training_point' => $training_point,
+    //             'social_point' => $social_point,
+    //             'current_semester' => $latestSemester ? $latestSemester->semester_name : null,
+    //             'status' => $student->status,
+    //             'can_assign' => $canAssign,
+    //             'reason_cannot_assign' => $reasonCannotAssign,
+    //             'current_registration' => $registration ? [
+    //                 'registration_id' => $registration->registration_id,
+    //                 'role_name' => $registration->role->role_name,
+    //                 'registration_status' => $registration->status
+    //             ] : null
+    //         ];
+    //     })->values();
+
+    //     $availableStudents = $studentsData->where('can_assign', true)->values();
+    //     $unavailableStudents = $studentsData->where('can_assign', false)->values();
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => [
+    //             'activity' => [
+    //                 'activity_id' => $activity->activity_id,
+    //                 'title' => $activity->title,
+    //                 'status' => $activity->status
+    //             ],
+    //             'assigned_classes' => $activity->classes->map(fn($class) => [
+    //                 'class_id' => $class->class_id,
+    //                 'class_name' => $class->class_name
+    //             ]),
+    //             'current_semester' => $latestSemester ? [
+    //                 'semester_id' => $latestSemester->semester_id,
+    //                 'semester_name' => $latestSemester->semester_name,
+    //                 'academic_year' => $latestSemester->academic_year
+    //             ] : null,
+    //             'summary' => [
+    //                 'total_students' => $studentsData->count(),
+    //                 'available_count' => $availableStudents->count(),
+    //                 'unavailable_count' => $unavailableStudents->count()
+    //             ],
+    //             'available_students' => $availableStudents,
+    //             'unavailable_students' => $unavailableStudents
+    //         ]
+    //     ], 200);
+    // }
     /**
-     * Lấy danh sách sinh viên có thể phân công (trong các lớp được gán hoạt động)
+     * Lấy danh sách sinh viên có thể phân công (KHÔNG TRÙNG LỊCH)
      * Role: Advisor only
      */
     public function getAvailableStudents(Request $request, $activityId)
@@ -700,15 +855,22 @@ class ActivityController extends Controller
             ]);
         }
 
-        // Lấy học kỳ gần nhất
-        $latestSemester = Semester::orderBy('end_date', 'desc')->first();
+        // Lấy học kỳ từ thời gian hoạt động
+        $activityStart = Carbon::parse($activity->start_time);
+        $semester = Semester::where('start_date', '<=', $activityStart)
+            ->where('end_date', '>=', $activityStart)
+            ->first();
+
+        if (!$semester) {
+            $semester = Semester::orderBy('end_date', 'desc')->first();
+        }
 
         // Query tất cả sinh viên trong các lớp được gán
         $students = Student::whereIn('class_id', $assignedClassIds)
             ->with(['class:class_id,class_name'])
             ->get();
 
-        // Query tất cả đăng ký của hoạt động này một lần (tránh N+1)
+        // Query tất cả đăng ký của hoạt động này
         $existingRegistrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
             $q->where('activity_id', $activityId);
         })
@@ -718,32 +880,53 @@ class ActivityController extends Controller
             ->get()
             ->keyBy('student_id');
 
-        // Map students với thông tin đăng ký
-        $studentsData = $students->map(function ($student) use ($existingRegistrations, $latestSemester) {
+        // ===== KIỂM TRA LỊCH HỌC =====
+        $scheduleService = app(ScheduleService::class);
+
+        $studentIds = $students->pluck('student_id')->toArray();
+        $scheduleCheck = $scheduleService->getAvailableStudentsForActivity(
+            $studentIds,
+            $activity->start_time,
+            $activity->end_time,
+            $semester->semester_id
+        );
+
+        // Map students với thông tin lịch
+        $studentsData = $students->map(function ($student) use ($existingRegistrations, $semester, $scheduleCheck) {
             $registration = $existingRegistrations->get($student->student_id);
 
             $canAssign = true;
             $reasonCannotAssign = null;
 
+            // Kiểm tra đã đăng ký
             if ($registration) {
                 $canAssign = false;
-                $reasonCannotAssign = "Đã đăng ký vai trò '{$registration->role->role_name}' (Trạng thái: {$registration->status})";
+                $reasonCannotAssign = "Đã đăng ký vai trò '{$registration->role->role_name}'";
+            }
+
+            // Kiểm tra trùng lịch học
+            if ($canAssign) {
+                $conflict = collect($scheduleCheck['conflicts'])->firstWhere('student_id', $student->student_id);
+                if ($conflict) {
+                    $canAssign = false;
+                    $reasonCannotAssign = $conflict['reason'];
+                }
             }
 
             // Tính điểm
             $training_point = 0;
             $social_point = 0;
 
-            if ($latestSemester) {
+            if ($semester) {
                 try {
                     $training_point = PointCalculationService::calculateTrainingPoints(
                         $student->student_id,
-                        $latestSemester->semester_id
+                        $semester->semester_id
                     );
 
                     $social_point = PointCalculationService::calculateSocialPoints(
                         $student->student_id,
-                        $latestSemester->semester_id
+                        $semester->semester_id
                     );
                 } catch (\Exception $e) {
                     Log::warning('Lỗi khi tính điểm cho sinh viên', [
@@ -762,17 +945,10 @@ class ActivityController extends Controller
                 'class_name' => $student->class->class_name,
                 'training_point' => $training_point,
                 'social_point' => $social_point,
-                'current_semester' => $latestSemester ? $latestSemester->semester_name : null,
-                'status' => $student->status,
                 'can_assign' => $canAssign,
-                'reason_cannot_assign' => $reasonCannotAssign,
-                'current_registration' => $registration ? [
-                    'registration_id' => $registration->registration_id,
-                    'role_name' => $registration->role->role_name,
-                    'registration_status' => $registration->status
-                ] : null
+                'reason_cannot_assign' => $reasonCannotAssign
             ];
-        })->values();
+        });
 
         $availableStudents = $studentsData->where('can_assign', true)->values();
         $unavailableStudents = $studentsData->where('can_assign', false)->values();
@@ -783,16 +959,14 @@ class ActivityController extends Controller
                 'activity' => [
                     'activity_id' => $activity->activity_id,
                     'title' => $activity->title,
+                    'start_time' => $activity->start_time,
+                    'end_time' => $activity->end_time,
                     'status' => $activity->status
                 ],
-                'assigned_classes' => $activity->classes->map(fn($class) => [
-                    'class_id' => $class->class_id,
-                    'class_name' => $class->class_name
-                ]),
-                'current_semester' => $latestSemester ? [
-                    'semester_id' => $latestSemester->semester_id,
-                    'semester_name' => $latestSemester->semester_name,
-                    'academic_year' => $latestSemester->academic_year
+                'semester' => $semester ? [
+                    'semester_id' => $semester->semester_id,
+                    'semester' => $semester->semester_name,
+                    'academic_year' => $semester->academic_year
                 ] : null,
                 'summary' => [
                     'total_students' => $studentsData->count(),

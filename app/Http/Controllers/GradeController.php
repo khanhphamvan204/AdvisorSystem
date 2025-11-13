@@ -11,16 +11,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\GradeImportService;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Illuminate\Support\Facades\Storage;
 
 
 class GradeController extends Controller
 {
+    protected $gradeImportService;
+
+    public function __construct(GradeImportService $gradeImportService)
+    {
+        $this->gradeImportService = $gradeImportService;
+    }
     /**
      * [STUDENT] Xem điểm của chính mình
      * GET /api/grades/my-grades?semester_id={semester_id}
      */
     public function getMyGrades(Request $request)
     {
+
         $studentId = $request->current_user_id;
         $semesterId = $request->query('semester_id');
 
@@ -700,6 +711,320 @@ class GradeController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xuất điểm: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
+     * [ADMIN] Download template Excel để import điểm
+     * GET /api/grades/download-template
+     */
+    public function downloadTemplate(Request $request)
+    {
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền tải template'
+            ], 403);
+        }
+
+        try {
+            $adminId = $request->current_user_id;
+
+            $spreadsheet = $this->gradeImportService->generateTemplate($adminId);
+
+            // Tạo file tạm
+            $fileName = 'template_import_diem_' . date('YmdHis') . '.xlsx';
+            $tempFile = storage_path('app/temp/' . $fileName);
+
+            // Tạo thư mục nếu chưa tồn tại
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempFile);
+
+            Log::info('Template downloaded', [
+                'admin_id' => $adminId,
+                'file_name' => $fileName
+            ]);
+
+            return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to download template', [
+                'admin_id' => $request->current_user_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tải template: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * [ADMIN] Import điểm từ file Excel
+     * POST /api/grades/import-excel
+     */
+
+
+    public function importFromExcel(Request $request)
+    {
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền import điểm'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|mimes:xlsx,xls|max:5120'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File không hợp lệ',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $adminId = $request->current_user_id;
+        $file = $request->file('file');
+        $fileName = 'import_' . $adminId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+        // Lưu file vào storage/app/temp
+        $filePath = $file->storeAs('temp', $fileName); // → temp/import_xxx.xlsx
+
+        // LẤY ĐƯỜNG DẪN VẬT LÝ ĐÚNG (Windows-safe)
+        $fullPath = Storage::path($filePath);
+
+        Log::info('Starting Excel import', [
+            'admin_id' => $adminId,
+            'original_name' => $file->getClientOriginalName(),
+            'temp_path' => $fullPath
+        ]);
+
+        try {
+            // Gọi service
+            $results = $this->gradeImportService->importFromExcel($fullPath, $adminId);
+
+            // XÓA FILE SAU KHI XỬ LÝ XONG
+            Storage::delete($filePath);
+
+            $message = sprintf(
+                'Import hoàn tất: %d thành công, %d cập nhật, %d lỗi',
+                $results['summary']['success_count'],
+                $results['summary']['updated_count'],
+                $results['summary']['error_count']
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            // XÓA FILE KHI LỖI
+            Storage::delete($filePath);
+
+            Log::error('Excel import failed', [
+                'admin_id' => $adminId,
+                'file_path' => $fullPath,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi import file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * [ADMIN] Xuất điểm lớp ra file Excel
+     * GET /api/grades/export-excel/{class_id}/{semester_id}
+     */
+    public function exportToExcel(Request $request, $classId, $semesterId)
+    {
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền xuất điểm'
+            ], 403);
+        }
+
+        $adminId = $request->current_user_id;
+
+        // Kiểm tra quyền
+        $admin = \App\Models\Advisor::with('unit')->find($adminId);
+        if (!$admin || !$admin->unit_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin chưa được gán vào khoa nào'
+            ], 403);
+        }
+
+        $class = \App\Models\ClassModel::with('faculty')->find($classId);
+        if (!$class) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy lớp'
+            ], 404);
+        }
+
+        // Kiểm tra lớp thuộc khoa admin quản lý
+        if ($class->faculty_id != $admin->unit_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lớp này không thuộc khoa bạn quản lý'
+            ], 403);
+        }
+
+        try {
+            $semester = Semester::find($semesterId);
+            if (!$semester) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy học kỳ'
+                ], 404);
+            }
+
+            // Lấy danh sách sinh viên và điểm
+            $students = Student::where('class_id', $classId)
+                ->orderBy('user_code')
+                ->get();
+
+            // Lấy tất cả môn học trong học kỳ của lớp này
+            $courses = CourseGrade::with('course')
+                ->whereIn('student_id', $students->pluck('student_id'))
+                ->where('semester_id', $semesterId)
+                ->get()
+                ->pluck('course')
+                ->unique('course_id')
+                ->sortBy('course_code')
+                ->values();
+
+            // Tạo Excel
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Bảng điểm');
+
+            // Header thông tin
+            $sheet->setCellValue('A1', 'BẢNG ĐIỂM LỚP ' . $class->class_name);
+            $sheet->mergeCells('A1:F1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->setCellValue('A2', 'Học kỳ: ' . $semester->semester_name . ' - ' . $semester->academic_year);
+            $sheet->mergeCells('A2:F2');
+
+            $sheet->setCellValue('A3', 'Khoa: ' . $admin->unit->unit_name);
+            $sheet->mergeCells('A3:F3');
+
+            // Header bảng
+            $row = 5;
+            $sheet->setCellValue('A' . $row, 'STT');
+            $sheet->setCellValue('B' . $row, 'Mã SV');
+            $sheet->setCellValue('C' . $row, 'Họ tên');
+
+            // Header các môn học
+            $col = 'D';
+            foreach ($courses as $course) {
+                $sheet->setCellValue($col . $row, $course->course_code);
+                $col++;
+            }
+            $sheet->setCellValue($col . $row, 'GPA');
+
+            // Format header
+            $lastCol = $col;
+            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $row . ':' . $lastCol . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('CCE5FF');
+
+            // Data
+            $row++;
+            $stt = 1;
+            foreach ($students as $student) {
+                $sheet->setCellValue('A' . $row, $stt++);
+                $sheet->setCellValue('B' . $row, $student->user_code);
+                $sheet->setCellValue('C' . $row, $student->full_name);
+
+                // Điểm các môn
+                $col = 'D';
+                $totalGrade = 0;
+                $totalCredits = 0;
+
+                foreach ($courses as $course) {
+                    $grade = CourseGrade::where('student_id', $student->student_id)
+                        ->where('course_id', $course->course_id)
+                        ->where('semester_id', $semesterId)
+                        ->first();
+
+                    if ($grade) {
+                        $sheet->setCellValue($col . $row, $grade->grade_value);
+                        if ($grade->grade_value !== null) {
+                            $totalGrade += $grade->grade_value * $course->credits;
+                            $totalCredits += $course->credits;
+                        }
+                    } else {
+                        $sheet->setCellValue($col . $row, '-');
+                    }
+                    $col++;
+                }
+
+                // GPA
+                $gpa = $totalCredits > 0 ? round($totalGrade / $totalCredits, 2) : 0;
+                $sheet->setCellValue($col . $row, $gpa);
+
+                $row++;
+            }
+
+            // Format số liệu
+            $sheet->getStyle('A5:' . $lastCol . ($row - 1))->getBorders()->getAllBorders()
+                ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+            // Auto width
+            foreach (range('A', $lastCol) as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            // Xuất file
+            $fileName = 'bangdiem_' . $class->class_name . '_' . $semester->semester_name . '_' . date('YmdHis') . '.xlsx';
+            $tempFile = storage_path('app/temp/' . $fileName);
+
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempFile);
+
+            Log::info('Grades exported to Excel', [
+                'admin_id' => $adminId,
+                'class_id' => $classId,
+                'semester_id' => $semesterId,
+                'file_name' => $fileName
+            ]);
+
+            return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to export grades to Excel', [
+                'admin_id' => $adminId,
+                'class_id' => $classId,
+                'semester_id' => $semesterId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xuất file Excel: ' . $e->getMessage()
             ], 500);
         }
     }
