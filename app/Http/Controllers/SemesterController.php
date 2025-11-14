@@ -210,7 +210,7 @@ class SemesterController extends Controller
     /**
      * Lấy báo cáo học kỳ theo vai trò
      * - Admin: Xem báo cáo của các sinh viên trong khoa
-     * - Advisor: Xem báo cáo sinh viên trong lớp mình cố vấn
+     * - Advisor: Xem thống kê theo từng lớp cố vấn
      * - Student: Chỉ xem báo cáo của mình
      */
     public function getSemesterReports(Request $request, $id)
@@ -244,22 +244,99 @@ class SemesterController extends Controller
                     $query->whereHas('student.class', function ($q) use ($advisor) {
                         $q->where('faculty_id', $advisor->unit_id);
                     });
-                    break;
+
+                    $reports = $query->get();
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'semester' => $semester,
+                            'reports' => $reports
+                        ],
+                        'message' => 'Lấy báo cáo học kỳ thành công'
+                    ], 200);
 
                 case 'advisor':
-                    // Advisor xem báo cáo sinh viên trong lớp mình cố vấn
-                    $classIds = \App\Models\ClassModel::where('advisor_id', $userId)
-                        ->pluck('class_id');
+                    // Advisor xem thống kê theo từng lớp cố vấn
+                    $classes = \App\Models\ClassModel::where('advisor_id', $userId)->get();
 
-                    $query->whereHas('student', function ($q) use ($classIds) {
-                        $q->whereIn('class_id', $classIds);
-                    });
-                    break;
+                    if ($classes->isEmpty()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chưa được phân công lớp cố vấn'
+                        ], 404);
+                    }
+
+                    $classStatistics = [];
+
+                    foreach ($classes as $class) {
+                        $classReports = SemesterReport::with(['student'])
+                            ->where('semester_id', $id)
+                            ->whereHas('student', function ($q) use ($class) {
+                                $q->where('class_id', $class->class_id);
+                            })
+                            ->get();
+
+                        $totalStudents = Student::where('class_id', $class->class_id)->count();
+                        $studentsWithReports = $classReports->count();
+
+                        // Thống kê theo điểm trung bình
+                        $excellent = $classReports->where('semester_gpa', '>=', 3.6)->count(); // Xuất sắc
+                        $good = $classReports->where('semester_gpa', '>=', 3.2)->where('semester_gpa', '<', 3.6)->count(); // Giỏi
+                        $fair = $classReports->where('semester_gpa', '>=', 2.5)->where('semester_gpa', '<', 3.2)->count(); // Khá
+                        $average = $classReports->where('semester_gpa', '>=', 2.0)->where('semester_gpa', '<', 2.5)->count(); // Trung bình
+                        $weak = $classReports->where('semester_gpa', '<', 2.0)->count(); // Yếu
+
+                        // Thống kê cảnh báo học tập
+                        $warningLevel1 = $classReports->where('academic_warning_level', 1)->count();
+                        $warningLevel2 = $classReports->where('academic_warning_level', 2)->count();
+                        $warningLevel3 = $classReports->where('academic_warning_level', 3)->count();
+
+                        $classStatistics[] = [
+                            'class_id' => $class->class_id,
+                            'class_name' => $class->class_name,
+                            'total_students' => $totalStudents,
+                            'students_with_reports' => $studentsWithReports,
+                            'average_gpa' => round($classReports->avg('semester_gpa'), 2),
+                            'gpa_statistics' => [
+                                'excellent' => $excellent, // >= 3.6
+                                'good' => $good,           // 3.2 - 3.59
+                                'fair' => $fair,           // 2.5 - 3.19
+                                'average' => $average,     // 2.0 - 2.49
+                                'weak' => $weak            // < 2.0
+                            ],
+                            'warning_statistics' => [
+                                'level_1' => $warningLevel1,
+                                'level_2' => $warningLevel2,
+                                'level_3' => $warningLevel3
+                            ],
+                            'reports' => $classReports
+                        ];
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'semester' => $semester,
+                            'class_statistics' => $classStatistics
+                        ],
+                        'message' => 'Lấy thống kê báo cáo học kỳ thành công'
+                    ], 200);
 
                 case 'student':
                     // Student chỉ xem báo cáo của mình
                     $query->where('student_id', $userId);
-                    break;
+
+                    $reports = $query->get();
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'semester' => $semester,
+                            'reports' => $reports
+                        ],
+                        'message' => 'Lấy báo cáo học kỳ thành công'
+                    ], 200);
 
                 default:
                     return response()->json([
@@ -267,17 +344,6 @@ class SemesterController extends Controller
                         'message' => 'Vai trò không hợp lệ'
                     ], 403);
             }
-
-            $reports = $query->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'semester' => $semester,
-                    'reports' => $reports
-                ],
-                'message' => 'Lấy báo cáo học kỳ thành công'
-            ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
