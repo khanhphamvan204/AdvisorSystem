@@ -16,6 +16,10 @@ use App\Http\Controllers\ActivityStatisticsController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\SemesterController;
 use App\Http\Controllers\ScheduleImportController;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\AdvisorController;
+use App\Http\Controllers\ImportExportController;
+use App\Http\Controllers\DialogController;
 
 
 // ========== Authentication Routes ==========
@@ -295,7 +299,7 @@ Route::middleware(['auth.api'])->group(function () {
     /**
      * ROUTES CHO ADVISOR - ĐIỂM
      */
-    Route::middleware(['check_role:advisor'])->prefix('grades')->group(function () {
+    Route::middleware(['check_role:advisor,admin'])->prefix('grades')->group(function () {
 
         // Xem điểm của sinh viên trong lớp
         Route::get('/student/{student_id}', [GradeController::class, 'getStudentGrades']);
@@ -329,6 +333,12 @@ Route::middleware(['auth.api'])->group(function () {
         Route::get('/download-template', [GradeController::class, 'downloadTemplate']);
         Route::post('/import-excel', [GradeController::class, 'importFromExcel']);
         Route::get('/export-excel/{class_id}/{semester_id}', [GradeController::class, 'exportToExcel']);
+
+        // Xem danh sách sinh viên và điểm trong khoa
+        Route::get('/faculty-students', [GradeController::class, 'getFacultyStudentsGrades']);
+
+        // Xem tổng quan điểm của khoa
+        Route::get('/faculty-overview', [GradeController::class, 'getFacultyGradesOverview']);
     });
 
 });
@@ -500,6 +510,125 @@ Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->
 Route::middleware(['auth.api'])->prefix('schedules')->group(function () {
     // Kiểm tra xung đột lịch
     Route::post('/check-conflict', [ScheduleImportController::class, 'checkConflict']);
+});
+
+Route::middleware(['auth.api'])->group(function () {
+
+    // ============================================================
+    // CLASSES ROUTES - Tất cả role có thể xem, chỉ admin CRUD
+    // ============================================================
+    Route::prefix('classes')->group(function () {
+        // Xem danh sách và chi tiết - Tất cả role
+        Route::get('/', [ClassController::class, 'index']);
+        Route::get('/{id}', [ClassController::class, 'show']);
+        Route::get('/{id}/students', [ClassController::class, 'getStudents']);
+
+        // CRUD - Chỉ admin
+        Route::middleware(['check_role:admin'])->group(function () {
+            Route::post('/', [ClassController::class, 'store']);
+            Route::put('/{id}', [ClassController::class, 'update']);
+            Route::delete('/{id}', [ClassController::class, 'destroy']);
+        });
+    });
+
+    // ============================================================
+    // STUDENTS ROUTES
+    // ============================================================
+    Route::prefix('students')->group(function () {
+        // Xem danh sách và chi tiết - Tất cả role
+        Route::get('/', [StudentController::class, 'index']);
+        Route::get('/{id}', [StudentController::class, 'show']);
+        Route::get('/{id}/academic-report', [StudentController::class, 'getAcademicReport']);
+
+        // Đổi mật khẩu - Student tự đổi
+        Route::middleware(['check_role:student'])->group(function () {
+            Route::post('/change-password', [StudentController::class, 'changePassword']);
+        });
+
+        // Cập nhật thông tin cá nhân - Student và Admin
+        Route::middleware(['check_role:student,admin'])->group(function () {
+            Route::put('/{id}', [StudentController::class, 'update']);
+        });
+
+        // CRUD - Chỉ admin
+        Route::middleware(['check_role:admin'])->group(function () {
+            Route::post('/', [StudentController::class, 'store']);
+            Route::delete('/{id}', [StudentController::class, 'destroy']);
+        });
+    });
+
+    // ============================================================
+    // ADVISORS ROUTES
+    // ============================================================
+    Route::prefix('advisors')->group(function () {
+        // Xem danh sách và chi tiết - Admin và Advisor
+        Route::middleware(['check_role:admin,advisor'])->group(function () {
+            Route::get('/', [AdvisorController::class, 'index']);
+            Route::get('/{id}', [AdvisorController::class, 'show']);
+            Route::get('/{id}/classes', [AdvisorController::class, 'getClasses']);
+            Route::get('/{id}/statistics', [AdvisorController::class, 'getStatistics']);
+        });
+
+        // Đổi mật khẩu - Advisor tự đổi
+        Route::middleware(['check_role:advisor,admin'])->group(function () {
+            Route::post('/change-password', [AdvisorController::class, 'changePassword']);
+        });
+
+        // Cập nhật thông tin - Advisor và Admin
+        Route::middleware(['check_role:advisor,admin'])->group(function () {
+            Route::put('/{id}', [AdvisorController::class, 'update']);
+        });
+
+        // CRUD - Chỉ admin
+        Route::middleware(['check_role:admin'])->group(function () {
+            Route::post('/', [AdvisorController::class, 'store']);
+            Route::delete('/{id}', [AdvisorController::class, 'destroy']);
+        });
+    });
+
+    // ============================================================
+    // IMPORT/EXPORT ROUTES - Chỉ admin
+    // ============================================================
+    Route::prefix('import-export')->middleware(['check_role:admin'])->group(function () {
+        // Download templates
+        Route::get('/templates/download', [ImportExportController::class, 'downloadTemplates']);
+
+        // Import
+        Route::post('/classes/import', [ImportExportController::class, 'importClasses']);
+        Route::post('/advisors/import', [ImportExportController::class, 'importAdvisors']);
+        Route::post('/students/import', [ImportExportController::class, 'importStudents']);
+
+        // Export
+        Route::get('/classes/export', [ImportExportController::class, 'exportClasses']);
+        Route::get('/students/{classId}/export', [ImportExportController::class, 'exportStudents']);
+    });
+
+    // ============================================================
+    // DIALOG ROUTES - Student và Advisor
+    // ============================================================
+    Route::prefix('dialogs')->middleware(['check_role:student,advisor'])->group(function () {
+        // Lấy danh sách hội thoại
+        Route::get('/conversations', [DialogController::class, 'getConversations']);
+
+        // Lấy tin nhắn trong hội thoại
+        Route::get('/messages', [DialogController::class, 'getMessages']);
+
+        // Gửi tin nhắn
+        Route::post('/messages', [DialogController::class, 'sendMessage']);
+
+        // Đánh dấu đã đọc
+        Route::put('/messages/{id}/read', [DialogController::class, 'markAsRead']);
+
+        // Xóa tin nhắn
+        Route::delete('/messages/{id}', [DialogController::class, 'deleteMessage']);
+
+        // Số tin nhắn chưa đọc
+        Route::get('/unread-count', [DialogController::class, 'getUnreadCount']);
+
+        // Tìm kiếm tin nhắn
+        Route::get('/messages/search', [DialogController::class, 'searchMessages']);
+    });
+
 });
 
 

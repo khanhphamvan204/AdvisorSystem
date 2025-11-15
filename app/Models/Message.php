@@ -10,7 +10,7 @@ class Message extends Model
     protected $table = 'Messages';
     public $timestamps = false;
     protected $primaryKey = 'message_id';
-    protected $keyType = 'bigIncrements';
+    protected $keyType = 'int';
 
     protected $fillable = [
         'student_id',
@@ -18,14 +18,25 @@ class Message extends Model
         'sender_type',
         'content',
         'attachment_path',
-        'is_read'
+        'is_read',
+        'sent_at'
     ];
 
     protected $casts = [
         'sender_type' => 'string',
-        'is_read' => 'boolean',
         'sent_at' => 'datetime',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($message) {
+            if (empty($message->sent_at)) {
+                $message->sent_at = now();
+            }
+        });
+    }
 
     public function student(): BelongsTo
     {

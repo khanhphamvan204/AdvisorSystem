@@ -1,0 +1,499 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Student;
+use App\Models\ClassModel;
+use App\Models\Advisor;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+
+class StudentController extends Controller
+{
+    /**
+     * Lấy danh sách sinh viên
+     * - Admin: Xem sinh viên thuộc các lớp trong khoa mình quản lý
+     * - Advisor: Xem sinh viên trong các lớp mình làm cố vấn
+     * - Student: Chỉ xem thông tin bản thân
+     */
+    public function index(Request $request)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $query = Student::with(['class', 'class.advisor', 'class.faculty']);
+
+            switch ($role) {
+                case 'admin':
+                    $advisor = Advisor::find($userId);
+                    if (!$advisor || !$advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                        ], 404);
+                    }
+                    // Lấy sinh viên thuộc các lớp trong khoa
+                    $query->whereHas('class', function ($q) use ($advisor) {
+                        $q->where('faculty_id', $advisor->unit_id);
+                    });
+                    break;
+
+                case 'advisor':
+                    // Lấy sinh viên trong các lớp mình làm cố vấn
+                    $query->whereHas('class', function ($q) use ($userId) {
+                        $q->where('advisor_id', $userId);
+                    });
+                    break;
+
+                case 'student':
+                    // Chỉ xem thông tin bản thân
+                    $query->where('student_id', $userId);
+                    break;
+
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vai trò không hợp lệ'
+                    ], 403);
+            }
+
+            // Filter by class
+            if ($request->has('class_id')) {
+                $query->where('class_id', $request->class_id);
+            }
+
+            // Filter by status
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Search
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('user_code', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            $students = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $students,
+                'message' => 'Lấy danh sách sinh viên thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xem chi tiết sinh viên
+     */
+    public function show(Request $request, $id)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $student = Student::with([
+                'class',
+                'class.advisor',
+                'class.faculty',
+                'semesterReports.semester',
+                'academicWarnings.advisor',
+                'academicWarnings.semester',
+                'courseGrades.course',
+                'courseGrades.semester'
+            ])->find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra quyền truy cập
+            switch ($role) {
+                case 'admin':
+                    $advisor = Advisor::find($userId);
+                    if ($student->class->faculty_id !== $advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem sinh viên này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'advisor':
+                    if ($student->class->advisor_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem sinh viên này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'student':
+                    if ($student->student_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chỉ có thể xem thông tin của mình'
+                        ], 403);
+                    }
+                    break;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $student,
+                'message' => 'Lấy thông tin sinh viên thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Tạo sinh viên mới (chỉ admin)
+     */
+    public function store(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'user_code' => 'required|string|max:20|unique:Students,user_code',
+                'full_name' => 'required|string|max:100',
+                'email' => 'required|email|unique:Students,email',
+                'phone_number' => 'nullable|string|max:15',
+                'class_id' => 'required|exists:Classes,class_id',
+                'status' => 'nullable|in:studying,graduated,dropped',
+                'password' => 'nullable|string|min:6'
+            ], [
+                'user_code.required' => 'Mã sinh viên không được để trống',
+                'user_code.unique' => 'Mã sinh viên đã tồn tại',
+                'full_name.required' => 'Họ tên không được để trống',
+                'email.required' => 'Email không được để trống',
+                'email.email' => 'Email không hợp lệ',
+                'email.unique' => 'Email đã tồn tại',
+                'class_id.required' => 'Lớp không được để trống',
+                'class_id.exists' => 'Lớp không tồn tại'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Kiểm tra admin chỉ tạo sinh viên cho lớp thuộc khoa mình quản lý
+            $userId = $request->current_user_id;
+            $advisor = Advisor::find($userId);
+            $class = ClassModel::find($request->class_id);
+
+            if ($class->faculty_id !== $advisor->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chỉ có thể tạo sinh viên cho lớp thuộc khoa mình quản lý'
+                ], 403);
+            }
+
+            $student = Student::create([
+                'user_code' => $request->user_code,
+                'full_name' => $request->full_name,
+                'email' => $request->email,
+                'password_hash' => Hash::make($request->password ?? 'Password@123'),
+                'phone_number' => $request->phone_number,
+                'class_id' => $request->class_id,
+                'status' => $request->status ?? 'studying'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $student,
+                'message' => 'Tạo sinh viên thành công'
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin sinh viên
+     * - Admin: Cập nhật sinh viên trong khoa mình quản lý
+     * - Student: Cập nhật thông tin cá nhân (giới hạn)
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $student = Student::find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra quyền
+            if ($role === 'admin') {
+                $advisor = Advisor::find($userId);
+                $class = ClassModel::find($student->class_id);
+
+                if ($class->faculty_id !== $advisor->unit_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền cập nhật sinh viên này'
+                    ], 403);
+                }
+
+                // Admin có thể cập nhật tất cả
+                $validator = Validator::make($request->all(), [
+                    'user_code' => 'sometimes|string|max:20|unique:Students,user_code,' . $id . ',student_id',
+                    'full_name' => 'sometimes|string|max:100',
+                    'email' => 'sometimes|email|unique:Students,email,' . $id . ',student_id',
+                    'phone_number' => 'nullable|string|max:15',
+                    'class_id' => 'sometimes|exists:Classes,class_id',
+                    'status' => 'sometimes|in:studying,graduated,dropped'
+                ]);
+
+            } elseif ($role === 'student') {
+                // Student chỉ cập nhật được thông tin của mình
+                if ($student->student_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn chỉ có thể cập nhật thông tin của mình'
+                    ], 403);
+                }
+
+                // Student chỉ cập nhật được một số trường
+                $validator = Validator::make($request->all(), [
+                    'phone_number' => 'nullable|string|max:15',
+                    'avatar_url' => 'nullable|string|max:255'
+                ]);
+
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền cập nhật thông tin sinh viên'
+                ], 403);
+            }
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $student->update($request->all());
+
+            return response()->json([
+                'success' => true,
+                'data' => $student,
+                'message' => 'Cập nhật sinh viên thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa sinh viên (chỉ admin)
+     */
+    public function destroy(Request $request, $id)
+    {
+        try {
+            $userId = $request->current_user_id;
+
+            $student = Student::find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra quyền
+            $advisor = Advisor::find($userId);
+            $class = ClassModel::find($student->class_id);
+
+            if ($class->faculty_id !== $advisor->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa sinh viên này'
+                ], 403);
+            }
+
+            $student->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa sinh viên thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy báo cáo học tập của sinh viên
+     */
+    public function getAcademicReport(Request $request, $id)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $student = Student::with([
+                'semesterReports.semester',
+                'courseGrades.course',
+                'courseGrades.semester',
+                'academicWarnings.semester'
+            ])->find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra quyền
+            switch ($role) {
+                case 'admin':
+                    $advisor = Advisor::find($userId);
+                    if ($student->class->faculty_id !== $advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem báo cáo này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'advisor':
+                    if ($student->class->advisor_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem báo cáo này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'student':
+                    if ($student->student_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chỉ có thể xem báo cáo của mình'
+                        ], 403);
+                    }
+                    break;
+            }
+
+            $report = [
+                'student_info' => [
+                    'user_code' => $student->user_code,
+                    'full_name' => $student->full_name,
+                    'class' => $student->class->class_name
+                ],
+                'semester_reports' => $student->semesterReports,
+                'course_grades' => $student->courseGrades->groupBy('semester_id'),
+                'academic_warnings' => $student->academicWarnings
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $report,
+                'message' => 'Lấy báo cáo học tập thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Đổi mật khẩu (student tự đổi)
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $userId = $request->current_user_id;
+
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:6|confirmed'
+            ], [
+                'current_password.required' => 'Mật khẩu hiện tại không được để trống',
+                'new_password.required' => 'Mật khẩu mới không được để trống',
+                'new_password.min' => 'Mật khẩu mới phải có ít nhất 6 ký tự',
+                'new_password.confirmed' => 'Xác nhận mật khẩu không khớp'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $student = Student::find($userId);
+
+            if (!Hash::check($request->current_password, $student->password_hash)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mật khẩu hiện tại không đúng'
+                ], 400);
+            }
+
+            $student->password_hash = Hash::make($request->new_password);
+            $student->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đổi mật khẩu thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
