@@ -785,10 +785,10 @@ Authorization: Bearer {token}
 
 ---
 
-### 7. Xuất điểm lớp theo học kỳ (Advisor)
+### 7. Xuất điểm lớp theo học kỳ (Advisor/Admin)
 **Endpoint:** `GET /api/grades/export-class-grades/{class_id}/{semester_id}`
 
-**Mô tả:** CVHT xuất danh sách điểm của tất cả sinh viên trong lớp mình quản lý theo học kỳ.
+**Mô tả:** CVHT xuất danh sách điểm của tất cả sinh viên trong lớp mình quản lý theo học kỳ. Admin xuất điểm lớp thuộc khoa mình quản lý.
 
 **Headers:**
 ```
@@ -836,12 +836,217 @@ Authorization: Bearer {token}
   "message": "Bạn chỉ được xuất điểm lớp mình quản lý"
 }
 ```
+hoặc
+```json
+{
+  "success": false,
+  "message": "Lớp này không thuộc khoa bạn quản lý"
+}
+```
 
 **Response Error (404):**
 ```json
 {
   "success": false,
   "message": "Không tìm thấy lớp"
+}
+```
+
+---
+
+### 8. Xem danh sách sinh viên và điểm trong khoa (Admin)
+**Endpoint:** `GET /api/grades/faculty-students`
+
+**Mô tả:** Admin xem danh sách tất cả sinh viên trong khoa mình quản lý kèm theo thông tin điểm và thống kê học tập.
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `semester_id` (optional): Lọc điểm theo học kỳ
+- `class_id` (optional): Lọc theo lớp cụ thể
+- `search` (optional): Tìm kiếm theo tên hoặc mã sinh viên
+
+**Response Success (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "faculty_info": {
+      "unit_id": 1,
+      "unit_name": "Khoa Công nghệ Thông tin"
+    },
+    "students": [
+      {
+        "student_id": 101,
+        "user_code": "SV2021001",
+        "full_name": "Nguyễn Văn A",
+        "email": "student1@example.com",
+        "phone_number": "0123456789",
+        "class_name": "KTPM2021A",
+        "class_id": 1,
+        "status": "active",
+        "academic_summary": {
+          "cpa_10": 7.8,
+          "cpa_4": 3.2,
+          "total_credits_passed": 45,
+          "passed_courses": 14,
+          "failed_courses": 1,
+          "total_courses": 15,
+          "semester_gpa_10": 7.5,
+          "semester_gpa_4": 3.0,
+          "semester_credits": 18
+        }
+      },
+      {
+        "student_id": 102,
+        "user_code": "SV2021002",
+        "full_name": "Trần Thị B",
+        "email": "student2@example.com",
+        "phone_number": "0987654321",
+        "class_name": "KTPM2021B",
+        "class_id": 2,
+        "status": "active",
+        "academic_summary": {
+          "cpa_10": 8.2,
+          "cpa_4": 3.5,
+          "total_credits_passed": 48,
+          "passed_courses": 16,
+          "failed_courses": 0,
+          "total_courses": 16,
+          "semester_gpa_10": 8.0,
+          "semester_gpa_4": 3.3,
+          "semester_credits": 18
+        }
+      }
+    ],
+    "summary": {
+      "total_students": 120,
+      "total_classes": 5
+    }
+  }
+}
+```
+
+**Giải thích `academic_summary`:**
+- `cpa_10`, `cpa_4`: Điểm trung bình tích lũy (Cumulative Point Average) - toàn bộ các học kỳ
+- `semester_gpa_10`, `semester_gpa_4`: Điểm trung bình học kỳ (Grade Point Average) - chỉ hiển thị khi có filter `semester_id`
+- `total_credits_passed`: Tổng số tín chỉ đã qua (điểm >= 4.0)
+- `semester_credits`: Số tín chỉ đăng ký trong học kỳ - chỉ hiển thị khi có filter `semester_id`
+
+**Response Error (403):**
+```json
+{
+  "success": false,
+  "message": "Chỉ Admin mới có quyền xem danh sách này"
+}
+```
+hoặc
+```json
+{
+  "success": false,
+  "message": "Admin chưa được gán vào khoa nào"
+}
+```
+
+---
+
+### 9. Xem tổng quan điểm của khoa (Admin)
+**Endpoint:** `GET /api/grades/faculty-overview`
+
+**Mô tả:** Admin xem tổng quan về điểm số và thống kê học tập của toàn bộ khoa mình quản lý.
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `semester_id` (optional): Lọc thống kê theo học kỳ
+
+**Response Success (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "faculty_info": {
+      "unit_id": 1,
+      "unit_name": "Khoa Công nghệ Thông tin"
+    },
+    "overview": {
+      "total_students": 120,
+      "total_classes": 5,
+      "total_grades": 1800,
+      "average_cpa": 3.2,
+      "average_score": 7.8,
+      "passed_rate": 92.5
+    },
+    "grade_statistics": {
+      "passed": 1665,
+      "failed": 135,
+      "studying": 0
+    },
+    "grade_distribution": {
+      "excellent": 450,
+      "good": 600,
+      "average": 450,
+      "below_average": 165,
+      "failed": 135
+    },
+    "class_statistics": [
+      {
+        "class_id": 1,
+        "class_name": "KTPM2021A",
+        "total_students": 40,
+        "average_cpa": 3.3,
+        "average_semester_gpa": 3.1,
+        "passed_courses": 560,
+        "failed_courses": 40
+      },
+      {
+        "class_id": 2,
+        "class_name": "KTPM2021B",
+        "total_students": 38,
+        "average_cpa": 3.4,
+        "average_semester_gpa": 3.2,
+        "passed_courses": 532,
+        "failed_courses": 38
+      }
+    ]
+  }
+}
+```
+
+**Giải thích `overview`:**
+- `average_cpa`: Điểm trung bình tích lũy (CPA) trung bình của toàn khoa (thang 10)
+- `average_score`: Điểm trung bình của các môn học trong học kỳ (chỉ hiển thị khi có filter `semester_id`)
+- `passed_rate`: Tỷ lệ đỗ (%)
+
+**Giải thích `class_statistics`:**
+- `average_cpa`: CPA trung bình của lớp (thành tích tích lũy)
+- `average_semester_gpa`: GPA trung bình của lớp trong học kỳ (chỉ hiển thị khi có filter `semester_id`)
+
+**Giải thích `grade_distribution`:**
+- `excellent`: Xuất sắc (>= 8.5)
+- `good`: Giỏi (7.0 - 8.4)
+- `average`: Khá (5.5 - 6.9)
+- `below_average`: Trung bình (4.0 - 5.4)
+- `failed`: Yếu/Kém (< 4.0)
+
+**Response Error (403):**
+```json
+{
+  "success": false,
+  "message": "Chỉ Admin mới có quyền xem tổng quan"
+}
+```
+hoặc
+```json
+{
+  "success": false,
+  "message": "Admin chưa được gán vào khoa nào"
 }
 ```
 
@@ -879,6 +1084,9 @@ Authorization: Bearer {token}
    - Cập nhật điểm (chỉ sinh viên trong các lớp thuộc khoa mình)
    - Nhập điểm hàng loạt (chỉ sinh viên trong các lớp thuộc khoa mình)
    - Xóa điểm (chỉ sinh viên trong các lớp thuộc khoa mình)
+   - Xem danh sách sinh viên và điểm trong khoa mình quản lý
+   - Xem tổng quan điểm của khoa mình quản lý
+   - Xuất điểm lớp theo học kỳ (chỉ lớp thuộc khoa mình)
 
 ---
 

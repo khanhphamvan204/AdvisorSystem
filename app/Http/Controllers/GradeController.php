@@ -87,16 +87,17 @@ class GradeController extends Controller
     }
 
     /**
-     * [ADVISOR] Xem điểm của sinh viên
+     * [ADVISOR/ADMIN] Xem điểm của sinh viên
      * GET /api/grades/student/{student_id}?semester_id={semester_id}
      */
     public function getStudentGrades(Request $request, $studentId)
     {
-        $advisorId = $request->current_user_id;
+        $userId = $request->current_user_id;
+        $userRole = $request->current_role;
         $semesterId = $request->query('semester_id');
 
         // Kiểm tra quyền
-        $student = Student::with('class')->find($studentId);
+        $student = Student::with('class.faculty')->find($studentId);
         if (!$student) {
             return response()->json([
                 'success' => false,
@@ -104,10 +105,35 @@ class GradeController extends Controller
             ], 404);
         }
 
-        if ($student->class->advisor_id != $advisorId) {
+        // Kiểm tra quyền truy cập
+        if ($userRole === 'advisor') {
+            // Advisor chỉ xem được sinh viên trong lớp mình quản lý
+            if ($student->class->advisor_id != $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chỉ được xem điểm sinh viên trong lớp mình quản lý'
+                ], 403);
+            }
+        } elseif ($userRole === 'admin') {
+            // Admin chỉ xem được sinh viên trong khoa mình quản lý
+            $admin = \App\Models\Advisor::find($userId);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin chưa được gán vào khoa nào'
+                ], 403);
+            }
+
+            if (!$student->class || $student->class->faculty_id != $admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chỉ được xem điểm sinh viên trong khoa mình quản lý'
+                ], 403);
+            }
+        } else {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn chỉ được xem điểm sinh viên trong lớp mình quản lý'
+                'message' => 'Không có quyền truy cập'
             ], 403);
         }
 
@@ -154,8 +180,9 @@ class GradeController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to get student grades by advisor', [
-                'advisor_id' => $advisorId,
+            Log::error('Failed to get student grades', [
+                'user_id' => $userId,
+                'user_role' => $userRole,
                 'student_id' => $studentId,
                 'error' => $e->getMessage()
             ]);
@@ -634,15 +661,16 @@ class GradeController extends Controller
     }
 
     /**
-     * [ADVISOR] Xuất điểm lớp theo học kỳ
+     * [ADVISOR/ADMIN] Xuất điểm lớp theo học kỳ
      * GET /api/grades/export-class-grades/{class_id}/{semester_id}
      */
     public function exportClassGrades(Request $request, $classId, $semesterId)
     {
-        $advisorId = $request->current_user_id;
+        $userId = $request->current_user_id;
+        $userRole = $request->current_role;
 
         // Kiểm tra quyền
-        $class = \App\Models\ClassModel::find($classId);
+        $class = \App\Models\ClassModel::with('faculty')->find($classId);
         if (!$class) {
             return response()->json([
                 'success' => false,
@@ -650,10 +678,35 @@ class GradeController extends Controller
             ], 404);
         }
 
-        if ($class->advisor_id != $advisorId) {
+        // Kiểm tra quyền truy cập
+        if ($userRole === 'advisor') {
+            // Advisor chỉ xuất được lớp mình quản lý
+            if ($class->advisor_id != $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn chỉ được xuất điểm lớp mình quản lý'
+                ], 403);
+            }
+        } elseif ($userRole === 'admin') {
+            // Admin chỉ xuất được lớp trong khoa mình quản lý
+            $admin = \App\Models\Advisor::find($userId);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin chưa được gán vào khoa nào'
+                ], 403);
+            }
+
+            if ($class->faculty_id != $admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lớp này không thuộc khoa bạn quản lý'
+                ], 403);
+            }
+        } else {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn chỉ được xuất điểm lớp mình quản lý'
+                'message' => 'Không có quyền truy cập'
             ], 403);
         }
 
@@ -1025,6 +1078,317 @@ class GradeController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xuất file Excel: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * [ADMIN] Xem danh sách sinh viên và điểm trong khoa
+     * GET /api/grades/faculty-students?semester_id={semester_id}&class_id={class_id}&search={search}
+     */
+    public function getFacultyStudentsGrades(Request $request)
+    {
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền xem danh sách này'
+            ], 403);
+        }
+
+        $adminId = $request->current_user_id;
+        $semesterId = $request->query('semester_id');
+        $classId = $request->query('class_id');
+        $search = $request->query('search');
+
+        try {
+            // Lấy thông tin admin và khoa
+            $admin = \App\Models\Advisor::with('unit')->find($adminId);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin chưa được gán vào khoa nào'
+                ], 403);
+            }
+
+            // Lấy danh sách lớp thuộc khoa
+            $classesQuery = \App\Models\ClassModel::where('faculty_id', $admin->unit_id);
+
+            // Filter theo class_id nếu có
+            if ($classId) {
+                $classesQuery->where('class_id', $classId);
+            }
+
+            $classes = $classesQuery->get();
+            $classIds = $classes->pluck('class_id');
+
+            // Lấy danh sách sinh viên trong các lớp thuộc khoa
+            $studentsQuery = Student::with(['class'])
+                ->whereIn('class_id', $classIds);
+
+            // Tìm kiếm theo tên hoặc mã sinh viên
+            if ($search) {
+                $studentsQuery->where(function ($query) use ($search) {
+                    $query->where('full_name', 'LIKE', "%{$search}%")
+                        ->orWhere('user_code', 'LIKE', "%{$search}%");
+                });
+            }
+
+            $students = $studentsQuery->orderBy('user_code')->get();
+
+            // Lấy điểm của từng sinh viên
+            $studentsData = $students->map(function ($student) use ($semesterId) {
+                // Tính CPA (điểm trung bình tích lũy)
+                $cpaData = AcademicMonitoringService::calculateCPA($student->student_id);
+
+                // Nếu có filter semester_id, tính GPA của học kỳ đó
+                $gpaData = null;
+                if ($semesterId) {
+                    $gpaData = AcademicMonitoringService::calculateGPA($student->student_id, $semesterId);
+                }
+
+                // Lấy điểm để đếm số môn
+                $gradesQuery = CourseGrade::with(['course', 'semester'])
+                    ->where('student_id', $student->student_id);
+
+                if ($semesterId) {
+                    $gradesQuery->where('semester_id', $semesterId);
+                }
+
+                $grades = $gradesQuery->orderBy('semester_id', 'desc')->get();
+                $passedCourses = $grades->where('status', 'passed')->count();
+                $failedCourses = $grades->where('status', 'failed')->count();
+
+                $academicSummary = [
+                    'cpa_10' => $cpaData['cpa_10'],
+                    'cpa_4' => $cpaData['cpa_4'],
+                    'total_credits_passed' => $cpaData['total_credits_passed'],
+                    'passed_courses' => $passedCourses,
+                    'failed_courses' => $failedCourses,
+                    'total_courses' => $grades->count()
+                ];
+
+                // Thêm GPA nếu có filter semester
+                if ($semesterId && $gpaData) {
+                    $academicSummary['semester_gpa_10'] = $gpaData['gpa_10'];
+                    $academicSummary['semester_gpa_4'] = $gpaData['gpa_4'];
+                    $academicSummary['semester_credits'] = $gpaData['credits_registered'];
+                }
+
+                return [
+                    'student_id' => $student->student_id,
+                    'user_code' => $student->user_code,
+                    'full_name' => $student->full_name,
+                    'email' => $student->email,
+                    'phone_number' => $student->phone_number,
+                    'class_name' => $student->class->class_name,
+                    'class_id' => $student->class_id,
+                    'status' => $student->status,
+                    'academic_summary' => $academicSummary
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'faculty_info' => [
+                        'unit_id' => $admin->unit_id,
+                        'unit_name' => $admin->unit->unit_name
+                    ],
+                    'students' => $studentsData,
+                    'summary' => [
+                        'total_students' => $studentsData->count(),
+                        'total_classes' => $classes->count()
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get faculty students grades', [
+                'admin_id' => $adminId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy danh sách sinh viên: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * [ADMIN] Xem tổng quan điểm của khoa
+     * GET /api/grades/faculty-overview?semester_id={semester_id}
+     */
+    public function getFacultyGradesOverview(Request $request)
+    {
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền xem tổng quan'
+            ], 403);
+        }
+
+        $adminId = $request->current_user_id;
+        $semesterId = $request->query('semester_id');
+
+        try {
+            // Lấy thông tin admin và khoa
+            $admin = \App\Models\Advisor::with('unit')->find($adminId);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Admin chưa được gán vào khoa nào'
+                ], 403);
+            }
+
+            // Lấy danh sách lớp thuộc khoa
+            $classes = \App\Models\ClassModel::where('faculty_id', $admin->unit_id)->get();
+            $classIds = $classes->pluck('class_id');
+
+            // Lấy danh sách sinh viên
+            $students = Student::whereIn('class_id', $classIds)->get();
+            $studentIds = $students->pluck('student_id');
+
+            // Lấy điểm của sinh viên
+            $gradesQuery = CourseGrade::with(['course'])
+                ->whereIn('student_id', $studentIds);
+
+            if ($semesterId) {
+                $gradesQuery->where('semester_id', $semesterId);
+            }
+
+            $grades = $gradesQuery->get();
+
+            // Thống kê
+            $totalGrades = $grades->count();
+            $passedGrades = $grades->where('status', 'passed')->count();
+            $failedGrades = $grades->where('status', 'failed')->count();
+            $studyingGrades = $grades->where('status', 'studying')->count();
+
+            // Phân phối điểm
+            $gradeDistribution = [
+                'excellent' => $grades->where('grade_value', '>=', 8.5)->count(), // Xuất sắc
+                'good' => $grades->whereBetween('grade_value', [7.0, 8.4])->count(), // Giỏi
+                'average' => $grades->whereBetween('grade_value', [5.5, 6.9])->count(), // Khá
+                'below_average' => $grades->whereBetween('grade_value', [4.0, 5.4])->count(), // Trung bình
+                'failed' => $grades->where('grade_value', '<', 4.0)->count() // Yếu/Kém
+            ];
+
+            // Tính điểm trung bình của khoa
+            $totalCredits = 0;
+            $totalGradePoints = 0;
+
+            foreach ($grades->where('status', 'passed') as $grade) {
+                $totalGradePoints += $grade->grade_value * $grade->course->credits;
+                $totalCredits += $grade->course->credits;
+            }
+
+            $averageScore = $totalCredits > 0 ? round($totalGradePoints / $totalCredits, 2) : 0;
+
+            // Tính CPA trung bình của toàn khoa (không phụ thuộc filter semester)
+            $totalCPA = 0;
+            $studentCount = 0;
+            foreach ($students as $student) {
+                $cpaData = AcademicMonitoringService::calculateCPA($student->student_id);
+                if ($cpaData['cpa_10'] > 0) {
+                    $totalCPA += $cpaData['cpa_10'];
+                    $studentCount++;
+                }
+            }
+            $averageCPA = $studentCount > 0 ? round($totalCPA / $studentCount, 2) : 0;
+
+            // Thống kê theo lớp
+            $classStats = $classes->map(function ($class) use ($semesterId) {
+                $students = Student::where('class_id', $class->class_id)->get();
+                $studentIds = $students->pluck('student_id');
+
+                // Tính CPA trung bình của lớp
+                $totalCPA = 0;
+                $cpaCount = 0;
+                foreach ($students as $student) {
+                    $cpaData = AcademicMonitoringService::calculateCPA($student->student_id);
+                    if ($cpaData['cpa_10'] > 0) {
+                        $totalCPA += $cpaData['cpa_10'];
+                        $cpaCount++;
+                    }
+                }
+                $classCPA = $cpaCount > 0 ? round($totalCPA / $cpaCount, 2) : 0;
+
+                // Nếu có semester filter, tính GPA của học kỳ đó
+                $classGPA = null;
+                if ($semesterId) {
+                    $totalGPA = 0;
+                    $gpaCount = 0;
+                    foreach ($students as $student) {
+                        $gpaData = AcademicMonitoringService::calculateGPA($student->student_id, $semesterId);
+                        if ($gpaData['gpa_10'] > 0) {
+                            $totalGPA += $gpaData['gpa_10'];
+                            $gpaCount++;
+                        }
+                    }
+                    $classGPA = $gpaCount > 0 ? round($totalGPA / $gpaCount, 2) : 0;
+                }
+
+                $gradesQuery = CourseGrade::with(['course'])
+                    ->whereIn('student_id', $studentIds);
+
+                if ($semesterId) {
+                    $gradesQuery->where('semester_id', $semesterId);
+                }
+
+                $classGrades = $gradesQuery->get();
+
+                $classStats = [
+                    'class_id' => $class->class_id,
+                    'class_name' => $class->class_name,
+                    'total_students' => $students->count(),
+                    'average_cpa' => $classCPA,
+                    'passed_courses' => $classGrades->where('status', 'passed')->count(),
+                    'failed_courses' => $classGrades->where('status', 'failed')->count()
+                ];
+
+                // Thêm GPA nếu có semester filter
+                if ($semesterId) {
+                    $classStats['average_semester_gpa'] = $classGPA;
+                }
+
+                return $classStats;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'faculty_info' => [
+                        'unit_id' => $admin->unit_id,
+                        'unit_name' => $admin->unit->unit_name
+                    ],
+                    'overview' => [
+                        'total_students' => $students->count(),
+                        'total_classes' => $classes->count(),
+                        'total_grades' => $totalGrades,
+                        'average_cpa' => $averageCPA,
+                        'average_score' => $semesterId ? $averageScore : null,
+                        'passed_rate' => $totalGrades > 0 ? round(($passedGrades / $totalGrades) * 100, 2) : 0
+                    ],
+                    'grade_statistics' => [
+                        'passed' => $passedGrades,
+                        'failed' => $failedGrades,
+                        'studying' => $studyingGrades
+                    ],
+                    'grade_distribution' => $gradeDistribution,
+                    'class_statistics' => $classStats
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get faculty grades overview', [
+                'admin_id' => $adminId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy tổng quan điểm: ' . $e->getMessage()
             ], 500);
         }
     }
