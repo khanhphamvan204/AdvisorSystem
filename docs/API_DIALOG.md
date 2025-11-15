@@ -140,8 +140,12 @@ Lấy lịch sử tin nhắn với một người cụ thể. Backend tự độ
 - **Student**: Chỉ xem tin nhắn với cố vấn lớp mình (partner_id = advisor_id)
 - **Advisor**: Chỉ xem tin nhắn với sinh viên trong lớp mình (partner_id = student_id)
 
-### Auto Mark as Read
-Khi lấy tin nhắn, hệ thống tự động đánh dấu tin nhắn của đối phương gửi cho mình là đã đọc.
+### ⚠️ Important: Auto Mark as Read
+**API này không chỉ lấy tin nhắn mà còn tự động cập nhật trạng thái đã đọc:**
+- Khi **student** gọi API: Tất cả tin nhắn từ **advisor** gửi cho student (và có `is_read = 0`) sẽ được đánh dấu `is_read = 1`
+- Khi **advisor** gọi API: Tất cả tin nhắn từ **student** gửi cho advisor (và có `is_read = 0`) sẽ được đánh dấu `is_read = 1`
+
+**Lưu ý:** Tin nhắn do chính mình gửi sẽ KHÔNG bị cập nhật trạng thái.
 
 ### Response
 ```json
@@ -183,9 +187,22 @@ Khi lấy tin nhắn, hệ thống tự động đánh dấu tin nhắn của đ
 }
 ```
 
+### Response Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| message_id | integer | ID tin nhắn |
+| student_id | integer | ID sinh viên trong hội thoại |
+| advisor_id | integer | ID cố vấn trong hội thoại |
+| sender_type | string | "student" hoặc "advisor" - người gửi tin nhắn |
+| content | string | Nội dung tin nhắn |
+| attachment_path | string/null | Đường dẫn file đính kèm |
+| is_read | integer | 0 = chưa đọc, 1 = đã đọc |
+| sent_at | datetime | Thời gian gửi tin nhắn |
+
 ### Notes
 - Tin nhắn được sắp xếp theo thời gian tăng dần (từ cũ đến mới)
-- Tự động đánh dấu đã đọc khi lấy tin nhắn
+- **API này tự động cập nhật `is_read = 1`** cho tin nhắn từ đối phương khi được gọi
+- Tin nhắn do chính mình gửi không bị ảnh hưởng
 
 ### Error Responses
 - **422 Validation Error**:
