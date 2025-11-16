@@ -236,7 +236,8 @@ class GradeImportService
         // Bắt đầu từ dòng 2 (dòng 1 là header)
         for ($row = 2; $row <= $highestRow; $row++) {
             $userCode = trim($sheet->getCell("B{$row}")->getValue());
-            $gradeValue = $sheet->getCell("E{$row}")->getValue();
+            // Sử dụng getCalculatedValue() để lấy giá trị đã tính toán từ công thức Excel
+            $gradeValue = $sheet->getCell("E{$row}")->getCalculatedValue();
 
             // Bỏ qua dòng trống
             if (empty($userCode) && empty($gradeValue)) {
