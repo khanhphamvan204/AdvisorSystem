@@ -180,6 +180,7 @@ class StudentController extends Controller
                 'phone_number' => 'nullable|string|max:15',
                 'class_id' => 'required|exists:Classes,class_id',
                 'status' => 'nullable|in:studying,graduated,dropped',
+                'position' => 'nullable|in:member,leader,vice_leader,secretary',
                 'password' => 'nullable|string|min:6'
             ], [
                 'user_code.required' => 'Mã sinh viên không được để trống',
@@ -189,7 +190,8 @@ class StudentController extends Controller
                 'email.email' => 'Email không hợp lệ',
                 'email.unique' => 'Email đã tồn tại',
                 'class_id.required' => 'Lớp không được để trống',
-                'class_id.exists' => 'Lớp không tồn tại'
+                'class_id.exists' => 'Lớp không tồn tại',
+                'position.in' => 'Chức vụ không hợp lệ'
             ]);
 
             if ($validator->fails()) {
@@ -205,6 +207,20 @@ class StudentController extends Controller
             $advisor = Advisor::find($userId);
             $class = ClassModel::find($request->class_id);
 
+            // Kiểm tra chức vụ đã tồn tại trong lớp
+            if ($request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
+                $existingPosition = Student::where('class_id', $request->class_id)
+                    ->where('position', $request->position)
+                    ->first();
+
+                if ($existingPosition) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Chức vụ ' . $request->position . ' đã có người đảm nhận trong lớp này'
+                    ], 422);
+                }
+            }
+
             if ($class->faculty_id !== $advisor->unit_id) {
                 return response()->json([
                     'success' => false,
@@ -219,7 +235,8 @@ class StudentController extends Controller
                 'password_hash' => Hash::make($request->password ?? 'Password@123'),
                 'phone_number' => $request->phone_number,
                 'class_id' => $request->class_id,
-                'status' => $request->status ?? 'studying'
+                'status' => $request->status ?? 'studying',
+                'position' => $request->position ?? 'member'
             ]);
 
             return response()->json([
@@ -275,7 +292,8 @@ class StudentController extends Controller
                     'email' => 'sometimes|email|unique:Students,email,' . $id . ',student_id',
                     'phone_number' => 'nullable|string|max:15',
                     'class_id' => 'sometimes|exists:Classes,class_id',
-                    'status' => 'sometimes|in:studying,graduated,dropped'
+                    'status' => 'sometimes|in:studying,graduated,dropped',
+                    'position' => 'sometimes|in:member,leader,vice_leader,secretary'
                 ]);
 
             } elseif ($role === 'student') {
@@ -306,6 +324,21 @@ class StudentController extends Controller
                     'message' => 'Dữ liệu không hợp lệ',
                     'errors' => $validator->errors()
                 ], 422);
+            }
+
+            // Kiểm tra chức vụ đã tồn tại trong lớp (chỉ áp dụng khi admin cập nhật position)
+            if ($role === 'admin' && $request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
+                $existingPosition = Student::where('class_id', $student->class_id)
+                    ->where('position', $request->position)
+                    ->where('student_id', '!=', $id)
+                    ->first();
+
+                if ($existingPosition) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Chức vụ ' . $request->position . ' đã có người đảm nhận trong lớp này'
+                    ], 422);
+                }
             }
 
             $student->update($request->all());
@@ -487,6 +520,87 @@ class StudentController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Đổi mật khẩu thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy danh sách sinh viên theo chức vụ trong lớp
+     * Admin, Advisor: Xem chức vụ của các lớp thuộc quyền
+     */
+    public function getClassPositions(Request $request, $classId)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $class = ClassModel::find($classId);
+
+            if (!$class) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy lớp'
+                ], 404);
+            }
+
+            // Kiểm tra quyền truy cập
+            switch ($role) {
+                case 'admin':
+                    $advisor = Advisor::find($userId);
+                    if ($class->faculty_id !== $advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem lớp này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'advisor':
+                    if ($class->advisor_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền xem lớp này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'student':
+                    $student = Student::where('student_id', $userId)->first();
+                    if ($student->class_id !== $classId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chỉ có thể xem chức vụ lớp của mình'
+                        ], 403);
+                    }
+                    break;
+
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vai trò không hợp lệ'
+                    ], 403);
+            }
+
+            $positions = [
+                'leader' => Student::where('class_id', $classId)->where('position', 'leader')->first(),
+                'vice_leader' => Student::where('class_id', $classId)->where('position', 'vice_leader')->first(),
+                'secretary' => Student::where('class_id', $classId)->where('position', 'secretary')->first(),
+                'members' => Student::where('class_id', $classId)->where('position', 'member')->get()
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'class_name' => $class->class_name,
+                    'positions' => $positions
+                ],
+                'message' => 'Lấy danh sách chức vụ thành công'
             ], 200);
 
         } catch (\Exception $e) {

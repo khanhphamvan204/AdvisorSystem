@@ -42,6 +42,7 @@ GET /api/students
       "email": "sv.hung@school.edu.vn",
       "phone_number": "091122334",
       "status": "studying",
+      "position": "leader",
       "avatar_url": null,
       "created_at": "2024-09-01T00:00:00.000000Z",
       "last_login": null,
@@ -99,6 +100,7 @@ GET /api/students/{id}
     "email": "sv.hung@school.edu.vn",
     "phone_number": "091122334",
     "status": "studying",
+    "position": "leader",
     "avatar_url": null,
     "created_at": "2024-09-01T00:00:00.000000Z",
     "class": {
@@ -200,6 +202,7 @@ POST /api/students
   "phone_number": "0901234567",
   "class_id": 1,
   "status": "studying",
+  "position": "member",
   "password": "Password@123"
 }
 ```
@@ -213,6 +216,7 @@ POST /api/students
 | phone_number | string(15) | No | Số điện thoại |
 | class_id | integer | Yes | ID lớp học |
 | status | enum | No | `studying`, `graduated`, `dropped` (mặc định: studying) |
+| position | enum | No | `member`, `leader`, `vice_leader`, `secretary` (mặc định: member) |
 | password | string | No | Mật khẩu (mặc định: Password@123) |
 
 ### Response
@@ -227,6 +231,7 @@ POST /api/students
     "phone_number": "0901234567",
     "class_id": 1,
     "status": "studying",
+    "position": "member",
     "created_at": "2025-11-15T10:00:00.000000Z"
   },
   "message": "Tạo sinh viên thành công"
@@ -294,7 +299,8 @@ PUT /api/students/{id}
   "email": "sv.a@school.edu.vn",
   "phone_number": "0901234567",
   "class_id": 1,
-  "status": "studying"
+  "status": "studying",
+  "position": "leader"
 }
 ```
 
@@ -317,6 +323,7 @@ PUT /api/students/{id}
 | phone_number | string(15) | Số điện thoại |
 | class_id | integer | ID lớp học |
 | status | enum | `studying`, `graduated`, `dropped` |
+| position | enum | `member`, `leader`, `vice_leader`, `secretary` |
 
 #### Student can update:
 | Field | Type | Description |
@@ -334,7 +341,8 @@ PUT /api/students/{id}
     "full_name": "Nguyễn Văn Hùng",
     "email": "sv.hung@school.edu.vn",
     "phone_number": "0909999999",
-    "status": "studying"
+    "status": "studying",
+    "position": "leader"
   },
   "message": "Cập nhật sinh viên thành công"
 }
@@ -493,6 +501,91 @@ curl -X POST "http://localhost:8000/api/students/change-password" \
     "new_password": "NewPassword@123",
     "new_password_confirmation": "NewPassword@123"
   }'
+```
+
+---
+
+## 7. Get Class Positions
+
+### Endpoint
+```http
+GET /api/classes/{classId}/positions
+```
+
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| classId | integer | Yes | ID của lớp |
+
+### Access Control
+- **Admin**: Xem chức vụ của các lớp thuộc khoa mình quản lý
+- **Advisor**: Xem chức vụ của các lớp mình làm cố vấn
+- **Student**: Xem chức vụ của lớp mình
+
+### Response
+```json
+{
+  "success": true,
+  "data": {
+    "class_name": "DH21CNTT",
+    "positions": {
+      "leader": {
+        "student_id": 1,
+        "user_code": "210001",
+        "full_name": "Nguyễn Văn A",
+        "email": "sv.a@school.edu.vn",
+        "position": "leader"
+      },
+      "vice_leader": {
+        "student_id": 2,
+        "user_code": "210002",
+        "full_name": "Trần Thị B",
+        "email": "sv.b@school.edu.vn",
+        "position": "vice_leader"
+      },
+      "secretary": {
+        "student_id": 3,
+        "user_code": "210003",
+        "full_name": "Lê Văn C",
+        "email": "sv.c@school.edu.vn",
+        "position": "secretary"
+      },
+      "members": [
+        {
+          "student_id": 4,
+          "user_code": "210004",
+          "full_name": "Phạm Thị D",
+          "email": "sv.d@school.edu.vn",
+          "position": "member"
+        }
+      ]
+    }
+  },
+  "message": "Lấy danh sách chức vụ thành công"
+}
+```
+
+### Error Responses
+- **404 Not Found**:
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy lớp"
+}
+```
+
+- **403 Forbidden**:
+```json
+{
+  "success": false,
+  "message": "Bạn không có quyền xem lớp này"
+}
+```
+
+### Example
+```bash
+curl -X GET "http://localhost:8000/api/classes/1/positions" \
+  -H "Authorization: Bearer {token}"
 ```
 
 ---

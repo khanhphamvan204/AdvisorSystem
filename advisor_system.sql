@@ -4,6 +4,9 @@ COLLATE utf8mb4_unicode_ci;
 
 USE db_advisorsystem;
 
+-- ========================================
+-- BẢNG STUDENTS (ĐÃ THÊM POSITION)
+-- ========================================
 CREATE TABLE Students (
     student_id INT AUTO_INCREMENT PRIMARY KEY,
     user_code VARCHAR(20) NOT NULL UNIQUE,
@@ -15,7 +18,9 @@ CREATE TABLE Students (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME NULL,
     class_id INT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'studying'
+    status VARCHAR(50) NOT NULL DEFAULT 'studying',
+    position ENUM('member', 'leader', 'vice_leader', 'secretary') DEFAULT 'member',
+    INDEX idx_students_position (class_id, position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE Advisors (
@@ -245,15 +250,20 @@ CREATE TABLE Notification_Responses (
     FOREIGN KEY (advisor_id) REFERENCES Advisors(advisor_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========================================
+-- BẢNG MEETINGS (ĐÃ THÊM END_TIME VÀ CLASS_FEEDBACK)
+-- ========================================
 CREATE TABLE Meetings (
     meeting_id INT AUTO_INCREMENT PRIMARY KEY,
     advisor_id INT NOT NULL,
     class_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     summary TEXT NULL,
+    class_feedback TEXT NULL COMMENT 'Ý kiến đóng góp tổng hợp của lớp',
     meeting_link VARCHAR(2083) NULL,
     location VARCHAR(255) NULL,
     meeting_time DATETIME NOT NULL,
+    end_time DATETIME NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
     minutes_file_path VARCHAR(255) NULL,
     FOREIGN KEY (advisor_id) REFERENCES Advisors(advisor_id) ON DELETE RESTRICT,
@@ -308,12 +318,13 @@ CREATE TABLE Student_Monitoring_Notes (
     FOREIGN KEY (semester_id) REFERENCES Semesters(semester_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- THIẾT LẬP MẬT KHẨU MẶC ĐỊNH
+-- ========================================
+-- DỮ LIỆU MẪU
+-- ========================================
+
 SET @default_hash = '$2y$10$XDVj1Dr7HJgAdrq8NNpzeurpieW7HRYNK53LcjVOMeGKIMNiib2ky';
 
--- ========================================
--- 1. Units (5 dòng)
--- ========================================
+-- 1. Units
 INSERT INTO Units (unit_name, type, description) VALUES
 ('Khoa Công nghệ Thông tin', 'faculty', 'Quản lý các ngành thuộc lĩnh vực CNTT'),
 ('Khoa Kinh tế', 'faculty', 'Quản lý các ngành Kinh tế, Quản trị kinh doanh'),
@@ -321,9 +332,7 @@ INSERT INTO Units (unit_name, type, description) VALUES
 ('Phòng Công tác Sinh viên', 'department', 'Quản lý hoạt động ngoại khóa, điểm rèn luyện'),
 ('Phòng Đào tạo', 'department', 'Quản lý chương trình đào tạo, lịch học, thi cử');
 
--- ========================================
--- 2. Advisors (5 dòng)
--- ========================================
+-- 2. Advisors
 INSERT INTO Advisors (user_code, full_name, email, password_hash, phone_number, unit_id, role) VALUES
 ('GV001', 'ThS. Trần Văn An', 'gv.an@school.edu.vn', @default_hash, '090111222', 1, 'advisor'),
 ('GV002', 'TS. Nguyễn Thị Bích', 'gv.bich@school.edu.vn', @default_hash, '090222333', 2, 'advisor'),
@@ -331,9 +340,7 @@ INSERT INTO Advisors (user_code, full_name, email, password_hash, phone_number, 
 ('GV004', 'ThS. Đỗ Yến Nhi', 'gv.nhi@school.edu.vn', @default_hash, '090444555', 3, 'advisor'),
 ('ADMIN001', 'Quản trị viên Hệ thống', 'admin@school.edu.vn', @default_hash, '090999999', 5, 'admin');
 
--- ========================================
--- 3. Classes (5 dòng)
--- ========================================
+-- 3. Classes
 INSERT INTO Classes (class_name, advisor_id, faculty_id, description) VALUES
 ('DH21CNTT', 1, 1, 'Lớp Đại học 2021 ngành Công nghệ Thông tin'),
 ('DH22KT', 2, 2, 'Lớp Đại học 2022 ngành Kinh tế'),
@@ -341,19 +348,19 @@ INSERT INTO Classes (class_name, advisor_id, faculty_id, description) VALUES
 ('DH23CNTT', 1, 1, 'Lớp Đại học 2023 ngành Công nghệ Thông tin'),
 ('DH23KT', 2, 2, 'Lớp Đại học 2023 ngành Kinh tế');
 
--- ========================================
--- 4. Students (5 dòng)
--- ========================================
-INSERT INTO Students (user_code, full_name, email, password_hash, phone_number, class_id, status) VALUES
-('210001', 'Nguyễn Văn Hùng', 'sv.hung@school.edu.vn', @default_hash, '091122334', 1, 'studying'),
-('210002', 'Trần Thị Thu Cẩm', 'sv.cam@school.edu.vn', @default_hash, '091234567', 1, 'studying'),
-('220001', 'Lê Văn Dũng', 'sv.dung@school.edu.vn', @default_hash, '092233445', 2, 'studying'),
-('230001', 'Đỗ Minh Nam', 'sv.nam@school.edu.vn', @default_hash, '091112233', 4, 'studying'),
-('230002', 'Bùi Thị Hương', 'sv.huong@school.edu.vn', @default_hash, '091223344', 4, 'studying');
+-- 4. Students (ĐÃ THÊM POSITION)
+INSERT INTO Students (user_code, full_name, email, password_hash, phone_number, class_id, status, position) VALUES
+('210001', 'Nguyễn Văn Hùng', 'sv.hung@school.edu.vn', @default_hash, '091122334', 1, 'studying', 'leader'),
+('210002', 'Trần Thị Thu Cẩm', 'sv.cam@school.edu.vn', @default_hash, '091234567', 1, 'studying', 'secretary'),
+('220001', 'Lê Văn Dũng', 'sv.dung@school.edu.vn', @default_hash, '092233445', 2, 'studying', 'leader'),
+('230001', 'Đỗ Minh Nam', 'sv.nam@school.edu.vn', @default_hash, '091112233', 4, 'studying', 'leader'),
+('230002', 'Bùi Thị Hương', 'sv.huong@school.edu.vn', @default_hash, '091223344', 4, 'studying', 'vice_leader'),
+('210003', 'Phan Thanh Bình', 'sv.binh@school.edu.vn', @default_hash, '094455667', 1, 'studying', 'vice_leader'),
+('210004', 'Võ Thị Kim Anh', 'sv.anh@school.edu.vn', @default_hash, '095566778', 1, 'studying', 'member'),
+('210005', 'Trịnh Bảo Quốc', 'sv.quoc@school.edu.vn', @default_hash, '096677889', 3, 'studying', 'leader'),
+('210006', 'Mai Lan Chi', 'sv.chi@school.edu.vn', @default_hash, '097788990', 3, 'studying', 'secretary');
 
--- ========================================
--- 5. Semesters (5 dòng)
--- ========================================
+-- 5. Semesters
 INSERT INTO Semesters (semester_name, academic_year, start_date, end_date) VALUES
 ('Học kỳ 1', '2024-2025', '2024-09-05', '2025-01-15'),
 ('Học kỳ 2', '2024-2025', '2025-02-10', '2025-06-30'),
@@ -361,9 +368,7 @@ INSERT INTO Semesters (semester_name, academic_year, start_date, end_date) VALUE
 ('Học kỳ 2', '2023-2024', '2024-02-05', '2024-06-25'),
 ('Học kỳ hè', '2024', '2024-07-01', '2024-08-20');
 
--- ========================================
--- 6. Courses (5 dòng)
--- ========================================
+-- 6. Courses
 INSERT INTO Courses (course_code, course_name, credits, unit_id) VALUES
 ('IT001', 'Nhập môn Lập trình', 4, 1),
 ('IT002', 'Cấu trúc Dữ liệu và Giải thuật', 4, 1),
@@ -371,9 +376,7 @@ INSERT INTO Courses (course_code, course_name, credits, unit_id) VALUES
 ('EN001', 'Nghe - Nói 1', 3, 3),
 ('IT003', 'Lập trình Web', 3, 1);
 
--- ========================================
--- 7. Course_Grades (5 dòng)
--- ========================================
+-- 7. Course_Grades
 INSERT INTO Course_Grades (student_id, course_id, semester_id, grade_value, grade_letter, grade_4_scale, status) VALUES
 (1, 1, 1, 8.5, 'B+', 3.3, 'passed'),
 (1, 2, 1, 7.0, 'C+', 2.7, 'passed'),
@@ -381,9 +384,7 @@ INSERT INTO Course_Grades (student_id, course_id, semester_id, grade_value, grad
 (3, 3, 1, 9.0, 'A', 4.0, 'passed'),
 (4, 5, 1, 7.8, 'B', 3.0, 'passed');
 
--- ========================================
--- 8. Semester_Reports (5 dòng)
--- ========================================
+-- 8. Semester_Reports
 INSERT INTO Semester_Reports (student_id, semester_id, gpa, gpa_4_scale, cpa_10_scale, cpa_4_scale, credits_registered, credits_passed, training_point_summary, social_point_summary, outcome) VALUES
 (1, 1, 7.75, 3.00, 7.75, 3.00, 8, 8, 85, 15, 'Học tiếp'),
 (2, 1, 4.00, 0.00, 4.00, 0.00, 4, 0, 70, 5, 'Cảnh cáo học vụ mức 1'),
@@ -391,9 +392,7 @@ INSERT INTO Semester_Reports (student_id, semester_id, gpa, gpa_4_scale, cpa_10_
 (4, 1, 7.80, 3.00, 7.80, 3.00, 3, 3, 80, 10, 'Học tiếp'),
 (5, 1, 0.00, 0.00, 0.00, 0.00, 0, 0, 75, 0, 'Chưa có điểm');
 
--- ========================================
--- 9. Academic_Warnings (5 dòng)
--- ========================================
+-- 9. Academic_Warnings
 INSERT INTO Academic_Warnings (student_id, advisor_id, semester_id, title, content, advice, created_at) VALUES
 (2, 1, 1, 'Cảnh cáo học vụ HK1 2024-2025', 'Sinh viên Trần Thị Thu Cẩm có GPA 4.0, rớt môn IT001.', 'Đăng ký học lại môn IT001 ngay trong HK2.', '2025-01-20 10:00:00'),
 (2, 1, 2, 'Theo dõi học lại IT001', 'Kiểm tra chuyên cần và điểm giữa kỳ.', 'Hỗ trợ tài liệu, học nhóm.', '2025-02-15 11:00:00'),
@@ -401,9 +400,7 @@ INSERT INTO Academic_Warnings (student_id, advisor_id, semester_id, title, conte
 (3, 2, 1, 'Khen thưởng xuất sắc', 'GPA 9.0, đạt loại giỏi.', 'Cử tham gia học bổng.', '2025-01-26 10:00:00'),
 (4, 1, 1, 'Theo dõi tiến độ', 'Sinh viên mới, cần theo dõi chuyên cần.', 'Gặp cố vấn định kỳ.', '2025-01-18 14:00:00');
 
--- ========================================
--- 10. Point_Feedbacks (5 dòng)
--- ========================================
+-- 10. Point_Feedbacks
 INSERT INTO Point_Feedbacks (student_id, semester_id, feedback_content, attachment_path, status, advisor_response, advisor_id, response_at) VALUES
 (1, 1, 'Tham gia Ngày hội CNTT 2024', 'attachments/ngayhoicntt_hung.jpg', 'approved', 'Cộng 10 điểm rèn luyện.', 1, '2025-01-22 09:30:00'),
 (2, 1, 'Tham gia CLB Tiếng Anh', NULL, 'pending', NULL, NULL, NULL),
@@ -411,9 +408,7 @@ INSERT INTO Point_Feedbacks (student_id, semester_id, feedback_content, attachme
 (4, 1, 'Tình nguyện dọn vệ sinh campus', NULL, 'rejected', 'Chưa đủ minh chứng.', 1, '2025-01-24 11:00:00'),
 (5, 1, 'Tham gia hội thảo AI', 'attachments/ai_huong.jpg', 'approved', 'Cộng 8 điểm rèn luyện.', 1, '2025-01-25 14:00:00');
 
--- ========================================
--- 11. Activities (5 dòng)
--- ========================================
+-- 11. Activities
 INSERT INTO Activities (advisor_id, organizer_unit_id, title, general_description, location, start_time, end_time, status) VALUES
 (3, 4, 'Hiến máu nhân đạo 2025', 'Hoạt động cứu người', 'Sảnh A', '2025-03-15 08:00:00', '2025-03-15 11:30:00', 'completed'),
 (1, 1, 'Workshop AI Tạo sinh', 'Giới thiệu công nghệ AI', 'Phòng H.201', '2025-03-20 14:00:00', '2025-03-20 16:00:00', 'completed'),
@@ -421,9 +416,7 @@ INSERT INTO Activities (advisor_id, organizer_unit_id, title, general_descriptio
 (1, 1, 'Cuộc thi Lập trình sinh viên', 'Thi đấu lập trình', 'Lab CNTT', '2025-06-01 08:00:00', '2025-06-01 17:00:00', 'upcoming'),
 (4, 3, 'CLB Tiếng Anh: Hùng biện', 'Thi hùng biện tiếng Anh', 'Phòng C.101', '2025-04-05 18:00:00', '2025-04-05 20:00:00', 'completed');
 
--- ========================================
--- 12. Activity_Roles (5 dòng)
--- ========================================
+-- 12. Activity_Roles
 INSERT INTO Activity_Roles (activity_id, role_name, description, requirements, points_awarded, point_type, max_slots) VALUES
 (1, 'Người hiến máu', 'Hiến máu cứu người', NULL, 5, 'ctxh', 100),
 (1, 'Tình nguyện viên', 'Hỗ trợ tổ chức', 'Có kỹ năng giao tiếp', 10, 'ctxh', 15),
@@ -431,9 +424,7 @@ INSERT INTO Activity_Roles (activity_id, role_name, description, requirements, p
 (3, 'Đội thi', 'Tham gia vòng chung kết', 'Có ý tưởng rõ ràng', 20, 'ren_luyen', 50),
 (5, 'Khán giả', 'Cổ vũ cuộc thi', NULL, 5, 'ren_luyen', 120);
 
--- ========================================
--- 13. Activity_Registrations (5 dòng)
--- ========================================
+-- 13. Activity_Registrations
 INSERT INTO Activity_Registrations (activity_role_id, student_id, registration_time, status) VALUES
 (1, 1, '2025-03-01 09:00:00', 'attended'),
 (1, 3, '2025-03-01 09:15:00', 'attended'),
@@ -441,9 +432,7 @@ INSERT INTO Activity_Registrations (activity_role_id, student_id, registration_t
 (4, 3, '2025-03-20 11:00:00', 'registered'),
 (5, 2, '2025-03-25 12:00:00', 'cancelled');
 
--- ========================================
--- 14. Cancellation_Requests (5 dòng)
--- ========================================
+-- 14. Cancellation_Requests
 INSERT INTO Cancellation_Requests (registration_id, reason, status, requested_at) VALUES
 (5, 'Trùng lịch thi giữa kỳ.', 'approved', '2025-03-26 08:00:00'),
 (3, 'Bận việc gia đình.', 'pending', '2025-03-15 09:00:00'),
@@ -451,9 +440,7 @@ INSERT INTO Cancellation_Requests (registration_id, reason, status, requested_at
 (2, 'Đổi ca làm thêm.', 'approved', '2025-03-14 11:00:00'),
 (4, 'Chưa đủ điều kiện tham gia.', 'pending', '2025-03-21 14:00:00');
 
--- ========================================
--- 15. Notifications (5 dòng)
--- ========================================
+-- 15. Notifications
 INSERT INTO Notifications (advisor_id, title, summary, link, type, created_at) VALUES
 (1, 'Họp lớp DH21CNTT tháng 3', 'Triển khai HK2', NULL, 'general', '2025-03-09 08:00:00'),
 (2, 'Quy định đăng ký môn HK hè', 'Nhắc nhở mốc thời gian', 'https://school.edu.vn/dkmh-he', 'academic', '2025-03-10 08:00:00'),
@@ -461,22 +448,16 @@ INSERT INTO Notifications (advisor_id, title, summary, link, type, created_at) V
 (4, 'Họp lớp DH21NNA tháng 3', 'Lịch họp lần 2', NULL, 'general', '2025-03-12 14:00:00'),
 (3, 'Thông báo hiến máu 2025', 'Mời tham gia', 'https://school.edu.vn/hienmau2025', 'general', '2025-03-01 09:00:00');
 
--- ========================================
--- 16. Notification_Class (5 dòng)
--- ========================================
+-- 16. Notification_Class
 INSERT INTO Notification_Class (notification_id, class_id) VALUES
 (1, 1), (2, 1), (3, 1), (4, 3);
 
--- ========================================
--- 17. Notification_Attachments (2 dòng - ví dụ)
--- ========================================
+-- 17. Notification_Attachments
 INSERT INTO Notification_Attachments (notification_id, file_path, file_name) VALUES
 (2, 'attachments/dkmh_he_2025.pdf', 'DKMH_He_2025.pdf'),
 (3, 'attachments/quyche_thi_hk2.pdf', 'QuyChe_Thi_HK2_2025.pdf');
 
--- ========================================
--- 18. Notification_Recipients (5 dòng)
--- ========================================
+-- 18. Notification_Recipients
 INSERT INTO Notification_Recipients (notification_id, student_id, is_read, read_at) VALUES
 (1, 1, TRUE, '2025-03-10 09:00:00'),
 (1, 2, FALSE, NULL),
@@ -484,52 +465,69 @@ INSERT INTO Notification_Recipients (notification_id, student_id, is_read, read_
 (2, 3, FALSE, NULL),
 (4, 5, TRUE, '2025-03-12 15:00:00');
 
--- ========================================
--- 19. Notification_Responses (3 dòng)
--- ========================================
+-- 19. Notification_Responses
 INSERT INTO Notification_Responses (notification_id, student_id, content, status, advisor_response, advisor_id, response_at) VALUES
 (1, 1, 'Buổi họp có bắt buộc không ạ?', 'resolved', 'Có, rất quan trọng.', 1, '2025-03-12 10:15:00'),
 (4, 5, 'Em sẽ tham gia ạ.', 'resolved', NULL, NULL, NULL),
 (2, 1, 'Em đã đăng ký môn hè rồi ạ.', 'pending', NULL, NULL, NULL);
 
--- ========================================
--- 20. Meetings (3 dòng)
--- ========================================
-INSERT INTO Meetings (advisor_id, class_id, title, location, meeting_time, status, minutes_file_path) VALUES
-(1, 1, 'Họp lớp DH21CNTT tháng 3', 'Phòng B.101', '2025-03-15 10:00:00', 'completed', 'meetings/bienban_dh21cntt_t3.pdf'),
-(4, 3, 'Họp lớp DH21NNA tháng 3', 'Phòng C.202', '2025-03-18 10:00:00', 'scheduled', NULL),
-(2, 2, 'Họp lớp DH22KT tháng 3', 'Phòng B.205', '2025-03-20 14:00:00', 'scheduled', NULL);
+-- 20. Meetings (ĐÃ THÊM END_TIME VÀ CLASS_FEEDBACK)
+INSERT INTO Meetings (advisor_id, class_id, title, summary, class_feedback, location, meeting_time, end_time, status, minutes_file_path) VALUES
+(1, 1, 'Họp lớp DH21CNTT tháng 3/2025', 
+'Thông báo về danh sách điểm rèn luyện HK2 năm 2024-2025. Thông báo thời gian thực tập. Thông báo lịch thi cuối kỳ (HK Hè). Thông báo về danh sách sinh viên gia hạn học phí kỳ I năm học 2025-2026.',
+'Lớp không có ý kiến.',
+'Phòng B.101', 
+'2025-03-15 10:00:00', 
+'2025-03-15 11:30:00',
+'completed', 
+'meetings/bienban_dh21cntt_t3.pdf'),
 
--- ========================================
--- 21. Meeting_Student (5 dòng)
--- ========================================
+(4, 3, 'Họp lớp DH21NNA tháng 3/2025', 
+'Triển khai kế hoạch học tập HK2. Thông báo về các hoạt động ngoại khóa.',
+NULL,
+'Phòng C.202', 
+'2025-03-18 10:00:00', 
+'2025-03-18 11:00:00',
+'scheduled', 
+NULL),
+
+(2, 2, 'Họp lớp DH22KT tháng 3/2025', 
+'Triển khai cuộc thi Ý tưởng Khởi nghiệp. Hướng dẫn làm báo cáo thực tập.',
+'Lớp đề nghị tổ chức thêm buổi tư vấn khởi nghiệp.',
+'Phòng B.205', 
+'2025-03-20 14:00:00', 
+'2025-03-20 15:30:00',
+'completed', 
+'meetings/bienban_dh22kt_t3.pdf');
+
+-- 21. Meeting_Student
 INSERT INTO Meeting_Student (meeting_id, student_id, attended) VALUES
-(1, 1, TRUE), (1, 2, FALSE), (1, 4, TRUE),
-(2, 5, FALSE), (3, 3, FALSE);
+(1, 1, TRUE), 
+(1, 2, FALSE), 
+(1, 6, TRUE),
+(1, 7, TRUE),
+(2, 8, FALSE), 
+(2, 9, FALSE),
+(3, 3, TRUE);
 
--- ========================================
--- 22. Meeting_Feedbacks (2 dòng)
--- ========================================
+-- 22. Meeting_Feedbacks
 INSERT INTO Meeting_Feedbacks (meeting_id, student_id, feedback_content, created_at) VALUES
-(1, 1, 'Ý kiến về quỹ lớp chưa được ghi.', '2025-03-16 08:00:00'),
-(1, 4, 'Cảm ơn thầy đã tổ chức họp.', '2025-03-16 09:00:00');
+(1, 1, 'Em thấy biên bản họp ghi thiếu phần ý kiến của em về quỹ lớp.', '2025-03-16 08:00:00'),
+(1, 6, 'Cảm ơn thầy đã tổ chức họp rất chi tiết.', '2025-03-16 09:00:00'),
+(3, 3, 'Em muốn tham gia cuộc thi khởi nghiệp, nhờ cô hỗ trợ.', '2025-03-21 10:00:00');
 
--- ========================================
--- 23. Messages (5 dòng)
--- ========================================
+-- 23. Messages
 INSERT INTO Messages (student_id, advisor_id, sender_type, content, is_read, sent_at) VALUES
-(2, 1, 'student', 'Thầy ơi em bị cảnh cáo, phải làm sao?', FALSE, '2025-03-11 09:00:00'),
-(2, 1, 'advisor', 'Em đăng ký học lại IT001 nhé.', TRUE, '2025-03-11 09:05:00'),
+(2, 1, 'student', 'Thầy ơi em bị cảnh cáo học vụ, phải làm sao ạ?', FALSE, '2025-03-11 09:00:00'),
+(2, 1, 'advisor', 'Em đăng ký học lại IT001 ngay trong HK2 nhé.', TRUE, '2025-03-11 09:05:00'),
 (3, 2, 'student', 'Cô ơi em muốn hỏi về cuộc thi khởi nghiệp.', FALSE, '2025-03-12 16:00:00'),
-(1, 1, 'student', 'Em muốn xin tài liệu ôn thi.', TRUE, '2025-03-13 10:00:00'),
+(1, 1, 'student', 'Em muốn xin tài liệu ôn thi IT002 ạ.', TRUE, '2025-03-13 10:00:00'),
 (4, 1, 'student', 'Em mới vào lớp, cần hỗ trợ gì ạ?', FALSE, '2025-03-14 11:00:00');
 
--- ========================================
--- 24. Student_Monitoring_Notes (5 dòng)
--- ========================================
+-- 24. Student_Monitoring_Notes
 INSERT INTO Student_Monitoring_Notes (student_id, advisor_id, semester_id, category, title, content, created_at) VALUES
-(2, 1, 1, 'academic', 'Rớt môn IT001', 'Điểm giữa kỳ thấp, vắng 2 buổi.', '2025-01-19 10:00:00'),
-(2, 1, 2, 'attendance', 'Theo dõi học lại', 'Kiểm tra chuyên cần hàng tuần.', '2025-02-15 11:00:00'),
-(1, 1, 1, 'academic', 'Học tốt', 'GPA 7.75, đạt loại khá.', '2025-01-20 09:00:00'),
-(3, 2, 1, 'academic', 'Xuất sắc', 'GPA 9.0, khen thưởng.', '2025-01-21 10:00:00'),
-(4, 1, 1, 'personal', 'Sinh viên mới', 'Hỗ trợ hòa nhập lớp.', '2025-01-18 14:00:00');
+(2, 1, 1, 'academic', 'Rớt môn IT001', 'Điểm giữa kỳ thấp (3.0), vắng 2 buổi. Cần theo dõi kỹ trong HK2.', '2025-01-19 10:00:00'),
+(2, 1, 2, 'attendance', 'Theo dõi học lại IT001', 'Kiểm tra chuyên cần môn IT001 (học lại) hàng tuần.', '2025-02-15 11:00:00'),
+(1, 1, 1, 'academic', 'Học tập tốt', 'GPA 7.75, đạt loại khá. Tiếp tục phát huy.', '2025-01-20 09:00:00'),
+(3, 2, 1, 'academic', 'Xuất sắc HK1', 'GPA 9.0, đạt loại giỏi. Đề xuất xét học bổng.', '2025-01-21 10:00:00'),
+(4, 1, 1, 'personal', 'Sinh viên mới nhập học', 'Hỗ trợ hòa nhập lớp, kết nối với bạn bè.', '2025-01-18 14:00:00');
