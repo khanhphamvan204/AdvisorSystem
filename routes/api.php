@@ -20,6 +20,8 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AdvisorController;
 use App\Http\Controllers\ImportExportController;
 use App\Http\Controllers\DialogController;
+use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\StatisticsController;
 
 
 // ========== Authentication Routes ==========
@@ -545,8 +547,8 @@ Route::middleware(['auth.api'])->group(function () {
             Route::post('/change-password', [StudentController::class, 'changePassword']);
         });
 
-        // Cập nhật thông tin cá nhân - Student và Admin
-        Route::middleware(['check_role:student,admin'])->group(function () {
+        // Cập nhật thông tin cá nhân - Student, Admin và Advisor
+        Route::middleware(['check_role:student,admin,advisor'])->group(function () {
             Route::put('/{id}', [StudentController::class, 'update']);
         });
 
@@ -556,6 +558,11 @@ Route::middleware(['auth.api'])->group(function () {
             Route::delete('/{id}', [StudentController::class, 'destroy']);
         });
     });
+
+    // ============================================================
+    // CLASS POSITIONS ROUTES
+    // ============================================================
+    Route::get('/classes/{classId}/positions', [StudentController::class, 'getClassPositions']);
 
     // ============================================================
     // ADVISORS ROUTES
@@ -631,4 +638,66 @@ Route::middleware(['auth.api'])->group(function () {
 
 });
 
+// ===================================================================
+// QUẢN LÝ CÁC CUỘC HỌP (MEETINGS)
+// ===================================================================
+
+
+// ===================================================================
+// NHÓM ROUTES CHO SINH VIÊN, CVHT, ADMIN (CẦN ĐĂNG NHẬP)
+// ===================================================================
+Route::middleware(['auth.api'])->group(function () {
+
+    // Xem danh sách cuộc họp (phân quyền tự động trong controller)
+    Route::get('meetings', [MeetingController::class, 'index']);
+
+    // Xem chi tiết cuộc họp
+    Route::get('meetings/{id}', [MeetingController::class, 'show']);
+
+    // Tải biên bản đã lưu
+    Route::get('meetings/{id}/download-minutes', [MeetingController::class, 'downloadMinutes']);
+
+    // Sinh viên gửi feedback về cuộc họp
+    Route::post('meetings/{id}/feedbacks', [MeetingController::class, 'storeFeedback']);
+
+    // Xem danh sách feedback của cuộc họp
+    Route::get('meetings/{id}/feedbacks', [MeetingController::class, 'getFeedbacks']);
+});
+
+// ===================================================================
+// NHÓM ROUTES CHỈ CHO CVHT VÀ ADMIN
+// ===================================================================
+Route::middleware(['auth.api', 'check_role:advisor,admin'])->group(function () {
+
+    // Tạo cuộc họp mới
+    Route::post('meetings', [MeetingController::class, 'store']);
+
+    // Cập nhật thông tin cuộc họp
+    Route::put('meetings/{id}', [MeetingController::class, 'update']);
+
+    // Xóa cuộc họp
+    Route::delete('meetings/{id}', [MeetingController::class, 'destroy']);
+
+    // Điểm danh sinh viên
+    Route::post('meetings/{id}/attendance', [MeetingController::class, 'updateAttendance']);
+
+    // Xuất biên bản họp tự động
+    Route::get('meetings/{id}/export-minutes', [MeetingController::class, 'exportMinutes']);
+
+    // Upload biên bản thủ công
+    Route::post('meetings/{id}/upload-minutes', [MeetingController::class, 'uploadMinutes']);
+
+    // Xóa biên bản
+    Route::delete('meetings/{id}/minutes', [MeetingController::class, 'deleteMinutes']);
+
+    // Cập nhật nội dung họp và ý kiến lớp
+    Route::put('meetings/{id}/summary', [MeetingController::class, 'updateSummary']);
+
+    // Thống kê cuộc họp
+    Route::get('meetings/statistics/overview', [MeetingController::class, 'getStatistics']);
+});
+
+Route::middleware(['auth.api', 'check_role:admin'])->group(function () {
+    Route::get('/statistics/dashboard-overview', [StatisticsController::class, 'getDashboardOverview']);
+});
 

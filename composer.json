@@ -12,6 +12,7 @@
         "laravel/tinker": "^2.10.1",
         "mongodb/laravel-mongodb": "*",
         "phpoffice/phpspreadsheet": "*",
+        "phpoffice/phpword": "^1.4",
         "tymon/jwt-auth": "^2.2"
     },
     "require-dev": {

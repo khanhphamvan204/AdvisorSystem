@@ -289,7 +289,8 @@ PUT /api/students/{id}
 
 ### Access Control
 - **Admin**: Cập nhật tất cả thông tin sinh viên trong khoa mình quản lý
-- **Student**: Chỉ cập nhật một số trường của chính mình
+- **Advisor**: Cập nhật một số thông tin sinh viên trong lớp mình phụ trách (full_name, phone_number, status, position)
+- **Student**: Chỉ cập nhật một số trường của chính mình (phone_number, avatar_url)
 
 ### Request Body (Admin)
 ```json
@@ -299,6 +300,16 @@ PUT /api/students/{id}
   "email": "sv.a@school.edu.vn",
   "phone_number": "0901234567",
   "class_id": 1,
+  "status": "studying",
+  "position": "leader"
+}
+```
+
+### Request Body (Advisor)
+```json
+{
+  "full_name": "Nguyễn Văn A",
+  "phone_number": "0901234567",
   "status": "studying",
   "position": "leader"
 }
@@ -322,6 +333,14 @@ PUT /api/students/{id}
 | email | string(100) | Email |
 | phone_number | string(15) | Số điện thoại |
 | class_id | integer | ID lớp học |
+| status | enum | `studying`, `graduated`, `dropped` |
+| position | enum | `member`, `leader`, `vice_leader`, `secretary` |
+
+#### Advisor can update:
+| Field | Type | Description |
+|-------|------|-------------|
+| full_name | string(100) | Họ và tên |
+| phone_number | string(15) | Số điện thoại |
 | status | enum | `studying`, `graduated`, `dropped` |
 | position | enum | `member`, `leader`, `vice_leader`, `secretary` |
 

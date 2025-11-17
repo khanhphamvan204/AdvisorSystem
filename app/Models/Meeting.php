@@ -9,25 +9,29 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Meeting extends Model
 {
     protected $table = 'Meetings';
-    public $timestamps = false;
     protected $primaryKey = 'meeting_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'advisor_id',
         'class_id',
         'title',
         'summary',
+        'class_feedback',
         'meeting_link',
         'location',
         'meeting_time',
+        'end_time',
         'status',
         'minutes_file_path'
     ];
 
     protected $casts = [
         'meeting_time' => 'datetime',
+        'end_time' => 'datetime',
     ];
 
+    // Relationships
     public function advisor(): BelongsTo
     {
         return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');

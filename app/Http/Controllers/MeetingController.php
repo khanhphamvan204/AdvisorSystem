@@ -1,0 +1,1091 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Meeting;
+use App\Models\MeetingStudent;
+use App\Models\MeetingFeedback;
+use App\Models\ClassModel;
+use App\Models\Student;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpWord\TemplateProcessor;
+use PhpOffice\PhpWord\IOFactory;
+use Carbon\Carbon;
+
+class MeetingController extends Controller
+{
+    /**
+     * Lấy danh sách cuộc họp
+     * GET /api/meetings
+     */
+    public function index(Request $request)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $query = Meeting::with(['advisor', 'class', 'attendees.student']);
+
+            // Phân quyền lọc dữ liệu
+            if ($userRole === 'student') {
+                // Sinh viên chỉ xem cuộc họp của lớp mình
+                $student = Student::find($userId);
+                if (!$student) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không tìm thấy thông tin sinh viên'
+                    ], 404);
+                }
+                $query->where('class_id', $student->class_id);
+            } elseif ($userRole === 'advisor') {
+                // CVHT chỉ xem cuộc họp của các lớp mình phụ trách
+                $query->where('advisor_id', $userId);
+            }
+            // Admin xem tất cả
+
+            // Lọc thêm theo tham số (nếu có quyền)
+            if ($request->has('class_id') && in_array($userRole, ['advisor', 'admin'])) {
+                $query->where('class_id', $request->class_id);
+            }
+
+            // Lọc theo trạng thái
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Lọc theo thời gian
+            if ($request->has('from_date')) {
+                $query->where('meeting_time', '>=', $request->from_date);
+            }
+            if ($request->has('to_date')) {
+                $query->where('meeting_time', '<=', $request->to_date);
+            }
+
+            // Sắp xếp
+            $query->orderBy('meeting_time', 'desc');
+
+            // Phân trang
+            $meetings = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $meetings
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy danh sách cuộc họp: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Tạo cuộc họp mới
+     * POST /api/meetings
+     * Chỉ CVHT và Admin mới có quyền tạo
+     */
+    public function store(Request $request)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền tạo cuộc họp'
+                ], 403);
+            }
+
+            // Validate
+            $validator = Validator::make($request->all(), [
+                'class_id' => 'required|exists:Classes,class_id',
+                'title' => 'required|string|max:255',
+                'summary' => 'nullable|string',
+                'class_feedback' => 'nullable|string',
+                'meeting_link' => 'nullable|url|max:2083',
+                'location' => 'nullable|string|max:255',
+                'meeting_time' => 'required|date',
+                'end_time' => 'nullable|date|after:meeting_time'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // CVHT chỉ được tạo họp cho lớp mình phụ trách
+            if ($userRole === 'advisor') {
+                $class = ClassModel::where('class_id', $request->class_id)
+                    ->where('advisor_id', $userId)
+                    ->first();
+
+                if (!$class) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không phải CVHT của lớp này'
+                    ], 403);
+                }
+            }
+
+            // Lấy advisor_id từ token
+            $advisorId = $userId;
+
+            // Tạo cuộc họp
+            $meeting = Meeting::create([
+                'advisor_id' => $advisorId,
+                'class_id' => $request->class_id,
+                'title' => $request->title,
+                'summary' => $request->summary,
+                'class_feedback' => $request->class_feedback,
+                'meeting_link' => $request->meeting_link,
+                'location' => $request->location,
+                'meeting_time' => $request->meeting_time,
+                'end_time' => $request->end_time,
+                'status' => 'scheduled'
+            ]);
+
+            // Tự động gán cuộc họp cho tất cả sinh viên trong lớp
+            $students = Student::where('class_id', $request->class_id)->get();
+            foreach ($students as $student) {
+                MeetingStudent::create([
+                    'meeting_id' => $meeting->meeting_id,
+                    'student_id' => $student->student_id,
+                    'attended' => false
+                ]);
+            }
+
+            // Load relationships
+            $meeting->load(['advisor', 'class', 'attendees.student']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tạo cuộc họp thành công',
+                'data' => $meeting
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tạo cuộc họp: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xem chi tiết cuộc họp
+     * GET /api/meetings/{id}
+     */
+    public function show(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $meeting = Meeting::with(['advisor', 'class', 'attendees.student', 'feedbacks.student'])
+                ->find($id);
+
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // Kiểm tra quyền xem
+            if ($userRole === 'student') {
+                $student = Student::find($userId);
+                if ($student->class_id !== $meeting->class_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền xem cuộc họp này'
+                    ], 403);
+                }
+            } elseif ($userRole === 'advisor') {
+                if ($meeting->advisor_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền xem cuộc họp này'
+                    ], 403);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $meeting
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy thông tin cuộc họp: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật cuộc họp
+     * PUT /api/meetings/{id}
+     * Chỉ CVHT và Admin mới có quyền cập nhật
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền cập nhật cuộc họp'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // CVHT chỉ được sửa cuộc họp của mình
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền sửa cuộc họp này'
+                ], 403);
+            }
+
+            // Validate
+            $validator = Validator::make($request->all(), [
+                'title' => 'sometimes|string|max:255',
+                'summary' => 'nullable|string',
+                'class_feedback' => 'nullable|string',
+                'meeting_link' => 'nullable|url|max:2083',
+                'location' => 'nullable|string|max:255',
+                'meeting_time' => 'sometimes|date',
+                'end_time' => 'nullable|date|after:meeting_time',
+                'status' => 'sometimes|in:scheduled,completed,cancelled'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Cập nhật
+            $meeting->update($request->only([
+                'title',
+                'summary',
+                'class_feedback',
+                'meeting_link',
+                'location',
+                'meeting_time',
+                'end_time',
+                'status'
+            ]));
+
+            $meeting->load(['advisor', 'class', 'attendees.student']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật cuộc họp thành công',
+                'data' => $meeting
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi cập nhật cuộc họp: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa cuộc họp
+     * DELETE /api/meetings/{id}
+     * Chỉ CVHT và Admin mới có quyền xóa
+     */
+    public function destroy(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa cuộc họp'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // CVHT chỉ được xóa cuộc họp của mình
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa cuộc họp này'
+                ], 403);
+            }
+
+            // Xóa biên bản nếu có
+            if ($meeting->minutes_file_path && Storage::exists('public/' . $meeting->minutes_file_path)) {
+                Storage::delete('public/' . $meeting->minutes_file_path);
+            }
+
+            $meeting->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa cuộc họp thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa cuộc họp: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Điểm danh sinh viên
+     * POST /api/meetings/{id}/attendance
+     * Chỉ CVHT và Admin mới có quyền điểm danh
+     */
+    public function updateAttendance(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền điểm danh'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // CVHT chỉ điểm danh cuộc họp của mình
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền điểm danh cuộc họp này'
+                ], 403);
+            }
+
+            // Validate
+            $validator = Validator::make($request->all(), [
+                'attendances' => 'required|array',
+                'attendances.*.student_id' => 'required|integer',
+                'attendances.*.attended' => 'required|boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Lấy danh sách student_id hợp lệ trong cuộc họp này
+            $validStudentIds = MeetingStudent::where('meeting_id', $id)
+                ->pluck('student_id')
+                ->toArray();
+
+            // Cập nhật điểm danh
+            $invalidStudents = [];
+            foreach ($request->attendances as $attendance) {
+                $studentId = $attendance['student_id'];
+
+                // Kiểm tra sinh viên có thuộc cuộc họp này không
+                if (!in_array($studentId, $validStudentIds)) {
+                    $invalidStudents[] = $studentId;
+                    continue;
+                }
+
+                // Cập nhật điểm danh
+                MeetingStudent::where('meeting_id', $id)
+                    ->where('student_id', $studentId)
+                    ->update(['attended' => $attendance['attended']]);
+            }
+
+            // Nếu có sinh viên không hợp lệ, trả về cảnh báo
+            if (!empty($invalidStudents)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Một số sinh viên không thuộc cuộc họp này',
+                    'invalid_student_ids' => $invalidStudents
+                ], 422);
+            }
+
+            // Cập nhật trạng thái cuộc họp
+            if ($meeting->status === 'scheduled') {
+                $meeting->update(['status' => 'completed']);
+            }
+
+            $meeting->load(['attendees.student']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Điểm danh thành công',
+                'data' => $meeting
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi điểm danh: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xuất biên bản họp lớp
+     * GET /api/meetings/{id}/export-minutes
+     * Chỉ CVHT và Admin mới có quyền xuất biên bản
+     */
+    public function exportMinutes(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xuất biên bản họp'
+                ], 403);
+            }
+
+            $meeting = Meeting::with([
+                'advisor',
+                'class.faculty',
+                'class.students' => function ($query) {
+                    $query->whereIn('position', ['leader', 'vice_leader', 'secretary']);
+                },
+                'attendees.student'
+            ])->find($id);
+
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // CVHT chỉ xuất biên bản cuộc họp của mình
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xuất biên bản cuộc họp này'
+                ], 403);
+            }
+
+            // Kiểm tra file template
+            $templatePath = storage_path('app/templates/meeting_minutes_template.docx');
+            if (!file_exists($templatePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy file template biên bản'
+                ], 500);
+            }
+
+            // Load template
+            $templateProcessor = new TemplateProcessor($templatePath);
+
+            // Lấy thông tin lớp trưởng và lớp phó (kiêm bí thư)
+            $leader = $meeting->class->students->where('position', 'leader')->first();
+            $viceLeader = $meeting->class->students->where('position', 'vice_leader')->first();
+
+            // Đếm số sinh viên tham dự
+            $attendedCount = $meeting->attendees->where('attended', true)->count();
+            $totalStudents = $meeting->class->students()->count();
+
+            // Parse thời gian họp
+            $meetingTime = Carbon::parse($meeting->meeting_time);
+            $endTime = $meeting->end_time ? Carbon::parse($meeting->end_time) : null;
+
+            // Lấy tên khoa
+            $facultyName = $meeting->class->faculty ? $meeting->class->faculty->unit_name : '';
+
+            // Thay thế các biến trong template
+            $templateProcessor->setValue('FACULTY_NAME', mb_strtoupper($facultyName, 'UTF-8'));
+            $templateProcessor->setValue('HOUR', $meetingTime->format('H'));
+            $templateProcessor->setValue('MINUTE', $meetingTime->format('i'));
+            $templateProcessor->setValue('DAY', $meetingTime->day);
+            $templateProcessor->setValue('MONTH', $meetingTime->month);
+            $templateProcessor->setValue('YEAR', $meetingTime->year);
+
+            // Địa điểm
+            $location = $meeting->location ?: 'Họp Online';
+            if ($meeting->meeting_link && strpos($meeting->location, 'Online') === false) {
+                $location = 'Họp Online trên ' . $this->extractPlatformName($meeting->meeting_link);
+            }
+            $templateProcessor->setValue('LOCATION', $location);
+
+            // Thông tin GVCV
+            $templateProcessor->setValue('ADVISOR_NAME', $meeting->advisor->full_name);
+            $templateProcessor->setValue('CLASS_NAME', $meeting->class->class_name);
+
+            // Thông tin ban cán sự lớp
+            $templateProcessor->setValue('LEADER_NAME', $leader ? $leader->full_name : '................................');
+            $templateProcessor->setValue('VICE_LEADER_NAME', $viceLeader ? $viceLeader->full_name : '................................');
+
+            // Số lượng sinh viên
+            $templateProcessor->setValue('ATTENDED_COUNT', $attendedCount);
+            $templateProcessor->setValue('TOTAL_COUNT', $totalStudents);
+
+            // Nội dung họp
+            $summary = $meeting->summary ?: 'Nội dung họp chưa được cập nhật.';
+            $templateProcessor->setValue('MEETING_SUMMARY', $summary);
+
+            // Ý kiến đóng góp của lớp
+            $classFeedback = $meeting->class_feedback ?: 'Lớp không có ý kiến.';
+            $templateProcessor->setValue('CLASS_FEEDBACK', $classFeedback);
+
+            // Thời gian kết thúc
+            if ($endTime) {
+                $templateProcessor->setValue('END_HOUR', $endTime->format('H'));
+                $templateProcessor->setValue('END_MINUTE', $endTime->format('i'));
+            } else {
+                $templateProcessor->setValue('END_HOUR', '......');
+                $templateProcessor->setValue('END_MINUTE', '......');
+            }
+
+            // Tên file output
+            $fileName = 'BienBan_' . $meeting->class->class_name . '_' . $meetingTime->format('dmY') . '.docx';
+            $outputPath = storage_path('app/public/meetings/' . $fileName);
+
+            // Tạo thư mục nếu chưa có
+            $directory = dirname($outputPath);
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            // Lưu file
+            $templateProcessor->saveAs($outputPath);
+
+            // Cập nhật đường dẫn biên bản vào database
+            $relativePath = 'meetings/' . $fileName;
+            $meeting->update(['minutes_file_path' => $relativePath]);
+
+            // Trả về file để download
+            return response()->download($outputPath, $fileName, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(false);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xuất biên bản: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Tải file biên bản đã lưu
+     * GET /api/meetings/{id}/download-minutes
+     */
+    public function downloadMinutes(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // Kiểm tra quyền xem
+            if ($userRole === 'student') {
+                $student = Student::find($userId);
+                if ($student->class_id !== $meeting->class_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền tải biên bản này'
+                    ], 403);
+                }
+            } elseif ($userRole === 'advisor') {
+                if ($meeting->advisor_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền tải biên bản này'
+                    ], 403);
+                }
+            }
+
+            // Kiểm tra file có tồn tại không
+            if (!$meeting->minutes_file_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Biên bản chưa được tạo'
+                ], 404);
+            }
+
+            $filePath = storage_path('app/public/' . $meeting->minutes_file_path);
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy file biên bản'
+                ], 404);
+            }
+
+            $fileName = basename($filePath);
+            return response()->download($filePath, $fileName);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tải biên bản: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload biên bản họp thủ công
+     * POST /api/meetings/{id}/upload-minutes
+     * Chỉ CVHT và Admin mới có quyền upload
+     */
+    public function uploadMinutes(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Kiểm tra quyền
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền upload biên bản'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // CVHT chỉ upload cho cuộc họp của mình
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền upload biên bản cho cuộc họp này'
+                ], 403);
+            }
+
+            // Validate
+            $validator = Validator::make($request->all(), [
+                'minutes_file' => 'required|file|mimes:doc,docx,pdf|max:10240' // Max 10MB
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Xóa file cũ nếu có
+            if ($meeting->minutes_file_path && Storage::exists('public/' . $meeting->minutes_file_path)) {
+                Storage::delete('public/' . $meeting->minutes_file_path);
+            }
+
+            // Lưu file mới
+            $file = $request->file('minutes_file');
+            $fileName = 'BienBan_' . $meeting->class->class_name . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filePath = $file->storeAs('meetings', $fileName, 'public');
+
+            // Cập nhật database
+            $meeting->update(['minutes_file_path' => $filePath]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Upload biên bản thành công',
+                'data' => [
+                    'file_path' => $filePath,
+                    'file_url' => Storage::url($filePath)
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi upload biên bản: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xóa biên bản
+     * DELETE /api/meetings/{id}/minutes
+     */
+    public function deleteMinutes(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa biên bản'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xóa biên bản này'
+                ], 403);
+            }
+
+            if (!$meeting->minutes_file_path) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không có biên bản để xóa'
+                ], 404);
+            }
+
+            // Xóa file
+            if (Storage::exists('public/' . $meeting->minutes_file_path)) {
+                Storage::delete('public/' . $meeting->minutes_file_path);
+            }
+
+            // Xóa đường dẫn trong database
+            $meeting->update(['minutes_file_path' => null]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Xóa biên bản thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi xóa biên bản: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật nội dung họp và ý kiến lớp
+     * PUT /api/meetings/{id}/summary
+     */
+    public function updateSummary(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền cập nhật nội dung họp'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền cập nhật cuộc họp này'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'summary' => 'nullable|string',
+                'class_feedback' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $meeting->update($request->only(['summary', 'class_feedback']));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cập nhật nội dung họp thành công',
+                'data' => $meeting
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi cập nhật: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Sinh viên gửi feedback về cuộc họp
+     * POST /api/meetings/{id}/feedbacks
+     */
+    public function storeFeedback(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            // Chỉ sinh viên mới được gửi feedback
+            if ($userRole !== 'student') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chỉ sinh viên mới có thể gửi feedback'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // Kiểm tra sinh viên có thuộc lớp không
+            $student = Student::find($userId);
+            if ($student->class_id !== $meeting->class_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không thuộc lớp này'
+                ], 403);
+            }
+
+            // Validate
+            $validator = Validator::make($request->all(), [
+                'feedback_content' => 'required|string|max:2000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nội dung feedback không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Tạo feedback
+            $feedback = MeetingFeedback::create([
+                'meeting_id' => $id,
+                'student_id' => $userId,
+                'feedback_content' => $request->feedback_content
+            ]);
+
+            $feedback->load('student');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gửi feedback thành công',
+                'data' => $feedback
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi gửi feedback: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Xem danh sách feedback của cuộc họp
+     * GET /api/meetings/{id}/feedbacks
+     */
+    public function getFeedbacks(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            // Kiểm tra quyền xem
+            if ($userRole === 'student') {
+                $student = Student::find($userId);
+                if ($student->class_id !== $meeting->class_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền xem feedback'
+                    ], 403);
+                }
+            } elseif ($userRole === 'advisor') {
+                if ($meeting->advisor_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền xem feedback'
+                    ], 403);
+                }
+            }
+
+            $feedbacks = MeetingFeedback::where('meeting_id', $id)
+                ->with('student')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $feedbacks
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy danh sách feedback: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Thống kê cuộc họp
+     * GET /api/meetings/statistics/overview
+     */
+    public function getStatistics(Request $request)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $query = Meeting::query();
+
+            // Phân quyền
+            if ($userRole === 'advisor') {
+                $query->where('advisor_id', $userId);
+            }
+
+            // Lọc theo thời gian
+            if ($request->has('from_date')) {
+                $query->where('meeting_time', '>=', $request->from_date);
+            }
+            if ($request->has('to_date')) {
+                $query->where('meeting_time', '<=', $request->to_date);
+            }
+
+            // Lọc theo lớp
+            if ($request->has('class_id')) {
+                $query->where('class_id', $request->class_id);
+            }
+
+            // Thống kê theo trạng thái
+            $totalMeetings = $query->count();
+            $scheduledMeetings = (clone $query)->where('status', 'scheduled')->count();
+            $completedMeetings = (clone $query)->where('status', 'completed')->count();
+            $cancelledMeetings = (clone $query)->where('status', 'cancelled')->count();
+
+            // Thống kê biên bản
+            $meetingsWithMinutes = (clone $query)->whereNotNull('minutes_file_path')->count();
+
+            // Thống kê điểm danh
+            $attendanceStats = MeetingStudent::whereIn(
+                'meeting_id',
+                (clone $query)->pluck('meeting_id')
+            )->selectRaw('
+                COUNT(*) as total_attendees,
+                SUM(CASE WHEN attended = 1 THEN 1 ELSE 0 END) as attended_count,
+                AVG(CASE WHEN attended = 1 THEN 1 ELSE 0 END) * 100 as attendance_rate
+            ')->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_meetings' => $totalMeetings,
+                    'scheduled' => $scheduledMeetings,
+                    'completed' => $completedMeetings,
+                    'cancelled' => $cancelledMeetings,
+                    'with_minutes' => $meetingsWithMinutes,
+                    'attendance' => [
+                        'total_attendees' => $attendanceStats->total_attendees ?? 0,
+                        'attended_count' => $attendanceStats->attended_count ?? 0,
+                        'attendance_rate' => round($attendanceStats->attendance_rate ?? 0, 2)
+                    ]
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy thống kê: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper function: Trích xuất tên nền tảng từ link họp
+     */
+    private function extractPlatformName($link)
+    {
+        if (strpos($link, 'meet.google.com') !== false) {
+            return 'Google Meet';
+        } elseif (strpos($link, 'zoom.us') !== false) {
+            return 'Zoom';
+        } elseif (strpos($link, 'teams.microsoft.com') !== false) {
+            return 'Microsoft Teams';
+        }
+        return 'Platform Online';
+    }
+}

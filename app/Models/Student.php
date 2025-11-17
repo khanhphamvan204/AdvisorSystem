@@ -23,7 +23,8 @@ class Student extends Model implements JWTSubject
         'phone_number',
         'avatar_url',
         'class_id',
-        'status'
+        'status',
+        'position'
     ];
 
     protected $hidden = [
@@ -34,9 +35,10 @@ class Student extends Model implements JWTSubject
         'created_at' => 'datetime',
         'last_login' => 'datetime',
         'status' => 'string',
+        'position' => 'string',
     ];
 
-    // (Các hàm quan hệ của bạn giữ nguyên)
+    // Relationships
     public function class(): BelongsTo
     {
         return $this->belongsTo(ClassModel::class, 'class_id', 'class_id');
@@ -104,11 +106,12 @@ class Student extends Model implements JWTSubject
         return $this->hasMany(StudentMonitoringNote::class, 'student_id', 'student_id');
     }
 
-    // === HÀM JWT (CỦA BẠN ĐÃ ĐÚNG) ===
+    // JWT methods
     public function getJWTIdentifier()
     {
         return $this->getKey();
     }
+
     public function getJWTCustomClaims()
     {
         return [

@@ -19,7 +19,7 @@ CREATE TABLE Students (
     last_login DATETIME NULL,
     class_id INT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'studying',
-    position ENUM('member', 'leader', 'vice_leader', 'secretary') DEFAULT 'member',
+    position ENUM('member', 'leader', 'vice_leader') DEFAULT 'member',
     INDEX idx_students_position (class_id, position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

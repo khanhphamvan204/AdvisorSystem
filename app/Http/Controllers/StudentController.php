@@ -180,7 +180,7 @@ class StudentController extends Controller
                 'phone_number' => 'nullable|string|max:15',
                 'class_id' => 'required|exists:Classes,class_id',
                 'status' => 'nullable|in:studying,graduated,dropped',
-                'position' => 'nullable|in:member,leader,vice_leader,secretary',
+                'position' => 'nullable|in:member,leader,vice_leader',
                 'password' => 'nullable|string|min:6'
             ], [
                 'user_code.required' => 'Mã sinh viên không được để trống',
@@ -208,7 +208,7 @@ class StudentController extends Controller
             $class = ClassModel::find($request->class_id);
 
             // Kiểm tra chức vụ đã tồn tại trong lớp
-            if ($request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
+            if ($request->has('position') && in_array($request->position, ['leader', 'vice_leader'])) {
                 $existingPosition = Student::where('class_id', $request->class_id)
                     ->where('position', $request->position)
                     ->first();
@@ -293,7 +293,26 @@ class StudentController extends Controller
                     'phone_number' => 'nullable|string|max:15',
                     'class_id' => 'sometimes|exists:Classes,class_id',
                     'status' => 'sometimes|in:studying,graduated,dropped',
-                    'position' => 'sometimes|in:member,leader,vice_leader,secretary'
+                    'position' => 'sometimes|in:member,leader,vice_leader'
+                ]);
+
+            } elseif ($role === 'advisor') {
+                // Advisor chỉ cập nhật sinh viên trong lớp mình phụ trách
+                $class = ClassModel::find($student->class_id);
+
+                if ($class->advisor_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền cập nhật sinh viên này'
+                    ], 403);
+                }
+
+                // Advisor có thể cập nhật một số trường
+                $validator = Validator::make($request->all(), [
+                    'full_name' => 'sometimes|string|max:100',
+                    'phone_number' => 'nullable|string|max:15',
+                    'status' => 'sometimes|in:studying,graduated,dropped',
+                    'position' => 'sometimes|in:member,leader,vice_leader'
                 ]);
 
             } elseif ($role === 'student') {
@@ -326,8 +345,8 @@ class StudentController extends Controller
                 ], 422);
             }
 
-            // Kiểm tra chức vụ đã tồn tại trong lớp (chỉ áp dụng khi admin cập nhật position)
-            if ($role === 'admin' && $request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
+            // Kiểm tra chức vụ đã tồn tại trong lớp (áp dụng khi admin hoặc advisor cập nhật position)
+            if (in_array($role, ['admin', 'advisor']) && $request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
                 $existingPosition = Student::where('class_id', $student->class_id)
                     ->where('position', $request->position)
                     ->where('student_id', '!=', $id)
@@ -340,7 +359,6 @@ class StudentController extends Controller
                     ], 422);
                 }
             }
-
             $student->update($request->all());
 
             return response()->json([
