@@ -24,6 +24,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\PointFeedbackController;
 use App\Http\Controllers\StudentMonitoringNoteController;
+use App\Http\Controllers\ActivityAttendanceController;
 
 
 // ========== Authentication Routes ==========
@@ -782,5 +783,49 @@ Route::middleware(['auth.api'])->prefix('monitoring-notes')->group(function () {
     // Cố vấn xóa ghi chú (chỉ ghi chú do mình tạo)
     Route::delete('/{id}', [StudentMonitoringNoteController::class, 'destroy'])
         ->middleware('check_role:advisor');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Activity Attendance Routes
+|--------------------------------------------------------------------------
+|
+| Routes để quản lý import/export điểm danh hoạt động
+| Chỉ dành cho Advisor
+|
+*/
+
+Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
+
+    // ===== EXPORT =====
+
+    // Export danh sách đăng ký hoạt động (tất cả sinh viên đã đăng ký)
+    Route::get(
+        '/activities/{activityId}/export-registrations',
+        [ActivityAttendanceController::class, 'exportRegistrations']
+    );
+
+    // Export file mẫu điểm danh (template để điền)
+    Route::get(
+        '/activities/{activityId}/export-attendance-template',
+        [ActivityAttendanceController::class, 'exportAttendanceTemplate']
+    );
+
+    // ===== IMPORT =====
+
+    // Import file điểm danh (cập nhật trạng thái attended/absent)
+    Route::post(
+        '/activities/{activityId}/import-attendance',
+        [ActivityAttendanceController::class, 'importAttendance']
+    );
+
+    // ===== STATISTICS =====
+
+    // Xem thống kê điểm danh
+    Route::get(
+        '/activities/{activityId}/attendance-statistics',
+        [ActivityAttendanceController::class, 'getAttendanceStatistics']
+    );
 });
 
