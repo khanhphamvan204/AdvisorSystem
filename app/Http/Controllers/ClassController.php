@@ -375,6 +375,7 @@ class ClassController extends Controller
                     'email' => $student->email,
                     'phone' => $student->phone,
                     'status' => $student->status,
+                    'position' => $student->position,
                     'has_academic_warning' => $warnings->isNotEmpty(),
                     'warnings' => $warnings,
                     'warnings_count' => $warnings->count()
