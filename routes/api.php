@@ -507,6 +507,20 @@ Route::middleware(['auth.api'])->group(function () {
 Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->group(function () {
     // Import lịch học
     Route::post('/import', [ScheduleImportController::class, 'import']);
+
+    // Tìm kiếm sinh viên theo lịch học (Admin search toàn bộ)
+    Route::post('/search', [ScheduleImportController::class, 'searchBySchedule']);
+
+    // Xóa lịch học của sinh viên trong học kỳ
+    Route::delete('/student/{student_id}', [ScheduleImportController::class, 'deleteStudentSchedule']);
+});
+
+Route::middleware(['auth.api', 'check_role:admin,advisor'])->prefix('admin/schedules')->group(function () {
+    // Xem lịch học của một sinh viên
+    Route::get('/student/{student_id}', [ScheduleImportController::class, 'getStudentSchedule']);
+
+    // Xem lịch học của cả lớp
+    Route::get('/class/{class_id}', [ScheduleImportController::class, 'getClassSchedule']);
 });
 
 Route::middleware(['auth.api'])->prefix('schedules')->group(function () {
