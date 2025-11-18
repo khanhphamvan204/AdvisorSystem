@@ -22,6 +22,8 @@ use App\Http\Controllers\ImportExportController;
 use App\Http\Controllers\DialogController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\PointFeedbackController;
+use App\Http\Controllers\StudentMonitoringNoteController;
 
 
 // ========== Authentication Routes ==========
@@ -713,5 +715,72 @@ Route::middleware(['auth.api', 'check_role:advisor,admin'])->group(function () {
 
 Route::middleware(['auth.api', 'check_role:admin'])->group(function () {
     Route::get('/statistics/dashboard-overview', [StatisticsController::class, 'getDashboardOverview']);
+});
+
+// ===================================================================
+// PHẢN HỒI ĐIỂM RÈN LUYỆN / CTXH (POINT FEEDBACKS)
+// ===================================================================
+Route::middleware(['auth.api'])->prefix('point-feedbacks')->group(function () {
+
+    // Xem danh sách phản hồi (có phân quyền tự động trong controller)
+    // Student: Xem phản hồi của mình
+    // Advisor: Xem phản hồi của sinh viên trong lớp mình phụ trách
+    Route::get('/', [PointFeedbackController::class, 'index']);
+
+    // Xem chi tiết một phản hồi
+    Route::get('/{id}', [PointFeedbackController::class, 'show']);
+
+    // Thống kê phản hồi (Advisor only)
+    Route::get('/statistics/overview', [PointFeedbackController::class, 'statistics'])
+        ->middleware('check_role:advisor');
+
+    // Sinh viên tạo phản hồi mới
+    Route::post('/', [PointFeedbackController::class, 'store'])
+        ->middleware('check_role:student');
+
+    // Sinh viên cập nhật phản hồi (chỉ khi status = pending)
+    Route::put('/{id}', [PointFeedbackController::class, 'update'])
+        ->middleware('check_role:student');
+
+    // Sinh viên xóa phản hồi (chỉ khi status = pending)
+    Route::delete('/{id}', [PointFeedbackController::class, 'destroy'])
+        ->middleware('check_role:student');
+
+    // Cố vấn phản hồi và phê duyệt/từ chối
+    Route::post('/{id}/respond', [PointFeedbackController::class, 'respond'])
+        ->middleware('check_role:advisor');
+});
+
+// ===================================================================
+// GHI CHÚ THEO DÕI SINH VIÊN (MONITORING NOTES)
+// ===================================================================
+Route::middleware(['auth.api'])->prefix('monitoring-notes')->group(function () {
+
+    // Xem danh sách ghi chú (có phân quyền tự động trong controller)
+    // Student: Xem ghi chú về mình
+    // Advisor: Xem ghi chú của sinh viên trong lớp mình phụ trách
+    Route::get('/', [StudentMonitoringNoteController::class, 'index']);
+
+    // Xem chi tiết một ghi chú
+    Route::get('/{id}', [StudentMonitoringNoteController::class, 'show']);
+
+    // Xem timeline ghi chú của một sinh viên
+    Route::get('/student/{student_id}/timeline', [StudentMonitoringNoteController::class, 'studentTimeline']);
+
+    // Thống kê ghi chú (Advisor only)
+    Route::get('/statistics/overview', [StudentMonitoringNoteController::class, 'statistics'])
+        ->middleware('check_role:advisor');
+
+    // Cố vấn tạo ghi chú mới
+    Route::post('/', [StudentMonitoringNoteController::class, 'store'])
+        ->middleware('check_role:advisor');
+
+    // Cố vấn cập nhật ghi chú (chỉ ghi chú do mình tạo)
+    Route::put('/{id}', [StudentMonitoringNoteController::class, 'update'])
+        ->middleware('check_role:advisor');
+
+    // Cố vấn xóa ghi chú (chỉ ghi chú do mình tạo)
+    Route::delete('/{id}', [StudentMonitoringNoteController::class, 'destroy'])
+        ->middleware('check_role:advisor');
 });
 
