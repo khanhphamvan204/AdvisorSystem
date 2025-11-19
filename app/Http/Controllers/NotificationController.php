@@ -14,9 +14,16 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Validation\Rule;
+use App\Services\EmailService;
 
 class NotificationController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     /**
      * Lấy danh sách thông báo
      * GET /api/notifications
@@ -166,11 +173,14 @@ class NotificationController extends Controller
                     'is_read' => false,
                     'read_at' => null
                 ];
+                $student = DB::table('Students')->where('student_id', $studentId)->first();
+                $this->emailService->sendNotificationEmail($student, $notification);
             }
 
             if (!empty($recipients)) {
                 NotificationRecipient::insert($recipients);
             }
+
 
             DB::commit();
 
