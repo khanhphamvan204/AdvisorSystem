@@ -517,4 +517,69 @@ class AdvisorController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Reset mật khẩu cố vấn về user_code (chỉ admin)
+     */
+    public function resetPassword(Request $request, $id)
+    {
+        try {
+            // Kiểm tra quyền admin
+            if ($request->current_role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chỉ admin mới có quyền reset mật khẩu'
+                ], 403);
+            }
+
+            $advisor = Advisor::find($id);
+
+            if (!$advisor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cố vấn'
+                ], 404);
+            }
+
+            // Kiểm tra xem admin có quyền quản lý cố vấn này không
+            $admin = Advisor::find($request->current_user_id);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                ], 404);
+            }
+
+            // Kiểm tra cố vấn có thuộc cùng đơn vị không
+            if ($advisor->unit_id !== $admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền reset mật khẩu cố vấn này'
+                ], 403);
+            }
+
+            // Không cho phép admin tự reset mật khẩu của chính mình
+            if ($advisor->advisor_id == $admin->advisor_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể tự reset mật khẩu của chính mình'
+                ], 403);
+            }
+
+            // Reset mật khẩu về user_code
+            $advisor->password_hash = Hash::make($advisor->user_code);
+            $advisor->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã reset mật khẩu của cố vấn {$advisor->full_name} ({$advisor->user_code}) về mã cố vấn thành công"
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

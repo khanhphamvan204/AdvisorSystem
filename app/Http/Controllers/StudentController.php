@@ -628,4 +628,62 @@ class StudentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Reset mật khẩu sinh viên về user_code (chỉ admin)
+     */
+    public function resetPassword(Request $request, $id)
+    {
+        try {
+            // Kiểm tra quyền admin
+            if ($request->current_role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Chỉ admin mới có quyền reset mật khẩu'
+                ], 403);
+            }
+
+            $student = Student::find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra xem admin có quyền quản lý sinh viên này không
+            $admin = Advisor::find($request->current_user_id);
+            if (!$admin || !$admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                ], 404);
+            }
+
+            // Kiểm tra sinh viên có thuộc khoa admin quản lý không
+            $studentClass = ClassModel::find($student->class_id);
+            if (!$studentClass || $studentClass->faculty_id !== $admin->unit_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền reset mật khẩu sinh viên này'
+                ], 403);
+            }
+
+            // Reset mật khẩu về user_code
+            $student->password_hash = Hash::make($student->user_code);
+            $student->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã reset mật khẩu của sinh viên {$student->full_name} ({$student->user_code}) về mã sinh viên thành công"
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

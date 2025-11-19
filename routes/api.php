@@ -573,6 +573,7 @@ Route::middleware(['auth.api'])->group(function () {
         Route::middleware(['check_role:admin'])->group(function () {
             Route::post('/', [StudentController::class, 'store']);
             Route::delete('/{id}', [StudentController::class, 'destroy']);
+            Route::post('/{id}/reset-password', [StudentController::class, 'resetPassword']);
         });
     });
 
@@ -607,6 +608,7 @@ Route::middleware(['auth.api'])->group(function () {
         Route::middleware(['check_role:admin'])->group(function () {
             Route::post('/', [AdvisorController::class, 'store']);
             Route::delete('/{id}', [AdvisorController::class, 'destroy']);
+            Route::post('/{id}/reset-password', [AdvisorController::class, 'resetPassword']);
         });
     });
 

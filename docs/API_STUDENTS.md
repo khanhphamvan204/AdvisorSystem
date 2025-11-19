@@ -609,6 +609,75 @@ curl -X GET "http://localhost:8000/api/classes/1/positions" \
 
 ---
 
+## 8. Reset Student Password (Admin Only)
+
+### Endpoint
+```http
+POST /api/students/{id}/reset-password
+```
+
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Student ID |
+
+### Access Control
+- **Admin Only**: Chỉ admin mới có quyền reset mật khẩu sinh viên
+- Admin chỉ có thể reset mật khẩu sinh viên thuộc khoa mình quản lý
+
+### Description
+Reset mật khẩu sinh viên về mã sinh viên (user_code) của họ.
+
+### Response Success
+```json
+{
+  "success": true,
+  "message": "Đã reset mật khẩu của sinh viên Nguyễn Văn Hùng (210001) về mã sinh viên thành công"
+}
+```
+
+### Error Responses
+
+#### 403 Forbidden - Not Admin
+```json
+{
+  "success": false,
+  "message": "Chỉ admin mới có quyền reset mật khẩu"
+}
+```
+
+#### 403 Forbidden - No Permission
+```json
+{
+  "success": false,
+  "message": "Bạn không có quyền reset mật khẩu sinh viên này"
+}
+```
+
+#### 404 Not Found - Student
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy sinh viên"
+}
+```
+
+#### 404 Not Found - Unit Info
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy thông tin đơn vị quản lý"
+}
+```
+
+### Example
+```bash
+curl -X POST "http://localhost:8000/api/students/1/reset-password" \
+  -H "Authorization: Bearer {admin_token}"
+```
+
+---
+
 ## Common Error Responses
 
 ### 401 Unauthorized

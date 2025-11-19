@@ -604,6 +604,84 @@ curl -X POST "http://localhost:8000/api/advisors/change-password" \
 
 ---
 
+## 8. Reset Advisor Password (Admin Only)
+
+### Endpoint
+```http
+POST /api/advisors/{id}/reset-password
+```
+
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Advisor ID |
+
+### Access Control
+- **Admin Only**: Chỉ admin mới có quyền reset mật khẩu cố vấn
+- Admin chỉ có thể reset mật khẩu cố vấn thuộc cùng đơn vị
+- Admin không thể tự reset mật khẩu của chính mình
+
+### Description
+Reset mật khẩu cố vấn về mã cố vấn (user_code) của họ.
+
+### Response Success
+```json
+{
+  "success": true,
+  "message": "Đã reset mật khẩu của cố vấn ThS. Trần Văn An (GV001) về mã cố vấn thành công"
+}
+```
+
+### Error Responses
+
+#### 403 Forbidden - Not Admin
+```json
+{
+  "success": false,
+  "message": "Chỉ admin mới có quyền reset mật khẩu"
+}
+```
+
+#### 403 Forbidden - No Permission
+```json
+{
+  "success": false,
+  "message": "Bạn không có quyền reset mật khẩu cố vấn này"
+}
+```
+
+#### 403 Forbidden - Self Reset
+```json
+{
+  "success": false,
+  "message": "Không thể tự reset mật khẩu của chính mình"
+}
+```
+
+#### 404 Not Found - Advisor
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy cố vấn"
+}
+```
+
+#### 404 Not Found - Unit Info
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy thông tin đơn vị quản lý"
+}
+```
+
+### Example
+```bash
+curl -X POST "http://localhost:8000/api/advisors/2/reset-password" \
+  -H "Authorization: Bearer {admin_token}"
+```
+
+---
+
 ## Common Error Responses
 
 ### 401 Unauthorized
