@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 
 class GradeImportService
 {
@@ -59,6 +60,9 @@ class GradeImportService
                 throw new \Exception($generalValidation['message']);
             }
 
+            // Cập nhật semester_id vào generalInfo
+            $generalInfo['semester_id'] = $generalValidation['semester']->semester_id;
+
             // Lấy danh sách điểm
             $gradesData = $this->getGradesData($spreadsheet);
             $results['summary']['total_rows'] = count($gradesData);
@@ -103,7 +107,7 @@ class GradeImportService
 
             Log::info('Excel grades import completed', [
                 'admin_id' => $adminId,
-                'semester_id' => $generalInfo['semester_id'],
+                'semester' => $generalInfo['semester_display'],
                 'course_code' => $generalInfo['course_code'],
                 'summary' => $results['summary']
             ]);
@@ -157,10 +161,55 @@ class GradeImportService
     {
         $sheet = $spreadsheet->getSheetByName('ThongTinChung');
 
+        $semesterDisplay = trim($sheet->getCell('C2')->getValue()); // VD: "Học kỳ 1 - 2024-2025"
+        $courseDisplay = trim($sheet->getCell('C3')->getValue());   // VD: "IT001 - Nhập môn Lập trình"
+
         return [
-            'semester_id' => trim($sheet->getCell('C2')->getValue()),
-            'course_code' => trim($sheet->getCell('C3')->getValue())
+            'semester_display' => $semesterDisplay,
+            'course_display' => $courseDisplay,
+            'course_code' => $this->extractCourseCode($courseDisplay)
         ];
+    }
+
+    /**
+     * Trích xuất mã môn học từ chuỗi dropdown
+     * VD: "IT001 - Nhập môn Lập trình" -> "IT001"
+     */
+    private function extractCourseCode($courseDisplay)
+    {
+        if (empty($courseDisplay)) {
+            return null;
+        }
+
+        // Nếu có dấu " - ", lấy phần trước
+        if (strpos($courseDisplay, ' - ') !== false) {
+            return trim(explode(' - ', $courseDisplay)[0]);
+        }
+
+        // Nếu không có, coi như đã nhập đúng mã
+        return trim($courseDisplay);
+    }
+
+    /**
+     * Parse semester display thành semester_name và academic_year
+     * VD: "Học kỳ 1 - 2024-2025" -> ['Học kỳ 1', '2024-2025']
+     */
+    private function parseSemesterDisplay($semesterDisplay)
+    {
+        if (empty($semesterDisplay)) {
+            return [null, null];
+        }
+
+        // Format: "Học kỳ 1 - 2024-2025"
+        if (strpos($semesterDisplay, ' - ') !== false) {
+            $parts = explode(' - ', $semesterDisplay);
+            return [
+                'semester_name' => trim($parts[0]),
+                'academic_year' => trim($parts[1])
+            ];
+        }
+
+        return [null, null];
     }
 
     /**
@@ -168,27 +217,36 @@ class GradeImportService
      */
     private function validateGeneralInfo($generalInfo, $adminId)
     {
-        // Kiểm tra semester_id
-        if (empty($generalInfo['semester_id'])) {
+        // Parse semester display
+        $semesterParts = $this->parseSemesterDisplay($generalInfo['semester_display']);
+
+        if (!$semesterParts['semester_name'] || !$semesterParts['academic_year']) {
             return [
                 'valid' => false,
-                'message' => 'Thiếu thông tin học kỳ (semester_id) trong sheet ThongTinChung'
+                'message' => 'Thông tin học kỳ không đúng định dạng. Vui lòng chọn từ dropdown.'
             ];
         }
 
-        $semester = Semester::find($generalInfo['semester_id']);
+        // Tìm semester theo tên và năm học
+        $semester = Semester::where('semester_name', $semesterParts['semester_name'])
+            ->where('academic_year', $semesterParts['academic_year'])
+            ->first();
+
         if (!$semester) {
             return [
                 'valid' => false,
-                'message' => "Không tìm thấy học kỳ với ID: {$generalInfo['semester_id']}"
+                'message' => "Không tìm thấy học kỳ: {$generalInfo['semester_display']}"
             ];
         }
+
+        // Lưu semester_id vào generalInfo để dùng sau
+        $generalInfo['semester_id'] = $semester->semester_id;
 
         // Kiểm tra course_code
         if (empty($generalInfo['course_code'])) {
             return [
                 'valid' => false,
-                'message' => 'Thiếu mã môn học trong sheet ThongTinChung'
+                'message' => 'Thiếu mã môn học. Vui lòng chọn từ dropdown.'
             ];
         }
 
@@ -236,7 +294,6 @@ class GradeImportService
         // Bắt đầu từ dòng 2 (dòng 1 là header)
         for ($row = 2; $row <= $highestRow; $row++) {
             $userCode = trim($sheet->getCell("B{$row}")->getValue());
-            // Sử dụng getCalculatedValue() để lấy giá trị đã tính toán từ công thức Excel
             $gradeValue = $sheet->getCell("E{$row}")->getCalculatedValue();
 
             // Bỏ qua dòng trống
@@ -374,7 +431,7 @@ class GradeImportService
     }
 
     /**
-     * Tạo file Excel mẫu để download
+     * Tạo file Excel mẫu với dropdown để download
      */
     public function generateTemplate($adminId)
     {
@@ -383,7 +440,7 @@ class GradeImportService
 
             $spreadsheet = new Spreadsheet();
 
-            // Sheet 1: Thông tin chung
+            // ==================== SHEET 1: THÔNG TIN CHUNG ====================
             $sheet1 = $spreadsheet->getActiveSheet();
             $sheet1->setTitle('ThongTinChung');
 
@@ -393,16 +450,16 @@ class GradeImportService
             $sheet1->setCellValue('C1', 'Giá trị');
             $sheet1->setCellValue('D1', 'Ghi chú');
 
-            // Dữ liệu mẫu
+            // Dữ liệu
             $sheet1->setCellValue('A2', '1');
-            $sheet1->setCellValue('B2', 'Học kỳ (semester_id)');
+            $sheet1->setCellValue('B2', 'Học kỳ');
             $sheet1->setCellValue('C2', '');
-            $sheet1->setCellValue('D2', 'VD: 1, 2, 3...');
+            $sheet1->setCellValue('D2', 'Chọn từ dropdown');
 
             $sheet1->setCellValue('A3', '2');
-            $sheet1->setCellValue('B3', 'Mã môn học');
+            $sheet1->setCellValue('B3', 'Môn học');
             $sheet1->setCellValue('C3', '');
-            $sheet1->setCellValue('D3', 'VD: IT001, IT002...');
+            $sheet1->setCellValue('D3', 'Chọn từ dropdown');
 
             $sheet1->setCellValue('A4', '3');
             $sheet1->setCellValue('B4', 'Khoa');
@@ -411,12 +468,64 @@ class GradeImportService
 
             // Format
             $sheet1->getStyle('A1:D1')->getFont()->setBold(true);
+            $sheet1->getStyle('A1:D1')->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('CCE5FF');
+
             $sheet1->getColumnDimension('A')->setWidth(8);
             $sheet1->getColumnDimension('B')->setWidth(25);
-            $sheet1->getColumnDimension('C')->setWidth(25);
+            $sheet1->getColumnDimension('C')->setWidth(30);
             $sheet1->getColumnDimension('D')->setWidth(30);
 
-            // Sheet 2: Danh sách điểm
+            // ==================== DROPDOWN 1: HỌC KỲ ====================
+            $semesters = Semester::orderBy('academic_year', 'desc')
+                ->orderBy('semester_name', 'desc')
+                ->get();
+
+            $semesterOptions = $semesters->map(function ($s) {
+                return $s->semester_name . ' - ' . $s->academic_year;
+            })->toArray();
+
+            if (!empty($semesterOptions)) {
+                $validation1 = $sheet1->getCell('C2')->getDataValidation();
+                $validation1->setType(DataValidation::TYPE_LIST);
+                $validation1->setFormula1('"' . implode(',', $semesterOptions) . '"');
+                $validation1->setShowDropDown(true);
+                $validation1->setErrorTitle('Lỗi nhập liệu');
+                $validation1->setError('Vui lòng chọn học kỳ từ danh sách dropdown');
+                $validation1->setPromptTitle('Chọn học kỳ');
+                $validation1->setPrompt('Chọn học kỳ bạn muốn nhập điểm');
+            }
+
+            // ==================== DROPDOWN 2: MÔN HỌC ====================
+            $courses = Course::where('unit_id', $admin->unit_id)
+                ->orderBy('course_code')
+                ->get();
+
+            $courseOptions = $courses->map(function ($c) {
+                return $c->course_code . ' - ' . $c->course_name;
+            })->toArray();
+
+            if (!empty($courseOptions)) {
+                $validation2 = $sheet1->getCell('C3')->getDataValidation();
+                $validation2->setType(DataValidation::TYPE_LIST);
+                $validation2->setFormula1('"' . implode(',', $courseOptions) . '"');
+                $validation2->setShowDropDown(true);
+                $validation2->setErrorTitle('Lỗi nhập liệu');
+                $validation2->setError('Vui lòng chọn môn học từ danh sách dropdown');
+                $validation2->setPromptTitle('Chọn môn học');
+                $validation2->setPrompt('Chọn môn học bạn muốn nhập điểm');
+            }
+
+            // Thêm ghi chú hướng dẫn
+            $lastRow = 6;
+            $sheet1->setCellValue('A' . $lastRow, 'HƯỚNG DẪN:');
+            $sheet1->setCellValue('A' . ($lastRow + 1), '1. Click vào ô C2, chọn học kỳ từ dropdown');
+            $sheet1->setCellValue('A' . ($lastRow + 2), '2. Click vào ô C3, chọn môn học từ dropdown');
+            $sheet1->setCellValue('A' . ($lastRow + 3), '3. Chuyển sang sheet "DanhSachDiem" để nhập điểm');
+            $sheet1->getStyle('A' . $lastRow)->getFont()->setBold(true);
+
+            // ==================== SHEET 2: DANH SÁCH ĐIỂM ====================
             $sheet2 = $spreadsheet->createSheet();
             $sheet2->setTitle('DanhSachDiem');
 
@@ -442,12 +551,13 @@ class GradeImportService
             $sheet2->setCellValue('D3', 'DH21CNTT');
             $sheet2->setCellValue('E3', '7.0');
 
-            // Format
+            // Format header
             $sheet2->getStyle('A1:I1')->getFont()->setBold(true);
             $sheet2->getStyle('A1:I1')->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setRGB('CCE5FF');
 
+            // Set column widths
             $columnWidths = [8, 12, 25, 15, 10, 10, 10, 15, 20];
             $column = 'A';
             foreach ($columnWidths as $width) {
@@ -458,12 +568,13 @@ class GradeImportService
             // Thêm ghi chú
             $lastRow = $sheet2->getHighestRow() + 2;
             $sheet2->setCellValue('A' . $lastRow, 'LƯU Ý:');
-            $sheet2->setCellValue('A' . ($lastRow + 1), '- Chỉ cần điền: STT, Mã SV, Điểm 10');
-            $sheet2->setCellValue('A' . ($lastRow + 2), '- Các cột khác hệ thống sẽ tự động tính');
+            $sheet2->setCellValue('A' . ($lastRow + 1), '- CHỈ CẦN ĐIỀN: STT, Mã SV, Điểm 10');
+            $sheet2->setCellValue('A' . ($lastRow + 2), '- Các cột khác (Điểm chữ, Điểm 4, Trạng thái) hệ thống sẽ tự động tính');
             $sheet2->setCellValue('A' . ($lastRow + 3), '- Điểm 10 phải từ 0.0 đến 10.0');
+            $sheet2->setCellValue('A' . ($lastRow + 4), '- Cột Họ tên, Lớp chỉ để tham khảo, hệ thống lấy từ database');
             $sheet2->getStyle('A' . $lastRow)->getFont()->setBold(true);
 
-            // Set active sheet
+            // Set active sheet về sheet đầu tiên
             $spreadsheet->setActiveSheetIndex(0);
 
             return $spreadsheet;
