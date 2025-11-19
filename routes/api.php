@@ -518,7 +518,7 @@ Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->
     Route::delete('/student/{student_id}', [ScheduleImportController::class, 'deleteStudentSchedule']);
 });
 
-Route::middleware(['auth.api', 'check_role:admin,advisor'])->prefix('admin/schedules')->group(function () {
+Route::middleware(['auth.api', 'check_role:admin,advisor,student'])->prefix('admin/schedules')->group(function () {
     // Xem lịch học của một sinh viên
     Route::get('/student/{student_id}', [ScheduleImportController::class, 'getStudentSchedule']);
 

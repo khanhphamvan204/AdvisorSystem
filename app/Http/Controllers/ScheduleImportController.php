@@ -154,8 +154,9 @@ class ScheduleImportController extends Controller
 
     /**
      * Xem lịch học của một sinh viên cụ thể
-     * GET /api/admin/schedules/student/{student_id}
-     * Role: Admin, Advisor
+     * GET /api/admin/schedules/student/{student_id} (Admin, Advisor)
+     * GET /api/student/schedules/my-schedule (Student)
+     * Role: Admin, Advisor, Student (chỉ xem của mình)
      */
     public function getStudentSchedule(Request $request, $student_id)
     {
@@ -164,12 +165,31 @@ class ScheduleImportController extends Controller
             $currentRole = $request->current_role;
             $currentUserId = $request->current_user_id;
 
-            // Kiểm tra quyền: Admin hoặc Advisor
-            if (!in_array($currentRole, ['admin', 'advisor'])) {
+            // Kiểm tra quyền: Admin, Advisor, hoặc Student
+            if (!in_array($currentRole, ['admin', 'advisor', 'student'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bạn không có quyền xem lịch học của sinh viên'
+                    'message' => 'Bạn không có quyền xem lịch học'
                 ], 403);
+            }
+
+            // Nếu là student, chỉ được xem lịch của chính mình
+            if ($currentRole === 'student') {
+                $studentInfo = Student::where('student_id', $currentUserId)->first();
+                if (!$studentInfo) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không tìm thấy thông tin sinh viên'
+                    ], 404);
+                }
+
+                // Kiểm tra xem có đang cố xem lịch của người khác không
+                if ($studentInfo->student_id != $student_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn chỉ có thể xem lịch học của chính mình'
+                    ], 403);
+                }
             }
 
             // Validate
