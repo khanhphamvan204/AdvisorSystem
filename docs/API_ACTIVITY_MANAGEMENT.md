@@ -67,6 +67,9 @@ Middleware kiểm tra:
 | `from_date` | date | No | Lọc từ ngày (YYYY-MM-DD) |
 | `to_date` | date | No | Lọc đến ngày (YYYY-MM-DD) |
 | `status` | string | No | Lọc theo trạng thái: `upcoming`, `ongoing`, `completed`, `cancelled` |
+| `title` | string | No | Tìm kiếm theo tên hoạt động (hỗ trợ tìm kiếm mờ) |
+| `point_type` | string | No | Lọc theo loại điểm: `ctxh`, `ren_luyen` |
+| `organizer_unit` | string | No | Tìm kiếm theo tên đơn vị tổ chức (hỗ trợ tìm kiếm mờ) |
 
 **Logic phân quyền:**
 - **Student:** Chỉ thấy hoạt động được gán cho lớp mình
