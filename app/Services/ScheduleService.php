@@ -31,7 +31,18 @@ class ScheduleService
         foreach ($courseSheet->getRowIterator(2) as $row) {
             $cells = [];
             foreach ($row->getCellIterator() as $cell) {
-                $cells[] = $cell->getValue();
+                // Xử lý cả cell có công thức (formula)
+                try {
+                    // Ưu tiên lấy giá trị đã tính toán
+                    $value = $cell->getCalculatedValue();
+                } catch (\Exception $e) {
+                    // Nếu công thức lỗi, lấy giá trị gốc hoặc formatted value
+                    $value = $cell->getValue();
+                    if ($value === null || $value === '') {
+                        $value = $cell->getFormattedValue();
+                    }
+                }
+                $cells[] = $value;
             }
 
             if (empty($cells[1]))
@@ -101,7 +112,18 @@ class ScheduleService
         foreach ($studentSheet->getRowIterator(2) as $row) {
             $cells = [];
             foreach ($row->getCellIterator() as $cell) {
-                $cells[] = $cell->getValue();
+                // Xử lý cả cell có công thức (formula)
+                try {
+                    // Ưu tiên lấy giá trị đã tính toán
+                    $value = $cell->getCalculatedValue();
+                } catch (\Exception $e) {
+                    // Nếu công thức lỗi, lấy giá trị gốc hoặc formatted value
+                    $value = $cell->getValue();
+                    if ($value === null || $value === '') {
+                        $value = $cell->getFormattedValue();
+                    }
+                }
+                $cells[] = $value;
             }
             if (empty($cells[1]))
                 continue;
