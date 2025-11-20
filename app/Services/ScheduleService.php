@@ -31,18 +31,9 @@ class ScheduleService
         foreach ($courseSheet->getRowIterator(2) as $row) {
             $cells = [];
             foreach ($row->getCellIterator() as $cell) {
-                // Xử lý cả cell có công thức (formula)
-                try {
-                    // Ưu tiên lấy giá trị đã tính toán
-                    $value = $cell->getCalculatedValue();
-                } catch (\Exception $e) {
-                    // Nếu công thức lỗi, lấy giá trị gốc hoặc formatted value
-                    $value = $cell->getValue();
-                    if ($value === null || $value === '') {
-                        $value = $cell->getFormattedValue();
-                    }
-                }
-                $cells[] = $value;
+                // Sử dụng getCalculatedValue() và xử lý trường hợp trả về array
+                $value = $cell->getCalculatedValue();
+                $cells[] = is_array($value) ? (string) ($value[0] ?? '') : $value;
             }
 
             if (empty($cells[1]))
@@ -112,24 +103,20 @@ class ScheduleService
         foreach ($studentSheet->getRowIterator(2) as $row) {
             $cells = [];
             foreach ($row->getCellIterator() as $cell) {
-                // Xử lý cả cell có công thức (formula)
-                try {
-                    // Ưu tiên lấy giá trị đã tính toán
-                    $value = $cell->getCalculatedValue();
-                } catch (\Exception $e) {
-                    // Nếu công thức lỗi, lấy giá trị gốc hoặc formatted value
-                    $value = $cell->getValue();
-                    if ($value === null || $value === '') {
-                        $value = $cell->getFormattedValue();
-                    }
-                }
-                $cells[] = $value;
+                // Sử dụng getCalculatedValue() và xử lý trường hợp trả về array
+                $value = $cell->getCalculatedValue();
+                $cells[] = is_array($value) ? (string) ($value[0] ?? '') : $value;
             }
             if (empty($cells[1]))
                 continue;
 
             $studentCode = trim((string) $cells[1]);
             $courseCode = trim((string) $cells[4]);
+
+            // Bỏ qua nếu course_code rỗng hoặc lỗi Excel
+            if (empty($courseCode) || str_starts_with($courseCode, '#')) {
+                continue;
+            }
 
             if (!isset($studentSchedules[$studentCode])) {
                 $studentSchedules[$studentCode] = [
@@ -149,6 +136,12 @@ class ScheduleService
                     'course_name' => $courseSchedule['course_name'],
                     'schedules' => $courseSchedule['schedules']
                 ];
+            } else {
+                Log::warning('Course not found for student', [
+                    'student_code' => $studentCode,
+                    'course_code' => $courseCode,
+                    'available_courses' => array_keys($courseData)
+                ]);
             }
         }
 
@@ -157,6 +150,13 @@ class ScheduleService
         foreach ($studentSchedules as $student) {
             $student['flat_schedule'] = $this->buildFlatSchedule($student['registered_courses']);
             $student['updated_at'] = new UTCDateTime();
+
+            Log::info('Importing student schedule', [
+                'student_code' => $student['student_code'],
+                'student_name' => $student['student_name'],
+                'registered_courses_count' => count($student['registered_courses']),
+                'flat_schedule_count' => count($student['flat_schedule'])
+            ]);
 
             $collection->updateOne(
                 [

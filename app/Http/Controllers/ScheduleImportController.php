@@ -240,7 +240,7 @@ class ScheduleImportController extends Controller
 
                 // Query MongoDB
                 $schedule = $this->db->student_schedules->findOne([
-                    'student_code' => intval($student->user_code),
+                    'student_code' => strval($student->user_code),
                     'semester' => trim($semester->semester_name),
                     'academic_year' => trim($semester->academic_year)
                 ]);
@@ -280,7 +280,7 @@ class ScheduleImportController extends Controller
             } else {
                 // Xem tất cả lịch học của sinh viên
                 $schedules = $this->db->student_schedules->find([
-                    'student_code' => intval($student->user_code)
+                    'student_code' => strval($student->user_code)
                 ])->toArray();
 
                 return response()->json([
@@ -401,10 +401,40 @@ class ScheduleImportController extends Controller
                 ->orderBy('user_code')
                 ->get();
 
-            // Lấy student_codes để query MongoDB
+            // Lấy student_codes để query MongoDB (as STRING vì MongoDB lưu dạng string)
             $studentCodes = $students->pluck('user_code')->map(function ($code) {
-                return intval($code);
+                return strval($code);
             })->toArray();
+
+            // Kiểm tra nếu không có sinh viên nào
+            if (empty($studentCodes)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'class' => [
+                            'class_id' => $class->class_id,
+                            'class_name' => $class->class_name,
+                            'description' => $class->description,
+                            'advisor_name' => $class->advisor->full_name ?? null,
+                            'advisor_email' => $class->advisor->email ?? null,
+                            'faculty_name' => $class->faculty->unit_name ?? null
+                        ],
+                        'semester' => [
+                            'semester_id' => $semester->semester_id,
+                            'semester_name' => $semester->semester_name,
+                            'academic_year' => $semester->academic_year,
+                            'start_date' => $semester->start_date,
+                            'end_date' => $semester->end_date
+                        ],
+                        'summary' => [
+                            'total_students' => 0,
+                            'students_with_schedule' => 0,
+                            'students_without_schedule' => 0
+                        ],
+                        'students' => []
+                    ]
+                ], 200);
+            }
 
             // Query MongoDB
             $cursor = $this->db->student_schedules->find([
@@ -420,9 +450,20 @@ class ScheduleImportController extends Controller
 
             // Map lịch học với sinh viên
             $scheduleData = [];
+            $matchedCount = 0;
+
             foreach ($students as $student) {
-                $studentCode = intval($student->user_code);
-                $schedule = collect($schedules)->firstWhere('student_code', $studentCode);
+                $studentCode = strval($student->user_code);
+
+                // Tìm schedule tương ứng
+                $schedule = null;
+                foreach ($schedules as $sched) {
+                    if (strval($sched['student_code']) === $studentCode) {
+                        $schedule = $sched;
+                        $matchedCount++;
+                        break;
+                    }
+                }
 
                 $scheduleData[] = [
                     'student_id' => $student->student_id,
@@ -531,7 +572,7 @@ class ScheduleImportController extends Controller
             if ($request->has('class_id')) {
                 $students = Student::where('class_id', $request->class_id)
                     ->pluck('user_code')
-                    ->map(fn($code) => intval($code))
+                    ->map(fn($code) => strval($code))
                     ->toArray();
 
                 $query['student_code'] = ['$in' => $students];
@@ -669,7 +710,7 @@ class ScheduleImportController extends Controller
 
             // Xóa trong MongoDB
             $result = $this->db->student_schedules->deleteOne([
-                'student_code' => intval($student->user_code),
+                'student_code' => strval($student->user_code),
                 'semester' => trim($semester->semester_name),
                 'academic_year' => trim($semester->academic_year)
             ]);
