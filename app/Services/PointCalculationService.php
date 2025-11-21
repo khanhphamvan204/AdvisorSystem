@@ -14,7 +14,10 @@ class PointCalculationService
 {
     /**
      * Tính điểm rèn luyện (DRL) cho một học kỳ cụ thể
-     * Chỉ lấy các hoạt động trong khoảng thời gian của học kỳ đó
+     * Điểm ban đầu: 70
+     * Attended: Cộng điểm
+     * Absent: Trừ điểm
+     * Registered: Không tính (chưa điểm danh)
      * 
      * @param int $studentId
      * @param int $semesterId
@@ -28,10 +31,13 @@ class PointCalculationService
             throw new \Exception("Học kỳ không tồn tại");
         }
 
-        // Lấy các hoạt động sinh viên đã tham gia TRONG HỌC KỲ
+        // Điểm ban đầu
+        $basePoints = 70;
+
+        // Lấy các hoạt động sinh viên đã tham gia hoặc vắng mặt TRONG HỌC KỲ
         // và có point_type = 'ren_luyen'
         $registrations = ActivityRegistration::where('student_id', $studentId)
-            ->where('status', 'attended') // Chỉ tính điểm khi đã tham dự
+            ->whereIn('status', ['attended', 'absent']) // Tính cả attended và absent
             ->whereHas('role', function ($query) {
                 $query->where('point_type', 'ren_luyen');
             })
@@ -45,12 +51,20 @@ class PointCalculationService
             ->with('role')
             ->get();
 
-        // Tính tổng điểm
-        $totalPoints = $registrations->sum(function ($registration) {
-            return $registration->role->points_awarded;
+        // Tính tổng điểm: attended cộng, absent trừ
+        $adjustmentPoints = $registrations->sum(function ($registration) {
+            if ($registration->status === 'attended') {
+                return $registration->role->points_awarded; // Cộng điểm
+            } elseif ($registration->status === 'absent') {
+                return -$registration->role->points_awarded; // Trừ điểm
+            }
+            return 0;
         });
 
-        return $totalPoints;
+        $totalPoints = $basePoints + $adjustmentPoints;
+
+        // Đảm bảo điểm không âm
+        return max(0, $totalPoints);
     }
 
     /**
@@ -113,13 +127,20 @@ class PointCalculationService
         $trainingActivities = self::getTrainingActivitiesDetail($studentId, $semesterId);
         $socialActivities = self::getSocialActivitiesDetail($studentId, $semesterId);
 
+        // Tính số hoạt động attended và absent
+        $attendedCount = collect($trainingActivities)->where('status', 'attended')->count();
+        $absentCount = collect($trainingActivities)->where('status', 'absent')->count();
+
         return [
             'training_points' => $trainingPoints,
             'social_points' => $socialPoints,
             'training_activities' => $trainingActivities,
             'social_activities' => $socialActivities,
             'summary' => [
+                'base_training_points' => 70,
                 'total_training_activities' => count($trainingActivities),
+                'attended_activities' => $attendedCount,
+                'absent_activities' => $absentCount,
                 'total_social_activities' => count($socialActivities),
                 'semester' => $semester->semester_name . ' ' . $semester->academic_year
             ]
@@ -128,13 +149,14 @@ class PointCalculationService
 
     /**
      * Lấy chi tiết các hoạt động rèn luyện trong học kỳ
+     * Bao gồm cả hoạt động tham dự (attended) và vắng mặt (absent)
      */
     public static function getTrainingActivitiesDetail($studentId, $semesterId)
     {
         $semester = Semester::find($semesterId);
 
         $registrations = ActivityRegistration::where('student_id', $studentId)
-            ->where('status', 'attended')
+            ->whereIn('status', ['attended', 'absent']) // Lấy cả attended và absent
             ->whereHas('role', function ($query) {
                 $query->where('point_type', 'ren_luyen');
             })
@@ -145,14 +167,23 @@ class PointCalculationService
                 ]);
             })
             ->with(['role.activity'])
+            ->orderBy('registration_time', 'desc')
             ->get();
 
         return $registrations->map(function ($reg) {
+            $pointsAwarded = $reg->role->points_awarded;
+            // Nếu vắng mặt thì điểm là âm
+            $actualPoints = $reg->status === 'attended' ? $pointsAwarded : -$pointsAwarded;
+
             return [
+                'registration_id' => $reg->registration_id,
                 'activity_id' => $reg->role->activity->activity_id,
                 'activity_title' => $reg->role->activity->title,
                 'role_name' => $reg->role->role_name,
-                'points_awarded' => $reg->role->points_awarded,
+                'status' => $reg->status,
+                'status_text' => $reg->status === 'attended' ? 'Đã tham dự' : 'Vắng mặt',
+                'points_awarded' => $pointsAwarded,
+                'actual_points' => $actualPoints,
                 'activity_date' => $reg->role->activity->start_time->format('d/m/Y'),
                 'location' => $reg->role->activity->location,
                 'registration_time' => $reg->registration_time->format('d/m/Y H:i')
@@ -306,18 +337,40 @@ class PointCalculationService
             ->get();
 
         return $registrations->map(function ($reg) {
+            $pointsAwarded = $reg->role->points_awarded;
+            $actualPoints = 0;
+            $isCounted = false;
+
+            // Với điểm rèn luyện: attended cộng, absent trừ
+            if ($reg->role->point_type === 'ren_luyen') {
+                if ($reg->status === 'attended') {
+                    $actualPoints = $pointsAwarded;
+                    $isCounted = true;
+                } elseif ($reg->status === 'absent') {
+                    $actualPoints = -$pointsAwarded;
+                    $isCounted = true;
+                }
+            } else {
+                // CTXH: chỉ cộng khi attended
+                if ($reg->status === 'attended') {
+                    $actualPoints = $pointsAwarded;
+                    $isCounted = true;
+                }
+            }
+
             return [
                 'registration_id' => $reg->registration_id,
                 'activity_id' => $reg->role->activity->activity_id,
                 'activity_title' => $reg->role->activity->title,
                 'role_name' => $reg->role->role_name,
                 'point_type' => $reg->role->point_type,
-                'points_awarded' => $reg->role->points_awarded,
+                'points_awarded' => $pointsAwarded,
+                'actual_points' => $actualPoints,
                 'status' => $reg->status,
                 'activity_date' => $reg->role->activity->start_time->format('d/m/Y H:i'),
                 'location' => $reg->role->activity->location,
                 'registration_time' => $reg->registration_time->format('d/m/Y H:i'),
-                'is_counted' => $reg->status === 'attended' // Chỉ tính điểm khi attended
+                'is_counted' => $isCounted
             ];
         })->toArray();
     }

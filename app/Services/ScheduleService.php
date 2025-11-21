@@ -226,9 +226,11 @@ class ScheduleService
         $actStartObj = Carbon::parse($activityStartTime);
         $actEndObj = Carbon::parse($activityEndTime);
 
-        // Lấy khoảng thời gian của hoạt động (chỉ lấy giờ, không tính ngày)
-        $actStartTime = $actStartObj->format('H:i');
-        $actEndTime = $actEndObj->format('H:i');
+        // Lưu string ngày và giờ GỐC (không bị thay đổi)
+        $actStartDateStr = $actStartObj->toDateString(); // VD: '2025-11-22'
+        $actEndDateStr = $actEndObj->toDateString();     // VD: '2025-11-24'
+        $actStartTime = $actStartObj->format('H:i');     // VD: '14:30'
+        $actEndTime = $actEndObj->format('H:i');         // VD: '10:00'
 
         // Duyệt qua TẤT CẢ các ngày trong khoảng thời gian hoạt động
         $currentDate = $actStartObj->copy()->startOfDay();
@@ -243,13 +245,13 @@ class ScheduleService
             $dayEndTime = $actEndTime;
 
             // Nếu hoạt động kéo dài nhiều ngày:
-            if ($actStartObj->toDateString() !== $actEndObj->toDateString()) {
+            if ($actStartDateStr !== $actEndDateStr) {
                 // Ngày đầu: từ giờ bắt đầu đến 23:59
-                if ($currentDate->equalTo($actStartObj->startOfDay())) {
+                if ($activityDate === $actStartDateStr) {
                     $dayEndTime = '23:59';
                 }
                 // Ngày cuối: từ 00:00 đến giờ kết thúc
-                elseif ($currentDate->equalTo($actEndObj->startOfDay())) {
+                elseif ($activityDate === $actEndDateStr) {
                     $dayStartTime = '00:00';
                 }
                 // Các ngày giữa: cả ngày (00:00 - 23:59)

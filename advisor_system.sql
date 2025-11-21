@@ -351,14 +351,14 @@ INSERT INTO Classes (class_name, advisor_id, faculty_id, description) VALUES
 -- 4. Students (ĐÃ THÊM POSITION)
 INSERT INTO Students (user_code, full_name, email, password_hash, phone_number, class_id, status, position) VALUES
 ('210001', 'Nguyễn Văn Hùng', 'sv.hung@school.edu.vn', @default_hash, '091122334', 1, 'studying', 'leader'),
-('210002', 'Trần Thị Thu Cẩm', 'sv.cam@school.edu.vn', @default_hash, '091234567', 1, 'studying', 'secretary'),
+('210002', 'Trần Thị Thu Cẩm', 'sv.cam@school.edu.vn', @default_hash, '091234567', 1, 'studying', 'member'),
 ('220001', 'Lê Văn Dũng', 'sv.dung@school.edu.vn', @default_hash, '092233445', 2, 'studying', 'leader'),
 ('230001', 'Đỗ Minh Nam', 'sv.nam@school.edu.vn', @default_hash, '091112233', 4, 'studying', 'leader'),
 ('230002', 'Bùi Thị Hương', 'sv.huong@school.edu.vn', @default_hash, '091223344', 4, 'studying', 'vice_leader'),
 ('210003', 'Phan Thanh Bình', 'sv.binh@school.edu.vn', @default_hash, '094455667', 1, 'studying', 'vice_leader'),
 ('210004', 'Võ Thị Kim Anh', 'sv.anh@school.edu.vn', @default_hash, '095566778', 1, 'studying', 'member'),
 ('210005', 'Trịnh Bảo Quốc', 'sv.quoc@school.edu.vn', @default_hash, '096677889', 3, 'studying', 'leader'),
-('210006', 'Mai Lan Chi', 'sv.chi@school.edu.vn', @default_hash, '097788990', 3, 'studying', 'secretary');
+('210006', 'Mai Lan Chi', 'sv.chi@school.edu.vn', @default_hash, '097788990', 3, 'studying', 'member');
 
 -- 5. Semesters
 INSERT INTO Semesters (semester_name, academic_year, start_date, end_date) VALUES
