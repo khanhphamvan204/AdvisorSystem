@@ -670,13 +670,13 @@ class StudentController extends Controller
                 ], 403);
             }
 
-            // Reset mật khẩu về user_code
-            $student->password_hash = Hash::make($student->user_code);
+            // Reset mật khẩu về 123456
+            $student->password_hash = Hash::make('123456');
             $student->save();
 
             return response()->json([
                 'success' => true,
-                'message' => "Đã reset mật khẩu của sinh viên {$student->full_name} ({$student->user_code}) về mã sinh viên thành công"
+                'message' => "Đã reset mật khẩu của sinh viên {$student->full_name} ({$student->user_code}) về 123456 thành công"
             ], 200);
 
         } catch (\Exception $e) {
