@@ -8,6 +8,7 @@ use App\Models\Advisor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -254,17 +255,18 @@ class StudentController extends Controller
     }
 
     /**
-     * Cập nhật thông tin sinh viên
-     * - Admin: Cập nhật sinh viên trong khoa mình quản lý
-     * - Student: Cập nhật thông tin cá nhân (giới hạn)
+     * Upload avatar cho sinh viên
+     * - Admin: Upload cho sinh viên trong khoa mình quản lý
+     * - Advisor: Upload cho sinh viên trong lớp mình phụ trách
+     * - Student: Upload avatar của chính mình
      */
-    public function update(Request $request, $id)
+    public function uploadAvatar(Request $request, $id)
     {
         try {
             $role = $request->current_role;
             $userId = $request->current_user_id;
 
-            $student = Student::find($id);
+            $student = Student::with('class')->find($id);
 
             if (!$student) {
                 return response()->json([
@@ -273,47 +275,208 @@ class StudentController extends Controller
                 ], 404);
             }
 
-            // Kiểm tra quyền
-            if ($role === 'admin') {
-                $advisor = Advisor::find($userId);
-                $class = ClassModel::find($student->class_id);
+            // Kiểm tra quyền truy cập
+            switch ($role) {
+                case 'admin':
+                    $advisor = Advisor::find($userId);
+                    if (!$advisor || !$advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                        ], 404);
+                    }
 
-                if ($class->faculty_id !== $advisor->unit_id) {
+                    $studentClass = $student->class;
+                    if (!$studentClass || $studentClass->faculty_id !== $advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền upload avatar cho sinh viên này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'advisor':
+                    $studentClass = $student->class;
+                    if (!$studentClass || $studentClass->advisor_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn không có quyền upload avatar cho sinh viên này'
+                        ], 403);
+                    }
+                    break;
+
+                case 'student':
+                    if ($student->student_id !== $userId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chỉ có thể upload avatar của mình'
+                        ], 403);
+                    }
+                    break;
+
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Vai trò không hợp lệ'
+                    ], 403);
+            }
+
+            // Validate avatar file
+            $validator = Validator::make($request->all(), [
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ], [
+                'avatar.required' => 'File avatar không được để trống',
+                'avatar.image' => 'File phải là hình ảnh',
+                'avatar.mimes' => 'File phải có định dạng: jpeg, png, jpg, gif',
+                'avatar.max' => 'Kích thước file không được vượt quá 2MB'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Xóa avatar cũ nếu có
+            if ($student->avatar_url) {
+                $oldAvatarPath = str_replace('/storage/', '', $student->avatar_url);
+                if (Storage::disk('public')->exists($oldAvatarPath)) {
+                    Storage::disk('public')->delete($oldAvatarPath);
+                }
+            }
+
+            // Lưu file mới
+            $file = $request->file('avatar');
+            $fileName = 'student_' . $student->student_id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('avatars', $fileName, 'public');
+
+            // Cập nhật avatar_url
+            $student->avatar_url = '/storage/' . $path;
+            $student->save();
+
+            // Reload student với relationships
+            $student->load(['class', 'class.advisor', 'class.faculty']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $student,
+                'message' => 'Upload avatar thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin sinh viên (không bao gồm avatar)
+     * - Admin: Cập nhật sinh viên trong khoa mình quản lý
+     * - Advisor: Cập nhật sinh viên trong lớp mình phụ trách
+     * - Student: Cập nhật thông tin cá nhân (giới hạn)
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $student = Student::with('class')->find($id);
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên'
+                ], 404);
+            }
+
+            // Lấy thông tin lớp của sinh viên
+            $studentClass = $student->class;
+
+            if (!$studentClass) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy thông tin lớp của sinh viên'
+                ], 404);
+            }
+
+            // Kiểm tra quyền và validation dựa trên role
+            if ($role === 'admin') {
+                // Lấy thông tin admin
+                $advisor = Advisor::find($userId);
+
+                if (!$advisor || !$advisor->unit_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                    ], 404);
+                }
+
+                // Kiểm tra sinh viên có thuộc khoa admin quản lý không
+                if ($studentClass->faculty_id !== $advisor->unit_id) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Bạn không có quyền cập nhật sinh viên này'
                     ], 403);
                 }
 
-                // Admin có thể cập nhật tất cả
+                // Admin có thể cập nhật tất cả (trừ avatar)
                 $validator = Validator::make($request->all(), [
                     'user_code' => 'sometimes|string|max:20|unique:Students,user_code,' . $id . ',student_id',
                     'full_name' => 'sometimes|string|max:100',
                     'email' => 'sometimes|email|unique:Students,email,' . $id . ',student_id',
                     'phone_number' => 'nullable|string|max:15',
                     'class_id' => 'sometimes|exists:Classes,class_id',
-                    'status' => 'sometimes|in:studying,graduated,dropped',
-                    'position' => 'sometimes|in:member,leader,vice_leader'
+                    'status' => 'sometimes|in:studying,graduated,dropped,suspended',
+                    'position' => 'sometimes|in:member,leader,vice_leader,secretary'
                 ]);
+
+                // Nếu admin đổi lớp cho sinh viên, kiểm tra lớp mới có thuộc khoa không
+                if ($request->has('class_id') && $request->class_id != $student->class_id) {
+                    $newClass = ClassModel::find($request->class_id);
+                    if (!$newClass) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Lớp mới không tồn tại'
+                        ], 404);
+                    }
+
+                    if ($newClass->faculty_id !== $advisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Lớp mới không thuộc khoa bạn quản lý'
+                        ], 403);
+                    }
+                }
 
             } elseif ($role === 'advisor') {
                 // Advisor chỉ cập nhật sinh viên trong lớp mình phụ trách
-                $class = ClassModel::find($student->class_id);
-
-                if ($class->advisor_id !== $userId) {
+                if ($studentClass->advisor_id !== $userId) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Bạn không có quyền cập nhật sinh viên này'
                     ], 403);
                 }
 
-                // Advisor có thể cập nhật một số trường
+                // Advisor có thể cập nhật một số trường (trừ avatar)
                 $validator = Validator::make($request->all(), [
                     'full_name' => 'sometimes|string|max:100',
                     'phone_number' => 'nullable|string|max:15',
-                    'status' => 'sometimes|in:studying,graduated,dropped',
-                    'position' => 'sometimes|in:member,leader,vice_leader'
+                    'status' => 'sometimes|in:studying,graduated,dropped,suspended',
+                    'position' => 'sometimes|in:member,leader,vice_leader,secretary'
                 ]);
+
+                // Advisor không được đổi lớp cho sinh viên
+                if ($request->has('class_id')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cố vấn không có quyền chuyển lớp cho sinh viên'
+                    ], 403);
+                }
 
             } elseif ($role === 'student') {
                 // Student chỉ cập nhật được thông tin của mình
@@ -324,11 +487,21 @@ class StudentController extends Controller
                     ], 403);
                 }
 
-                // Student chỉ cập nhật được một số trường
+                // Student chỉ cập nhật được một số trường (trừ avatar)
                 $validator = Validator::make($request->all(), [
-                    'phone_number' => 'nullable|string|max:15',
-                    'avatar_url' => 'nullable|string|max:255'
+                    'phone_number' => 'nullable|string|max:15'
                 ]);
+
+                // Student không được thay đổi các trường quan trọng
+                $restrictedFields = ['user_code', 'full_name', 'email', 'class_id', 'status', 'position'];
+                foreach ($restrictedFields as $field) {
+                    if ($request->has($field)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Sinh viên không có quyền thay đổi trường ' . $field
+                        ], 403);
+                    }
+                }
 
             } else {
                 return response()->json([
@@ -345,21 +518,34 @@ class StudentController extends Controller
                 ], 422);
             }
 
-            // Kiểm tra chức vụ đã tồn tại trong lớp (áp dụng khi admin hoặc advisor cập nhật position)
-            if (in_array($role, ['admin', 'advisor']) && $request->has('position') && in_array($request->position, ['leader', 'vice_leader', 'secretary'])) {
-                $existingPosition = Student::where('class_id', $student->class_id)
-                    ->where('position', $request->position)
-                    ->where('student_id', '!=', $id)
-                    ->first();
+            // Kiểm tra chức vụ đã tồn tại trong lớp (chỉ khi admin hoặc advisor cập nhật position)
+            if (in_array($role, ['admin', 'advisor']) && $request->has('position')) {
+                $newPosition = $request->position;
 
-                if ($existingPosition) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Chức vụ ' . $request->position . ' đã có người đảm nhận trong lớp này'
-                    ], 422);
+                // Nếu đổi position thành leader, vice_leader hoặc secretary
+                if (in_array($newPosition, ['leader', 'vice_leader', 'secretary'])) {
+                    // Lấy class_id: nếu admin đổi lớp thì dùng class_id mới, không thì dùng lớp hiện tại
+                    $checkClassId = $request->has('class_id') ? $request->class_id : $student->class_id;
+
+                    $existingPosition = Student::where('class_id', $checkClassId)
+                        ->where('position', $newPosition)
+                        ->where('student_id', '!=', $id)
+                        ->first();
+
+                    if ($existingPosition) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Chức vụ ' . $this->getPositionName($newPosition) . ' đã có người đảm nhận trong lớp này'
+                        ], 422);
+                    }
                 }
             }
+
+            // Cập nhật các trường
             $student->update($request->all());
+
+            // Reload student với relationships
+            $student->load(['class', 'class.advisor', 'class.faculty']);
 
             return response()->json([
                 'success' => true,
@@ -373,6 +559,18 @@ class StudentController extends Controller
                 'message' => 'Lỗi: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function getPositionName($position)
+    {
+        $positions = [
+            'leader' => 'Lớp trưởng',
+            'vice_leader' => 'Lớp phó',
+            'secretary' => 'Thư ký',
+            'member' => 'Thành viên'
+        ];
+
+        return $positions[$position] ?? $position;
     }
 
     /**

@@ -101,76 +101,14 @@ GET /api/students/{id}
     "phone_number": "091122334",
     "status": "studying",
     "position": "leader",
-    "avatar_url": null,
+    "avatar_url": "/storage/avatars/student_1_1732212345.jpg",
     "created_at": "2024-09-01T00:00:00.000000Z",
     "class": {
       "class_id": 1,
-      "class_name": "DH21CNTT",
-      "advisor": {
-        "advisor_id": 1,
-        "full_name": "ThS. Trần Văn An",
-        "email": "gv.an@school.edu.vn"
-      },
-      "faculty": {
-        "unit_id": 1,
-        "unit_name": "Khoa Công nghệ Thông tin"
-      }
-    },
-    "semester_reports": [
-      {
-        "report_id": 1,
-        "semester_id": 1,
-        "gpa": 7.75,
-        "credits_registered": 8,
-        "credits_passed": 8,
-        "semester": {
-          "semester_name": "Học kỳ 1",
-          "academic_year": "2024-2025"
-        }
-      }
-    ],
-    "academic_warnings": [
-      {
-        "warning_id": 1,
-        "title": "Cảnh cáo học vụ HK1 2024-2025",
-        "content": "...",
-        "created_at": "2025-01-20T00:00:00.000000Z"
-      }
-    ],
-    "course_grades": [
-      {
-        "grade_id": 1,
-        "course": {
-          "course_code": "IT001",
-          "course_name": "Nhập môn Lập trình"
-        },
-        "semester": {
-          "semester_name": "Học kỳ 1",
-          "academic_year": "2024-2025"
-        },
-        "grade_value": 8.5,
-        "status": "passed"
-      }
-    ]
+      "class_name": "DH21CNTT"
+    }
   },
   "message": "Lấy thông tin sinh viên thành công"
-}
-```
-
-### Error Responses
-- **404 Not Found**:
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy sinh viên"
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xem sinh viên này"
 }
 ```
 
@@ -192,6 +130,9 @@ POST /api/students
 ### Access Control
 - **Required Role**: `admin`
 - **Restriction**: Admin chỉ tạo sinh viên cho lớp thuộc khoa mình quản lý
+
+### Content-Type
+- `application/json`
 
 ### Request Body
 ```json
@@ -238,28 +179,6 @@ POST /api/students
 }
 ```
 
-### Error Responses
-- **422 Validation Error**:
-```json
-{
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "user_code": ["Mã sinh viên đã tồn tại"],
-    "email": ["Email đã tồn tại"],
-    "class_id": ["Lớp không tồn tại"]
-  }
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn chỉ có thể tạo sinh viên cho lớp thuộc khoa mình quản lý"
-}
-```
-
 ### Example
 ```bash
 curl -X POST "http://localhost:8000/api/students" \
@@ -288,9 +207,12 @@ PUT /api/students/{id}
 | id | integer | Yes | Student ID |
 
 ### Access Control
-- **Admin**: Cập nhật tất cả thông tin sinh viên trong khoa mình quản lý
-- **Advisor**: Cập nhật một số thông tin sinh viên trong lớp mình phụ trách (full_name, phone_number, status, position)
-- **Student**: Chỉ cập nhật một số trường của chính mình (phone_number, avatar_url)
+- **Admin**: Cập nhật tất cả thông tin sinh viên trong khoa mình quản lý (trừ avatar)
+- **Advisor**: Cập nhật một số thông tin sinh viên trong lớp mình phụ trách (trừ avatar)
+- **Student**: Chỉ cập nhật số điện thoại của chính mình
+
+### Content-Type
+- `application/json`
 
 ### Request Body (Admin)
 ```json
@@ -318,8 +240,7 @@ PUT /api/students/{id}
 ### Request Body (Student)
 ```json
 {
-  "phone_number": "0901234567",
-  "avatar_url": "https://example.com/avatar.jpg"
+  "phone_number": "0901234567"
 }
 ```
 
@@ -333,7 +254,7 @@ PUT /api/students/{id}
 | email | string(100) | Email |
 | phone_number | string(15) | Số điện thoại |
 | class_id | integer | ID lớp học |
-| status | enum | `studying`, `graduated`, `dropped` |
+| status | enum | `studying`, `graduated`, `dropped`, `suspended` |
 | position | enum | `member`, `leader`, `vice_leader`, `secretary` |
 
 #### Advisor can update:
@@ -341,14 +262,13 @@ PUT /api/students/{id}
 |-------|------|-------------|
 | full_name | string(100) | Họ và tên |
 | phone_number | string(15) | Số điện thoại |
-| status | enum | `studying`, `graduated`, `dropped` |
+| status | enum | `studying`, `graduated`, `dropped`, `suspended` |
 | position | enum | `member`, `leader`, `vice_leader`, `secretary` |
 
 #### Student can update:
 | Field | Type | Description |
 |-------|------|-------------|
 | phone_number | string(15) | Số điện thoại |
-| avatar_url | string(255) | URL ảnh đại diện |
 
 ### Response
 ```json
@@ -361,51 +281,123 @@ PUT /api/students/{id}
     "email": "sv.hung@school.edu.vn",
     "phone_number": "0909999999",
     "status": "studying",
-    "position": "leader"
+    "position": "leader",
+    "avatar_url": "/storage/avatars/student_1_1732212345.jpg"
   },
   "message": "Cập nhật sinh viên thành công"
 }
 ```
 
-### Error Responses
-- **403 Forbidden** (Student trying to update others):
+### Example
+```bash
+# Admin update status
+curl -X PUT "http://localhost:8000/api/students/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "graduated"}'
+
+# Student update phone number
+curl -X PUT "http://localhost:8000/api/students/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number": "0909999999"}'
+```
+
+---
+
+## 5. Upload Student Avatar
+
+### Endpoint
+```http
+POST /api/students/{id}/avatar
+```
+
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Student ID |
+
+### Access Control
+- **Admin**: Upload avatar cho sinh viên trong khoa mình quản lý
+- **Advisor**: Upload avatar cho sinh viên trong lớp mình phụ trách
+- **Student**: Upload avatar của chính mình
+
+### Content-Type
+- `multipart/form-data`
+
+### Request Body (Form Data)
+```
+avatar: [file] (required - image file: jpeg, png, jpg, gif, max 2MB)
+```
+
+### Request Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| avatar | file | Yes | File ảnh đại diện (jpeg, png, jpg, gif, max 2MB) |
+
+### Response
 ```json
 {
-  "success": false,
-  "message": "Bạn chỉ có thể cập nhật thông tin của mình"
+  "success": true,
+  "data": {
+    "student_id": 1,
+    "user_code": "210001",
+    "full_name": "Nguyễn Văn Hùng",
+    "email": "sv.hung@school.edu.vn",
+    "phone_number": "091122334",
+    "status": "studying",
+    "position": "leader",
+    "avatar_url": "/storage/avatars/student_1_1732212345.jpg",
+    "class": {
+      "class_id": 1,
+      "class_name": "DH21CNTT"
+    }
+  },
+  "message": "Upload avatar thành công"
 }
 ```
 
-- **403 Forbidden** (Admin trying to update outside their faculty):
+### Error Responses
+- **403 Forbidden** (Student trying to upload for others):
 ```json
 {
   "success": false,
-  "message": "Bạn không có quyền cập nhật sinh viên này"
+  "message": "Bạn chỉ có thể upload avatar của mình"
+}
+```
+
+- **422 Validation Error** (Invalid file):
+```json
+{
+  "success": false,
+  "message": "Dữ liệu không hợp lệ",
+  "errors": {
+    "avatar": [
+      "File avatar không được để trống",
+      "File phải là hình ảnh",
+      "File phải có định dạng: jpeg, png, jpg, gif",
+      "Kích thước file không được vượt quá 2MB"
+    ]
+  }
 }
 ```
 
 ### Example
 ```bash
-# Admin update
-curl -X PUT "http://localhost:8000/api/students/1" \
+curl -X POST "http://localhost:8000/api/students/1/avatar" \
   -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "graduated"
-  }'
-
-# Student update
-curl -X PUT "http://localhost:8000/api/students/1" \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone_number": "0909999999"
-  }'
+  -F "avatar=@/path/to/avatar.jpg"
 ```
+
+### Notes
+- Avatar cũ sẽ tự động bị xóa khi upload avatar mới
+- Avatar được lưu vào thư mục `storage/app/public/avatars/`
+- URL avatar trả về có dạng: `/storage/avatars/student_{id}_{timestamp}.{ext}`
+- Để truy cập avatar qua browser, cần chạy lệnh: `php artisan storage:link`
 
 ---
 
-## 5. Delete Student
+## 6. Delete Student
 
 ### Endpoint
 ```http
@@ -429,23 +421,6 @@ DELETE /api/students/{id}
 }
 ```
 
-### Error Responses
-- **404 Not Found**:
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy sinh viên"
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xóa sinh viên này"
-}
-```
-
 ### Example
 ```bash
 curl -X DELETE "http://localhost:8000/api/students/1" \
@@ -454,7 +429,7 @@ curl -X DELETE "http://localhost:8000/api/students/1" \
 
 ---
 
-## 6. Change Password
+## 7. Change Password
 
 ### Endpoint
 ```http
@@ -474,39 +449,11 @@ POST /api/students/change-password
 }
 ```
 
-### Request Fields
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| current_password | string | Yes | Mật khẩu hiện tại |
-| new_password | string | Yes | Mật khẩu mới (min: 6 ký tự) |
-| new_password_confirmation | string | Yes | Xác nhận mật khẩu mới |
-
 ### Response
 ```json
 {
   "success": true,
   "message": "Đổi mật khẩu thành công"
-}
-```
-
-### Error Responses
-- **400 Bad Request**:
-```json
-{
-  "success": false,
-  "message": "Mật khẩu hiện tại không đúng"
-}
-```
-
-- **422 Validation Error**:
-```json
-{
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "new_password": ["Mật khẩu mới phải có ít nhất 6 ký tự"],
-    "new_password_confirmation": ["Xác nhận mật khẩu không khớp"]
-  }
 }
 ```
 
@@ -524,7 +471,7 @@ curl -X POST "http://localhost:8000/api/students/change-password" \
 
 ---
 
-## 7. Get Class Positions
+## 8. Get Class Positions
 
 ### Endpoint
 ```http
@@ -552,21 +499,18 @@ GET /api/classes/{classId}/positions
         "student_id": 1,
         "user_code": "210001",
         "full_name": "Nguyễn Văn A",
-        "email": "sv.a@school.edu.vn",
         "position": "leader"
       },
       "vice_leader": {
         "student_id": 2,
         "user_code": "210002",
         "full_name": "Trần Thị B",
-        "email": "sv.b@school.edu.vn",
         "position": "vice_leader"
       },
       "secretary": {
         "student_id": 3,
         "user_code": "210003",
         "full_name": "Lê Văn C",
-        "email": "sv.c@school.edu.vn",
         "position": "secretary"
       },
       "members": [
@@ -574,30 +518,12 @@ GET /api/classes/{classId}/positions
           "student_id": 4,
           "user_code": "210004",
           "full_name": "Phạm Thị D",
-          "email": "sv.d@school.edu.vn",
           "position": "member"
         }
       ]
     }
   },
   "message": "Lấy danh sách chức vụ thành công"
-}
-```
-
-### Error Responses
-- **404 Not Found**:
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy lớp"
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xem lớp này"
 }
 ```
 
@@ -609,7 +535,7 @@ curl -X GET "http://localhost:8000/api/classes/1/positions" \
 
 ---
 
-## 8. Reset Student Password (Admin Only)
+## 9. Reset Student Password (Admin Only)
 
 ### Endpoint
 ```http
@@ -626,13 +552,13 @@ POST /api/students/{id}/reset-password
 - Admin chỉ có thể reset mật khẩu sinh viên thuộc khoa mình quản lý
 
 ### Description
-Reset mật khẩu sinh viên về mã sinh viên (user_code) của họ.
+Reset mật khẩu sinh viên về 123456.
 
 ### Response Success
 ```json
 {
   "success": true,
-  "message": "Đã reset mật khẩu của sinh viên Nguyễn Văn Hùng (210001) về mã sinh viên thành công"
+  "message": "Đã reset mật khẩu của sinh viên Nguyễn Văn Hùng (210001) về 123456 thành công"
 }
 ```
 
@@ -651,22 +577,6 @@ Reset mật khẩu sinh viên về mã sinh viên (user_code) của họ.
 {
   "success": false,
   "message": "Bạn không có quyền reset mật khẩu sinh viên này"
-}
-```
-
-#### 404 Not Found - Student
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy sinh viên"
-}
-```
-
-#### 404 Not Found - Unit Info
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy thông tin đơn vị quản lý"
 }
 ```
 
@@ -693,6 +603,14 @@ curl -X POST "http://localhost:8000/api/students/1/reset-password" \
 {
   "success": false,
   "message": "Bạn không có quyền truy cập"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy sinh viên"
 }
 ```
 

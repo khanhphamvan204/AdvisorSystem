@@ -7,6 +7,8 @@ use App\Models\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+
 
 class AdvisorController extends Controller
 {
@@ -208,7 +210,115 @@ class AdvisorController extends Controller
     }
 
     /**
-     * Cập nhật thông tin cố vấn
+     * Upload avatar cho cố vấn
+     * - Admin: Upload cho cố vấn trong đơn vị mình quản lý
+     * - Advisor: Upload avatar của chính mình
+     */
+    public function uploadAvatar(Request $request, $id)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $advisor = Advisor::with('unit')->find($id);
+
+            if (!$advisor) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cố vấn'
+                ], 404);
+            }
+
+            // Kiểm tra quyền truy cập
+            if ($role === 'admin') {
+                // Lấy thông tin admin hiện tại
+                $currentAdvisor = Advisor::find($userId);
+
+                if (!$currentAdvisor || !$currentAdvisor->unit_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                    ], 404);
+                }
+
+                // Kiểm tra cố vấn có thuộc đơn vị admin quản lý không
+                if ($advisor->unit_id !== $currentAdvisor->unit_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn không có quyền upload avatar cho cố vấn này'
+                    ], 403);
+                }
+
+            } elseif ($role === 'advisor') {
+                // Advisor chỉ upload avatar của chính mình
+                if ($advisor->advisor_id !== $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Bạn chỉ có thể upload avatar của mình'
+                    ], 403);
+                }
+
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền upload avatar'
+                ], 403);
+            }
+
+            // Validate avatar file
+            $validator = Validator::make($request->all(), [
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            ], [
+                'avatar.required' => 'File avatar không được để trống',
+                'avatar.image' => 'File phải là hình ảnh',
+                'avatar.mimes' => 'File phải có định dạng: jpeg, png, jpg, gif',
+                'avatar.max' => 'Kích thước file không được vượt quá 2MB'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Xóa avatar cũ nếu có
+            if ($advisor->avatar_url) {
+                $oldAvatarPath = str_replace('/storage/', '', $advisor->avatar_url);
+                if (Storage::disk('public')->exists($oldAvatarPath)) {
+                    Storage::disk('public')->delete($oldAvatarPath);
+                }
+            }
+
+            // Lưu file mới
+            $file = $request->file('avatar');
+            $fileName = 'advisor_' . $advisor->advisor_id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('avatars', $fileName, 'public');
+
+            // Cập nhật avatar_url
+            $advisor->avatar_url = '/storage/' . $path;
+            $advisor->save();
+
+            // Reload advisor với relationships
+            $advisor->load(['unit', 'classes']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $advisor,
+                'message' => 'Upload avatar thành công'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cập nhật thông tin cố vấn (không bao gồm avatar)
      * - Admin: Cập nhật cố vấn trong đơn vị mình quản lý
      * - Advisor: Cập nhật thông tin cá nhân (giới hạn)
      */
@@ -218,7 +328,7 @@ class AdvisorController extends Controller
             $role = $request->current_role;
             $userId = $request->current_user_id;
 
-            $advisor = Advisor::find($id);
+            $advisor = Advisor::with('unit')->find($id);
 
             if (!$advisor) {
                 return response()->json([
@@ -227,10 +337,19 @@ class AdvisorController extends Controller
                 ], 404);
             }
 
-            // Kiểm tra quyền
+            // Kiểm tra quyền và validation dựa trên role
             if ($role === 'admin') {
+                // Lấy thông tin admin hiện tại
                 $currentAdvisor = Advisor::find($userId);
 
+                if (!$currentAdvisor || !$currentAdvisor->unit_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không tìm thấy thông tin đơn vị quản lý'
+                    ], 404);
+                }
+
+                // Kiểm tra cố vấn cần cập nhật có thuộc đơn vị admin quản lý không
                 if ($advisor->unit_id !== $currentAdvisor->unit_id) {
                     return response()->json([
                         'success' => false,
@@ -238,7 +357,7 @@ class AdvisorController extends Controller
                     ], 403);
                 }
 
-                // Admin có thể cập nhật tất cả
+                // Admin có thể cập nhật tất cả (trừ avatar)
                 $validator = Validator::make($request->all(), [
                     'user_code' => 'sometimes|string|max:20|unique:Advisors,user_code,' . $id . ',advisor_id',
                     'full_name' => 'sometimes|string|max:100',
@@ -247,6 +366,42 @@ class AdvisorController extends Controller
                     'unit_id' => 'nullable|exists:Units,unit_id',
                     'role' => 'sometimes|in:advisor,admin'
                 ]);
+
+                // Nếu admin đổi đơn vị cho cố vấn, kiểm tra đơn vị mới
+                if ($request->has('unit_id') && $request->unit_id != $advisor->unit_id) {
+                    $newUnit = Unit::find($request->unit_id);
+                    if (!$newUnit) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Đơn vị mới không tồn tại'
+                        ], 404);
+                    }
+
+                    // Admin chỉ có thể chuyển cố vấn trong cùng đơn vị mình quản lý
+                    if ($request->unit_id !== $currentAdvisor->unit_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Bạn chỉ có thể chuyển cố vấn trong đơn vị mình quản lý'
+                        ], 403);
+                    }
+                }
+
+                // Kiểm tra nếu thay đổi role
+                if ($request->has('role') && $request->role != $advisor->role) {
+                    // Nếu hạ admin xuống advisor, kiểm tra xem có phải admin duy nhất không
+                    if ($advisor->role === 'admin' && $request->role === 'advisor') {
+                        $adminCount = Advisor::where('unit_id', $advisor->unit_id)
+                            ->where('role', 'admin')
+                            ->count();
+
+                        if ($adminCount <= 1) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Không thể hạ cấp admin duy nhất của đơn vị'
+                            ], 403);
+                        }
+                    }
+                }
 
             } elseif ($role === 'advisor') {
                 // Advisor chỉ cập nhật được thông tin của mình
@@ -257,11 +412,21 @@ class AdvisorController extends Controller
                     ], 403);
                 }
 
-                // Advisor chỉ cập nhật được một số trường
+                // Advisor chỉ cập nhật được một số trường (trừ avatar)
                 $validator = Validator::make($request->all(), [
-                    'phone_number' => 'nullable|string|max:15',
-                    'avatar_url' => 'nullable|string|max:255'
+                    'phone_number' => 'nullable|string|max:15'
                 ]);
+
+                // Advisor không được thay đổi các trường quan trọng
+                $restrictedFields = ['user_code', 'full_name', 'email', 'unit_id', 'role'];
+                foreach ($restrictedFields as $field) {
+                    if ($request->has($field)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cố vấn không có quyền thay đổi trường ' . $field
+                        ], 403);
+                    }
+                }
 
             } else {
                 return response()->json([
@@ -278,7 +443,11 @@ class AdvisorController extends Controller
                 ], 422);
             }
 
+            // Cập nhật các trường
             $advisor->update($request->all());
+
+            // Reload advisor với relationships
+            $advisor->load(['unit', 'classes']);
 
             return response()->json([
                 'success' => true,

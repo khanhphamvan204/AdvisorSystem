@@ -95,60 +95,20 @@ GET /api/advisors/{id}
     "email": "gv.an@school.edu.vn",
     "phone_number": "090111222",
     "role": "advisor",
-    "avatar_url": null,
+    "avatar_url": "/storage/avatars/advisor_1_1732212345.jpg",
     "created_at": "2024-09-01T00:00:00.000000Z",
-    "last_login": "2025-11-14T08:00:00.000000Z",
     "unit": {
       "unit_id": 1,
-      "unit_name": "Khoa Công nghệ Thông tin",
-      "type": "faculty"
+      "unit_name": "Khoa Công nghệ Thông tin"
     },
     "classes": [
       {
         "class_id": 1,
-        "class_name": "DH21CNTT",
-        "students": [
-          {
-            "student_id": 1,
-            "user_code": "210001",
-            "full_name": "Nguyễn Văn Hùng"
-          }
-        ]
-      }
-    ],
-    "activities": [
-      {
-        "activity_id": 1,
-        "title": "Hiến máu nhân đạo 2025",
-        "status": "completed"
-      }
-    ],
-    "notifications": [
-      {
-        "notification_id": 1,
-        "title": "Thông báo Họp lớp DH21CNTT tháng 3/2025",
-        "created_at": "2025-03-09T08:00:00.000000Z"
+        "class_name": "DH21CNTT"
       }
     ]
   },
   "message": "Lấy thông tin cố vấn thành công"
-}
-```
-
-### Error Responses
-- **404 Not Found**:
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy cố vấn"
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xem thông tin cố vấn này"
 }
 ```
 
@@ -170,6 +130,9 @@ POST /api/advisors
 ### Access Control
 - **Required Role**: `admin`
 - **Restriction**: Admin chỉ tạo cố vấn cho đơn vị mình quản lý
+
+### Content-Type
+- `application/json`
 
 ### Request Body
 ```json
@@ -213,28 +176,6 @@ POST /api/advisors
 }
 ```
 
-### Error Responses
-- **422 Validation Error**:
-```json
-{
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "user_code": ["Mã giảng viên đã tồn tại"],
-    "email": ["Email đã tồn tại"],
-    "role": ["Vai trò không hợp lệ"]
-  }
-}
-```
-
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn chỉ có thể tạo cố vấn cho đơn vị mình quản lý"
-}
-```
-
 ### Example
 ```bash
 curl -X POST "http://localhost:8000/api/advisors" \
@@ -263,8 +204,11 @@ PUT /api/advisors/{id}
 | id | integer | Yes | Advisor ID |
 
 ### Access Control
-- **Admin**: Cập nhật tất cả thông tin cố vấn trong đơn vị mình quản lý
-- **Advisor**: Chỉ cập nhật một số trường của chính mình
+- **Admin**: Cập nhật tất cả thông tin cố vấn trong đơn vị mình quản lý (trừ avatar)
+- **Advisor**: Chỉ cập nhật số điện thoại của chính mình
+
+### Content-Type
+- `application/json`
 
 ### Request Body (Admin)
 ```json
@@ -281,8 +225,7 @@ PUT /api/advisors/{id}
 ### Request Body (Advisor)
 ```json
 {
-  "phone_number": "090111222",
-  "avatar_url": "https://example.com/avatar.jpg"
+  "phone_number": "090111222"
 }
 ```
 
@@ -302,7 +245,6 @@ PUT /api/advisors/{id}
 | Field | Type | Description |
 |-------|------|-------------|
 | phone_number | string(15) | Số điện thoại |
-| avatar_url | string(255) | URL ảnh đại diện |
 
 ### Response
 ```json
@@ -314,51 +256,127 @@ PUT /api/advisors/{id}
     "full_name": "ThS. Trần Văn An",
     "email": "gv.an@school.edu.vn",
     "phone_number": "090999999",
-    "role": "advisor"
+    "role": "advisor",
+    "avatar_url": "/storage/avatars/advisor_1_1732212345.jpg"
   },
   "message": "Cập nhật cố vấn thành công"
 }
 ```
 
-### Error Responses
-- **403 Forbidden** (Advisor trying to update others):
+### Example
+```bash
+# Admin update role
+curl -X PUT "http://localhost:8000/api/advisors/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "admin"}'
+
+# Advisor update phone number
+curl -X PUT "http://localhost:8000/api/advisors/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number": "090999999"}'
+```
+
+---
+
+## 5. Upload Advisor Avatar
+
+### Endpoint
+```http
+POST /api/advisors/{id}/avatar
+```
+
+### Path Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| id | integer | Yes | Advisor ID |
+
+### Access Control
+- **Admin**: Upload avatar cho cố vấn trong đơn vị mình quản lý
+- **Advisor**: Upload avatar của chính mình
+
+### Content-Type
+- `multipart/form-data`
+
+### Request Body (Form Data)
+```
+avatar: [file] (required - image file: jpeg, png, jpg, gif, max 2MB)
+```
+
+### Request Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| avatar | file | Yes | File ảnh đại diện (jpeg, png, jpg, gif, max 2MB) |
+
+### Response
 ```json
 {
-  "success": false,
-  "message": "Bạn chỉ có thể cập nhật thông tin của mình"
+  "success": true,
+  "data": {
+    "advisor_id": 1,
+    "user_code": "GV001",
+    "full_name": "ThS. Trần Văn An",
+    "email": "gv.an@school.edu.vn",
+    "phone_number": "090111222",
+    "role": "advisor",
+    "avatar_url": "/storage/avatars/advisor_1_1732212345.jpg",
+    "unit": {
+      "unit_id": 1,
+      "unit_name": "Khoa Công nghệ Thông tin"
+    },
+    "classes": [
+      {
+        "class_id": 1,
+        "class_name": "DH21CNTT"
+      }
+    ]
+  },
+  "message": "Upload avatar thành công"
 }
 ```
 
-- **403 Forbidden** (Admin trying to update outside their unit):
+### Error Responses
+- **403 Forbidden** (Advisor trying to upload for others):
 ```json
 {
   "success": false,
-  "message": "Bạn không có quyền cập nhật cố vấn này"
+  "message": "Bạn chỉ có thể upload avatar của mình"
+}
+```
+
+- **422 Validation Error** (Invalid file):
+```json
+{
+  "success": false,
+  "message": "Dữ liệu không hợp lệ",
+  "errors": {
+    "avatar": [
+      "File avatar không được để trống",
+      "File phải là hình ảnh",
+      "File phải có định dạng: jpeg, png, jpg, gif",
+      "Kích thước file không được vượt quá 2MB"
+    ]
+  }
 }
 ```
 
 ### Example
 ```bash
-# Admin update
-curl -X PUT "http://localhost:8000/api/advisors/1" \
+curl -X POST "http://localhost:8000/api/advisors/1/avatar" \
   -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "role": "admin"
-  }'
-
-# Advisor update
-curl -X PUT "http://localhost:8000/api/advisors/1" \
-  -H "Authorization: Bearer {token}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone_number": "090999999"
-  }'
+  -F "avatar=@/path/to/avatar.jpg"
 ```
+
+### Notes
+- Avatar cũ sẽ tự động bị xóa khi upload avatar mới
+- Avatar được lưu vào thư mục `storage/app/public/avatars/`
+- URL avatar trả về có dạng: `/storage/avatars/advisor_{id}_{timestamp}.{ext}`
+- Để truy cập avatar qua browser, cần chạy lệnh: `php artisan storage:link`
 
 ---
 
-## 5. Delete Advisor
+## 6. Delete Advisor
 
 ### Endpoint
 ```http
@@ -391,22 +409,6 @@ DELETE /api/advisors/{id}
 }
 ```
 
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xóa cố vấn này"
-}
-```
-
-- **404 Not Found**:
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy cố vấn"
-}
-```
-
 ### Example
 ```bash
 curl -X DELETE "http://localhost:8000/api/advisors/1" \
@@ -415,7 +417,7 @@ curl -X DELETE "http://localhost:8000/api/advisors/1" \
 
 ---
 
-## 6. Get Advisor's Classes
+## 7. Get Advisor's Classes
 
 ### Endpoint
 ```http
@@ -449,22 +451,12 @@ GET /api/advisors/{id}/classes
           "student_id": 1,
           "user_code": "210001",
           "full_name": "Nguyễn Văn Hùng",
-          "email": "sv.hung@school.edu.vn",
           "status": "studying"
         }
       ]
     }
   ],
   "message": "Lấy danh sách lớp thành công"
-}
-```
-
-### Error Responses
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xem thông tin này"
 }
 ```
 
@@ -476,7 +468,7 @@ curl -X GET "http://localhost:8000/api/advisors/1/classes" \
 
 ---
 
-## 7. Get Advisor Statistics
+## 8. Get Advisor Statistics
 
 ### Endpoint
 ```http
@@ -517,15 +509,6 @@ GET /api/advisors/{id}/statistics
 }
 ```
 
-### Error Responses
-- **403 Forbidden**:
-```json
-{
-  "success": false,
-  "message": "Bạn chỉ có thể xem thống kê của mình"
-}
-```
-
 ### Example
 ```bash
 curl -X GET "http://localhost:8000/api/advisors/1/statistics" \
@@ -534,7 +517,7 @@ curl -X GET "http://localhost:8000/api/advisors/1/statistics" \
 
 ---
 
-## 8. Change Password
+## 9. Change Password
 
 ### Endpoint
 ```http
@@ -542,7 +525,7 @@ POST /api/advisors/change-password
 ```
 
 ### Access Control
-- **Required Role**: `advisor`
+- **Required Role**: `advisor` hoặc `admin`
 - **Note**: Advisor chỉ đổi mật khẩu của chính mình
 
 ### Request Body
@@ -554,39 +537,11 @@ POST /api/advisors/change-password
 }
 ```
 
-### Request Fields
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| current_password | string | Yes | Mật khẩu hiện tại |
-| new_password | string | Yes | Mật khẩu mới (min: 6 ký tự) |
-| new_password_confirmation | string | Yes | Xác nhận mật khẩu mới |
-
 ### Response
 ```json
 {
   "success": true,
   "message": "Đổi mật khẩu thành công"
-}
-```
-
-### Error Responses
-- **400 Bad Request**:
-```json
-{
-  "success": false,
-  "message": "Mật khẩu hiện tại không đúng"
-}
-```
-
-- **422 Validation Error**:
-```json
-{
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "new_password": ["Mật khẩu mới phải có ít nhất 6 ký tự"],
-    "new_password_confirmation": ["Xác nhận mật khẩu không khớp"]
-  }
 }
 ```
 
@@ -604,7 +559,7 @@ curl -X POST "http://localhost:8000/api/advisors/change-password" \
 
 ---
 
-## 8. Reset Advisor Password (Admin Only)
+## 10. Reset Advisor Password (Admin Only)
 
 ### Endpoint
 ```http
@@ -622,13 +577,13 @@ POST /api/advisors/{id}/reset-password
 - Admin không thể tự reset mật khẩu của chính mình
 
 ### Description
-Reset mật khẩu cố vấn về mã cố vấn (user_code) của họ.
+Reset mật khẩu cố vấn về 123456.
 
 ### Response Success
 ```json
 {
   "success": true,
-  "message": "Đã reset mật khẩu của cố vấn ThS. Trần Văn An (GV001) về mã cố vấn thành công"
+  "message": "Đã reset mật khẩu của cố vấn ThS. Trần Văn An (GV001) về 123456 thành công"
 }
 ```
 
@@ -658,22 +613,6 @@ Reset mật khẩu cố vấn về mã cố vấn (user_code) của họ.
 }
 ```
 
-#### 404 Not Found - Advisor
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy cố vấn"
-}
-```
-
-#### 404 Not Found - Unit Info
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy thông tin đơn vị quản lý"
-}
-```
-
 ### Example
 ```bash
 curl -X POST "http://localhost:8000/api/advisors/2/reset-password" \
@@ -697,6 +636,14 @@ curl -X POST "http://localhost:8000/api/advisors/2/reset-password" \
 {
   "success": false,
   "message": "Bạn không có quyền truy cập"
+}
+```
+
+### 404 Not Found
+```json
+{
+  "success": false,
+  "message": "Không tìm thấy cố vấn"
 }
 ```
 

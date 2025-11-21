@@ -554,8 +554,8 @@ Route::middleware(['auth.api'])->group(function () {
     });
 
     // ============================================================
-    // STUDENTS ROUTES
-    // ============================================================
+// STUDENTS ROUTES
+// ============================================================
     Route::prefix('students')->group(function () {
         // Xem danh sách và chi tiết - Tất cả role
         Route::get('/', [StudentController::class, 'index']);
@@ -570,6 +570,7 @@ Route::middleware(['auth.api'])->group(function () {
         // Cập nhật thông tin cá nhân - Student, Admin và Advisor
         Route::middleware(['check_role:student,admin,advisor'])->group(function () {
             Route::put('/{id}', [StudentController::class, 'update']);
+            Route::post('/{id}/avatar', [StudentController::class, 'uploadAvatar']);
         });
 
         // CRUD - Chỉ admin
@@ -581,13 +582,13 @@ Route::middleware(['auth.api'])->group(function () {
     });
 
     // ============================================================
-    // CLASS POSITIONS ROUTES
-    // ============================================================
+// CLASS POSITIONS ROUTES
+// ============================================================
     Route::get('/classes/{classId}/positions', [StudentController::class, 'getClassPositions']);
 
     // ============================================================
-    // ADVISORS ROUTES
-    // ============================================================
+// ADVISORS ROUTES
+// ============================================================
     Route::prefix('advisors')->group(function () {
         // Xem danh sách và chi tiết - Admin và Advisor
         Route::middleware(['check_role:admin,advisor'])->group(function () {
@@ -605,6 +606,7 @@ Route::middleware(['auth.api'])->group(function () {
         // Cập nhật thông tin - Advisor và Admin
         Route::middleware(['check_role:advisor,admin'])->group(function () {
             Route::put('/{id}', [AdvisorController::class, 'update']);
+            Route::post('/{id}/avatar', [AdvisorController::class, 'uploadAvatar']);
         });
 
         // CRUD - Chỉ admin
