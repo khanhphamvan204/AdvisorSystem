@@ -477,7 +477,11 @@ class GradeImportService
             $sheet1->getColumnDimension('C')->setWidth(30);
             $sheet1->getColumnDimension('D')->setWidth(30);
 
-            // ==================== DROPDOWN 1: HỌC KỲ ====================
+            // ==================== TẠO SHEET ẨN CHO DROPDOWN DATA ====================
+            $dataSheet = $spreadsheet->createSheet();
+            $dataSheet->setTitle('_DropdownData');
+            
+            // Lấy dữ liệu học kỳ
             $semesters = Semester::orderBy('academic_year', 'desc')
                 ->orderBy('semester_name', 'desc')
                 ->get();
@@ -486,18 +490,7 @@ class GradeImportService
                 return $s->semester_name . ' - ' . $s->academic_year;
             })->toArray();
 
-            if (!empty($semesterOptions)) {
-                $validation1 = $sheet1->getCell('C2')->getDataValidation();
-                $validation1->setType(DataValidation::TYPE_LIST);
-                $validation1->setFormula1('"' . implode(',', $semesterOptions) . '"');
-                $validation1->setShowDropDown(true);
-                $validation1->setErrorTitle('Lỗi nhập liệu');
-                $validation1->setError('Vui lòng chọn học kỳ từ danh sách dropdown');
-                $validation1->setPromptTitle('Chọn học kỳ');
-                $validation1->setPrompt('Chọn học kỳ bạn muốn nhập điểm');
-            }
-
-            // ==================== DROPDOWN 2: MÔN HỌC ====================
+            // Lấy dữ liệu môn học
             $courses = Course::where('unit_id', $admin->unit_id)
                 ->orderBy('course_code')
                 ->get();
@@ -506,10 +499,41 @@ class GradeImportService
                 return $c->course_code . ' - ' . $c->course_name;
             })->toArray();
 
+            // Ghi dữ liệu vào sheet ẩn
+            // Cột A: Học kỳ
+            $dataSheet->setCellValue('A1', 'Học kỳ');
+            foreach ($semesterOptions as $index => $semester) {
+                $dataSheet->setCellValue('A' . ($index + 2), $semester);
+            }
+            
+            // Cột B: Môn học
+            $dataSheet->setCellValue('B1', 'Môn học');
+            foreach ($courseOptions as $index => $course) {
+                $dataSheet->setCellValue('B' . ($index + 2), $course);
+            }
+            
+            // Ẩn sheet
+            $dataSheet->setSheetState(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet::SHEETSTATE_HIDDEN);
+
+            // ==================== DROPDOWN 1: HỌC KỲ ====================
+            if (!empty($semesterOptions)) {
+                $semesterCount = count($semesterOptions);
+                $validation1 = $sheet1->getCell('C2')->getDataValidation();
+                $validation1->setType(DataValidation::TYPE_LIST);
+                $validation1->setFormula1('_DropdownData!$A$2:$A$' . ($semesterCount + 1));
+                $validation1->setShowDropDown(true);
+                $validation1->setErrorTitle('Lỗi nhập liệu');
+                $validation1->setError('Vui lòng chọn học kỳ từ danh sách dropdown');
+                $validation1->setPromptTitle('Chọn học kỳ');
+                $validation1->setPrompt('Chọn học kỳ bạn muốn nhập điểm');
+            }
+
+            // ==================== DROPDOWN 2: MÔN HỌC ====================
             if (!empty($courseOptions)) {
+                $courseCount = count($courseOptions);
                 $validation2 = $sheet1->getCell('C3')->getDataValidation();
                 $validation2->setType(DataValidation::TYPE_LIST);
-                $validation2->setFormula1('"' . implode(',', $courseOptions) . '"');
+                $validation2->setFormula1('_DropdownData!$B$2:$B$' . ($courseCount + 1));
                 $validation2->setShowDropDown(true);
                 $validation2->setErrorTitle('Lỗi nhập liệu');
                 $validation2->setError('Vui lòng chọn môn học từ danh sách dropdown');
