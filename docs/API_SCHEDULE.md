@@ -287,19 +287,6 @@ Cột F,G (Ngày): Date format dd/mm/yyyy
 | 15 | 19:30 | 20:15 | Tối |
 | 16 | 20:15 | 21:00 | Tối |
 | 17 | 21:00 | 21:45 | Tối |
-
-**Lưu ý:** Thực hành có khoảng nghỉ khác (tiết 4-6 liên tục không có break).
-
----
-
-## 4. API Endpoints
-
-### 4.1. Import Schedule
-
-**Import lịch học từ file Excel vào MongoDB**
-
-**Endpoint:**
-```
 POST /api/admin/schedules/import
 ```
 

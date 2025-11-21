@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\ScheduleService;
+use App\Services\ScheduleImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -11,16 +12,19 @@ use App\Models\Student;
 use App\Models\ClassModel;
 use App\Models\Semester;
 use MongoDB\Client as MongoClient;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ScheduleImportController extends Controller
 {
     protected $scheduleService;
+    protected $scheduleImportService;
     protected $mongodb;
     protected $db;
 
-    public function __construct(ScheduleService $scheduleService)
+    public function __construct(ScheduleService $scheduleService, ScheduleImportService $scheduleImportService)
     {
         $this->scheduleService = $scheduleService;
+        $this->scheduleImportService = $scheduleImportService;
         $this->mongodb = new MongoClient(env('MONGODB_URI', 'mongodb://localhost:27017'));
         $this->db = $this->mongodb->selectDatabase(env('MONGODB_DATABASE', 'advisor_system'));
     }
@@ -784,5 +788,58 @@ class ScheduleImportController extends Controller
             return $date->toDateTime()->format('Y-m-d H:i:s');
         }
         return $date;
+    }
+
+    /**
+     * Download template Excel để import lịch học
+     * GET /api/admin/schedules/download-template
+     * Role: Admin only
+     */
+    public function downloadTemplate(Request $request)
+    {
+        // Kiểm tra quyền admin
+        if ($request->current_role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ Admin mới có quyền tải template'
+            ], 403);
+        }
+
+        try {
+            $adminId = $request->current_user_id;
+
+            // Tạo template
+            $spreadsheet = $this->scheduleImportService->generateTemplate();
+
+            // Tạo file tạm
+            $fileName = 'template_import_lich_hoc_' . date('YmdHis') . '.xlsx';
+            $tempFile = storage_path('app/temp/' . $fileName);
+
+            // Tạo thư mục nếu chưa tồn tại
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempFile);
+
+            Log::info('Schedule template downloaded', [
+                'admin_id' => $adminId,
+                'file_name' => $fileName
+            ]);
+
+            return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to download schedule template', [
+                'admin_id' => $request->current_user_id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi tải template: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

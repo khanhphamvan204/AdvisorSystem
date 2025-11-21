@@ -508,6 +508,9 @@ Route::middleware(['auth.api'])->group(function () {
 });
 
 Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->group(function () {
+    // Download template lịch học
+    Route::get('/download-template', [ScheduleImportController::class, 'downloadTemplate']);
+
     // Import lịch học
     Route::post('/import', [ScheduleImportController::class, 'import']);
 
