@@ -199,7 +199,7 @@ class ScheduleService
         // Chuẩn hóa dữ liệu trước khi query (trim, convert string)
         $semesterName = trim((string) $semester->semester_name);
         $academicYear = trim((string) $semester->academic_year);
-        $studentCode = intval(trim((string) $student->user_code));
+        $studentCode = strval(trim((string) $student->user_code));
 
 
         Log::info('Searching schedule in MongoDB', [
@@ -226,40 +226,70 @@ class ScheduleService
         $actStartObj = Carbon::parse($activityStartTime);
         $actEndObj = Carbon::parse($activityEndTime);
 
-        $activityDate = $actStartObj->toDateString();
-        $activityDayOfWeek = $actStartObj->dayOfWeek == 0 ? 8 : $actStartObj->dayOfWeek + 1;
+        // Lấy khoảng thời gian của hoạt động (chỉ lấy giờ, không tính ngày)
+        $actStartTime = $actStartObj->format('H:i');
+        $actEndTime = $actEndObj->format('H:i');
 
-        // Format H:i (ví dụ: "09:30")
-        $actStartStr = $actStartObj->format('H:i');
-        $actEndStr = $actEndObj->format('H:i');
+        // Duyệt qua TẤT CẢ các ngày trong khoảng thời gian hoạt động
+        $currentDate = $actStartObj->copy()->startOfDay();
+        $endDate = $actEndObj->copy()->startOfDay();
 
-        foreach ($studentSchedule['flat_schedule'] as $schedule) {
-            // 1. Check Thứ
-            if ($schedule['day_of_week'] != $activityDayOfWeek)
-                continue;
+        while ($currentDate <= $endDate) {
+            $activityDate = $currentDate->toDateString();
+            $activityDayOfWeek = $currentDate->dayOfWeek == 0 ? 8 : $currentDate->dayOfWeek + 1;
 
-            // 2. Check Ngày (Giai đoạn)
-            $schedStart = $schedule['start_date']->toDateTime()->format('Y-m-d');
-            $schedEnd = $schedule['end_date']->toDateTime()->format('Y-m-d');
-            if ($activityDate < $schedStart || $activityDate > $schedEnd)
-                continue;
+            // Tính giờ chính xác cho ngày này
+            $dayStartTime = $actStartTime;
+            $dayEndTime = $actEndTime;
 
-            // 3. Check Giờ trùng (Dùng start_time_str và end_time_str từ DB)
-            $classStartStr = $schedule['start_time_str'];
-            $classEndStr = $schedule['end_time_str'];
-
-            // Logic Overlap: (StartA < EndB) && (EndA > StartB)
-            if ($actStartStr < $classEndStr && $actEndStr > $classStartStr) {
-                return [
-                    'has_conflict' => true,
-                    'conflict_course' => $schedule['course_code'],
-                    'conflict_phase' => $schedule['phase'] ?? 'Không xác định',
-                    'conflict_time' => $schedule['time_range'],
-                    'conflict_room' => $schedule['room'],
-                    'conflict_periods' => $schedule['periods'],
-                    'conflict_date_range' => $schedStart . ' đến ' . $schedEnd
-                ];
+            // Nếu hoạt động kéo dài nhiều ngày:
+            if ($actStartObj->toDateString() !== $actEndObj->toDateString()) {
+                // Ngày đầu: từ giờ bắt đầu đến 23:59
+                if ($currentDate->equalTo($actStartObj->startOfDay())) {
+                    $dayEndTime = '23:59';
+                }
+                // Ngày cuối: từ 00:00 đến giờ kết thúc
+                elseif ($currentDate->equalTo($actEndObj->startOfDay())) {
+                    $dayStartTime = '00:00';
+                }
+                // Các ngày giữa: cả ngày (00:00 - 23:59)
+                else {
+                    $dayStartTime = '00:00';
+                    $dayEndTime = '23:59';
+                }
             }
+
+            foreach ($studentSchedule['flat_schedule'] as $schedule) {
+                // 1. Check Thứ
+                if ($schedule['day_of_week'] != $activityDayOfWeek)
+                    continue;
+
+                // 2. Check Ngày (Giai đoạn)
+                $schedStart = $schedule['start_date']->toDateTime()->format('Y-m-d');
+                $schedEnd = $schedule['end_date']->toDateTime()->format('Y-m-d');
+                if ($activityDate < $schedStart || $activityDate > $schedEnd)
+                    continue;
+
+                // 3. Check Giờ trùng (Dùng start_time_str và end_time_str từ DB)
+                $classStartStr = $schedule['start_time_str'];
+                $classEndStr = $schedule['end_time_str'];
+
+                // Logic Overlap: (StartA < EndB) && (EndA > StartB)
+                if ($dayStartTime < $classEndStr && $dayEndTime > $classStartStr) {
+                    return [
+                        'has_conflict' => true,
+                        'conflict_course' => $schedule['course_code'],
+                        'conflict_phase' => $schedule['phase'] ?? 'Không xác định',
+                        'conflict_time' => $schedule['time_range'],
+                        'conflict_room' => $schedule['room'],
+                        'conflict_periods' => $schedule['periods'],
+                        'conflict_date_range' => $schedStart . ' đến ' . $schedEnd,
+                        'conflict_date' => $activityDate
+                    ];
+                }
+            }
+
+            $currentDate->addDay();
         }
 
         return ['has_conflict' => false];
