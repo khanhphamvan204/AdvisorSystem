@@ -442,4 +442,20 @@ class AcademicMonitoringService
 
         return $advice;
     }
+
+    /**
+     * Phân loại học lực theo GPA (hệ 10)
+     * @param \Illuminate\Support\Collection $reports - Collection các SemesterReport
+     * @return array - Mảng thống kê học lực
+     */
+    public static function classifyAcademicPerformance($reports)
+    {
+        return [
+            'excellent' => $reports->where('gpa', '>=', 9.0)->count(), // Xuất sắc: >= 9.0
+            'good' => $reports->whereBetween('gpa', [8.0, 8.99])->count(), // Giỏi: 8.0 - 8.99
+            'fair' => $reports->whereBetween('gpa', [7.0, 7.99])->count(), // Khá: 7.0 - 7.99
+            'average' => $reports->whereBetween('gpa', [5.0, 6.99])->count(), // Trung bình: 5.0 - 6.99
+            'weak' => $reports->where('gpa', '<', 5.0)->count() // Yếu: < 5.0
+        ];
+    }
 }

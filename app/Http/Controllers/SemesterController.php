@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Semester;
 use App\Models\SemesterReport;
 use App\Models\Student;
+use App\Services\AcademicMonitoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -280,12 +281,8 @@ class SemesterController extends Controller
                         $totalStudents = Student::where('class_id', $class->class_id)->count();
                         $studentsWithReports = $classReports->count();
 
-                        // Thống kê theo điểm trung bình
-                        $excellent = $classReports->where('gpa', '>=', 3.6)->count(); // Xuất sắc
-                        $good = $classReports->whereBetween('gpa', [3.2, 3.59])->count(); // Giỏi
-                        $fair = $classReports->whereBetween('gpa', [2.5, 3.19])->count(); // Khá
-                        $average = $classReports->whereBetween('gpa', [2.0, 2.49])->count(); // Trung bình
-                        $weak = $classReports->where('gpa', '<', 2.0)->count(); // Yếu
+                        // Thống kê theo điểm trung bình sử dụng service
+                        $gpaStatistics = AcademicMonitoringService::classifyAcademicPerformance($classReports);
 
                         $classStatistics[] = [
                             'class_id' => $class->class_id,
@@ -293,13 +290,7 @@ class SemesterController extends Controller
                             'total_students' => $totalStudents,
                             'students_with_reports' => $studentsWithReports,
                             'average_gpa' => round($classReports->avg('gpa'), 2),
-                            'gpa_statistics' => [
-                                'excellent' => $excellent, // >= 3.6
-                                'good' => $good,           // 3.2 - 3.59
-                                'fair' => $fair,           // 2.5 - 3.19
-                                'average' => $average,     // 2.0 - 2.49
-                                'weak' => $weak            // < 2.0
-                            ],
+                            'gpa_statistics' => $gpaStatistics,
                             'reports' => $classReports
                         ];
                     }
