@@ -281,34 +281,24 @@ class SemesterController extends Controller
                         $studentsWithReports = $classReports->count();
 
                         // Thống kê theo điểm trung bình
-                        $excellent = $classReports->where('semester_gpa', '>=', 3.6)->count(); // Xuất sắc
-                        $good = $classReports->where('semester_gpa', '>=', 3.2)->where('semester_gpa', '<', 3.6)->count(); // Giỏi
-                        $fair = $classReports->where('semester_gpa', '>=', 2.5)->where('semester_gpa', '<', 3.2)->count(); // Khá
-                        $average = $classReports->where('semester_gpa', '>=', 2.0)->where('semester_gpa', '<', 2.5)->count(); // Trung bình
-                        $weak = $classReports->where('semester_gpa', '<', 2.0)->count(); // Yếu
-
-                        // Thống kê cảnh báo học tập
-                        $warningLevel1 = $classReports->where('academic_warning_level', 1)->count();
-                        $warningLevel2 = $classReports->where('academic_warning_level', 2)->count();
-                        $warningLevel3 = $classReports->where('academic_warning_level', 3)->count();
+                        $excellent = $classReports->where('gpa', '>=', 3.6)->count(); // Xuất sắc
+                        $good = $classReports->whereBetween('gpa', [3.2, 3.59])->count(); // Giỏi
+                        $fair = $classReports->whereBetween('gpa', [2.5, 3.19])->count(); // Khá
+                        $average = $classReports->whereBetween('gpa', [2.0, 2.49])->count(); // Trung bình
+                        $weak = $classReports->where('gpa', '<', 2.0)->count(); // Yếu
 
                         $classStatistics[] = [
                             'class_id' => $class->class_id,
                             'class_name' => $class->class_name,
                             'total_students' => $totalStudents,
                             'students_with_reports' => $studentsWithReports,
-                            'average_gpa' => round($classReports->avg('semester_gpa'), 2),
+                            'average_gpa' => round($classReports->avg('gpa'), 2),
                             'gpa_statistics' => [
                                 'excellent' => $excellent, // >= 3.6
                                 'good' => $good,           // 3.2 - 3.59
                                 'fair' => $fair,           // 2.5 - 3.19
                                 'average' => $average,     // 2.0 - 2.49
                                 'weak' => $weak            // < 2.0
-                            ],
-                            'warning_statistics' => [
-                                'level_1' => $warningLevel1,
-                                'level_2' => $warningLevel2,
-                                'level_3' => $warningLevel3
                             ],
                             'reports' => $classReports
                         ];
