@@ -835,4 +835,7 @@ Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
         [ActivityAttendanceController::class, 'getAttendanceStatistics']
     );
 });
+Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
+    Route::get('/advisor/overview', [StatisticsController::class, 'getAdvisorOverview']);
+});
 
