@@ -99,10 +99,22 @@ class Advisor extends Model implements JWTSubject
 
     public function getJWTCustomClaims()
     {
-        return [
+        // Load unit nếu chưa có
+        if (!$this->relationLoaded('unit')) {
+            $this->load('unit');
+        }
+
+        $claims = [
             'id' => $this->advisor_id,
             'role' => $this->role,
             'name' => $this->full_name
         ];
+
+        // Thêm tên đơn vị nếu có
+        if ($this->unit) {
+            $claims['unit_name'] = $this->unit->unit_name;
+        }
+
+        return $claims;
     }
 }

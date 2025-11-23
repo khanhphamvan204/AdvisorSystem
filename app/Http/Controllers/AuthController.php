@@ -106,6 +106,7 @@ class AuthController extends Controller
                     'faculty' => $user->class->faculty ? [
                         'unit_id' => $user->class->faculty->unit_id,
                         'unit_name' => $user->class->faculty->unit_name,
+                        'type' => $user->class->faculty->type,
                     ] : null,
                     'advisor' => $user->class->advisor ? [
                         'advisor_id' => $user->class->advisor->advisor_id,

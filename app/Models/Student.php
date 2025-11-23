@@ -114,10 +114,24 @@ class Student extends Model implements JWTSubject
 
     public function getJWTCustomClaims()
     {
-        return [
+        // Load class và faculty nếu chưa có
+        if (!$this->relationLoaded('class')) {
+            $this->load('class.faculty');
+        } elseif ($this->class && !$this->class->relationLoaded('faculty')) {
+            $this->class->load('faculty');
+        }
+
+        $claims = [
             'id' => $this->student_id,
             'role' => 'student',
             'name' => $this->full_name
         ];
+
+        // Thêm tên khoa nếu có
+        if ($this->class && $this->class->faculty) {
+            $claims['unit_name'] = $this->class->faculty->unit_name;
+        }
+
+        return $claims;
     }
 }
