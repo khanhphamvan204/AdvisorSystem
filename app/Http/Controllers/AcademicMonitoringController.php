@@ -295,13 +295,26 @@ class AcademicMonitoringController extends Controller
                         ($warningLevel >= 3 ? "\n\nCẢNH BÁO NGHIÊM TRỌNG: Nguy cơ bị buộc thôi học rất cao!" : "")
                 ]);
 
+                // Kiểm tra tổng số cảnh cáo của sinh viên
+                $totalWarnings = AcademicWarning::where('student_id', $studentId)->count();
+
+                $statusChanged = false;
+                if ($totalWarnings >= 3) {
+                    // Tự động chuyển trạng thái thành thôi học
+                    $student->status = 'dropped';
+                    $student->save();
+                    $statusChanged = true;
+                }
+
                 $warnings[] = [
                     'student_name' => $student->full_name,
                     'user_code' => $student->user_code,
                     'cpa_4_scale' => $cpa4,
                     'threshold' => $threshold,
                     'warning_level' => $warningLevel,
-                    'warning_id' => $warning->warning_id
+                    'warning_id' => $warning->warning_id,
+                    'total_warnings' => $totalWarnings,
+                    'status_changed_to_dropped' => $statusChanged
                 ];
 
                 // Log
@@ -310,7 +323,9 @@ class AcademicMonitoringController extends Controller
                     'student_id' => $studentId,
                     'semester_id' => $semesterId,
                     'warning_level' => $warningLevel,
-                    'cpa' => $cpa4
+                    'cpa' => $cpa4,
+                    'total_warnings' => $totalWarnings,
+                    'status_changed' => $statusChanged
                 ]);
             }
 
