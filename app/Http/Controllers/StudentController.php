@@ -180,7 +180,7 @@ class StudentController extends Controller
                 'email' => 'required|email|unique:Students,email',
                 'phone_number' => 'nullable|string|max:15',
                 'class_id' => 'required|exists:Classes,class_id',
-                'status' => 'nullable|in:studying,graduated,dropped',
+                'status' => 'nullable|in:studying,graduated,dropped,suspended,reserved',
                 'position' => 'nullable|in:member,leader,vice_leader',
                 'password' => 'nullable|string|min:6'
             ], [
@@ -431,7 +431,7 @@ class StudentController extends Controller
                     'email' => 'sometimes|email|unique:Students,email,' . $id . ',student_id',
                     'phone_number' => 'nullable|string|max:15',
                     'class_id' => 'sometimes|exists:Classes,class_id',
-                    'status' => 'sometimes|in:studying,graduated,dropped,suspended',
+                    'status' => 'sometimes|in:studying,graduated,dropped,suspended,reserved',
                     'position' => 'sometimes|in:member,leader,vice_leader,secretary'
                 ]);
 
@@ -466,7 +466,7 @@ class StudentController extends Controller
                 $validator = Validator::make($request->all(), [
                     'full_name' => 'sometimes|string|max:100',
                     'phone_number' => 'nullable|string|max:15',
-                    'status' => 'sometimes|in:studying,graduated,dropped,suspended',
+                    'status' => 'sometimes|in:studying,graduated,dropped,suspended,reserved',
                     'position' => 'sometimes|in:member,leader,vice_leader,secretary'
                 ]);
 
