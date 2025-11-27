@@ -57,7 +57,6 @@ class StudentMonitoringNoteController extends Controller
             if ($currentRole === 'student') {
                 // Sinh viên chỉ xem ghi chú về mình
                 $query->where('student_id', $currentUserId);
-
             } elseif ($currentRole === 'advisor') {
                 // Cố vấn xem ghi chú của sinh viên trong lớp mình phụ trách
                 $advisor = Advisor::find($currentUserId);
@@ -71,7 +70,6 @@ class StudentMonitoringNoteController extends Controller
                         // HOẶC ghi chú do mình tạo (có thể tạo cho sinh viên khác khi cần)
                         ->orWhere('advisor_id', $currentUserId);
                 });
-
             } elseif ($currentRole !== 'advisor') {
                 return response()->json([
                     'success' => false,
@@ -98,7 +96,6 @@ class StudentMonitoringNoteController extends Controller
                 'success' => true,
                 'data' => $notes
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -144,7 +141,6 @@ class StudentMonitoringNoteController extends Controller
                         'message' => 'Bạn không có quyền xem ghi chú này'
                     ], 403);
                 }
-
             } elseif ($currentRole === 'advisor') {
                 $advisor = Advisor::find($currentUserId);
                 $advisorClasses = $advisor->classes()->pluck('class_id');
@@ -165,7 +161,6 @@ class StudentMonitoringNoteController extends Controller
                 'success' => true,
                 'data' => $note
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -182,7 +177,7 @@ class StudentMonitoringNoteController extends Controller
      * Quyền: Advisor
      * 
      * Body:
-     * - student_id: required|exists:Students,student_id
+     * - user_code: required|exists:Students,user_code (Mã số sinh viên)
      * - semester_id: required|exists:Semesters,semester_id
      * - category: required|in:academic,personal,attendance,other
      * - title: required|string|max:255
@@ -203,7 +198,7 @@ class StudentMonitoringNoteController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'student_id' => 'required|exists:Students,student_id',
+                'user_code' => 'required|exists:Students,user_code',
                 'semester_id' => 'required|exists:Semesters,semester_id',
                 'category' => 'required|in:academic,personal,attendance,other',
                 'title' => 'required|string|max:255',
@@ -218,13 +213,21 @@ class StudentMonitoringNoteController extends Controller
                 ], 422);
             }
 
+            // Tìm sinh viên bằng mã số sinh viên (user_code)
+            $student = Student::where('user_code', $request->user_code)->first();
+
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy sinh viên với mã số này'
+                ], 404);
+            }
+
             // Advisor chỉ được tạo ghi chú cho sinh viên trong lớp mình phụ trách
             $advisor = Advisor::find($currentUserId);
             $advisorClasses = $advisor->classes()->pluck('class_id');
 
-            $student = Student::find($request->student_id);
-
-            if (!$student || !$advisorClasses->contains($student->class_id)) {
+            if (!$advisorClasses->contains($student->class_id)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn chỉ được tạo ghi chú cho sinh viên trong lớp mình phụ trách'
@@ -232,7 +235,7 @@ class StudentMonitoringNoteController extends Controller
             }
 
             $note = StudentMonitoringNote::create([
-                'student_id' => $request->student_id,
+                'student_id' => $student->student_id,
                 'advisor_id' => $currentUserId,
                 'semester_id' => $request->semester_id,
                 'category' => $request->category,
@@ -245,7 +248,6 @@ class StudentMonitoringNoteController extends Controller
                 'message' => 'Tạo ghi chú theo dõi thành công',
                 'data' => $note->load(['student', 'advisor', 'semester'])
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -323,7 +325,6 @@ class StudentMonitoringNoteController extends Controller
                 'message' => 'Cập nhật ghi chú thành công',
                 'data' => $note->load(['student', 'advisor', 'semester'])
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -375,7 +376,6 @@ class StudentMonitoringNoteController extends Controller
                 'success' => true,
                 'message' => 'Xóa ghi chú thành công'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -455,7 +455,6 @@ class StudentMonitoringNoteController extends Controller
                 'success' => true,
                 'data' => $summary
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -527,7 +526,6 @@ class StudentMonitoringNoteController extends Controller
                 'success' => true,
                 'data' => $statistics
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
