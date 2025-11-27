@@ -553,14 +553,14 @@ class NotificationController extends Controller
         // Lấy thông tin sinh viên đã đọc
         $readStudentIds = $readRecipients->pluck('student_id')->toArray();
         $readStudents = Student::whereIn('student_id', $readStudentIds)
-            ->select('student_id', 'name', 'email', 'class_id')
+            ->select('student_id', 'full_name', 'email', 'class_id')
             ->with('class:class_id,class_name')
             ->get();
 
         // Lấy thông tin sinh viên chưa đọc
         $unreadStudentIds = $unreadRecipients->pluck('student_id')->toArray();
         $unreadStudents = Student::whereIn('student_id', $unreadStudentIds)
-            ->select('student_id', 'name', 'email', 'class_id')
+            ->select('student_id', 'full_name', 'email', 'class_id')
             ->with('class:class_id,class_name')
             ->get();
 
