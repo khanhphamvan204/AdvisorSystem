@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\ClassModel;
 use App\Models\Advisor;
+use App\Models\Semester;
+use App\Services\PointCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -82,12 +84,53 @@ class StudentController extends Controller
 
             $students = $query->get();
 
+            // Lấy học kì gần nhất để tính điểm rèn luyện
+            $latestSemester = Semester::orderBy('start_date', 'desc')->first();
+
+            // Thêm điểm rèn luyện và điểm CTXH cho mỗi sinh viên
+            $studentsWithPoints = $students->map(function ($student) use ($latestSemester) {
+                $studentData = $student->toArray();
+
+                // Tính điểm rèn luyện từ học kì gần nhất
+                if ($latestSemester) {
+                    try {
+                        $trainingPoints = PointCalculationService::calculateTrainingPoints(
+                            $student->student_id,
+                            $latestSemester->semester_id
+                        );
+                        $studentData['training_points'] = $trainingPoints;
+                        $studentData['training_semester'] = [
+                            'semester_id' => $latestSemester->semester_id,
+                            'semester_name' => $latestSemester->semester_name,
+                            'academic_year' => $latestSemester->academic_year
+                        ];
+                    } catch (\Exception $e) {
+                        $studentData['training_points'] = null;
+                        $studentData['training_semester'] = null;
+                    }
+                } else {
+                    $studentData['training_points'] = null;
+                    $studentData['training_semester'] = null;
+                }
+
+                // Tính điểm CTXH tích lũy từ đầu đến giờ
+                try {
+                    $socialPoints = PointCalculationService::calculateSocialPoints(
+                        $student->student_id
+                    );
+                    $studentData['social_points'] = $socialPoints;
+                } catch (\Exception $e) {
+                    $studentData['social_points'] = 0;
+                }
+
+                return $studentData;
+            });
+
             return response()->json([
                 'success' => true,
-                'data' => $students,
+                'data' => $studentsWithPoints,
                 'message' => 'Lấy danh sách sinh viên thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -159,7 +202,6 @@ class StudentController extends Controller
                 'data' => $student,
                 'message' => 'Lấy thông tin sinh viên thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -245,7 +287,6 @@ class StudentController extends Controller
                 'data' => $student,
                 'message' => 'Tạo sinh viên thành công'
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -364,7 +405,6 @@ class StudentController extends Controller
                 'data' => $student,
                 'message' => 'Upload avatar thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -452,7 +492,6 @@ class StudentController extends Controller
                         ], 403);
                     }
                 }
-
             } elseif ($role === 'advisor') {
                 // Advisor chỉ cập nhật sinh viên trong lớp mình phụ trách
                 if ($studentClass->advisor_id !== $userId) {
@@ -477,7 +516,6 @@ class StudentController extends Controller
                         'message' => 'Cố vấn không có quyền chuyển lớp cho sinh viên'
                     ], 403);
                 }
-
             } elseif ($role === 'student') {
                 // Student chỉ cập nhật được thông tin của mình
                 if ($student->student_id !== $userId) {
@@ -502,7 +540,6 @@ class StudentController extends Controller
                         ], 403);
                     }
                 }
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -552,7 +589,6 @@ class StudentController extends Controller
                 'data' => $student,
                 'message' => 'Cập nhật sinh viên thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -607,7 +643,6 @@ class StudentController extends Controller
                 'success' => true,
                 'message' => 'Xóa sinh viên thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -686,7 +721,6 @@ class StudentController extends Controller
                 'data' => $report,
                 'message' => 'Lấy báo cáo học tập thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -737,7 +771,6 @@ class StudentController extends Controller
                 'success' => true,
                 'message' => 'Đổi mật khẩu thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -818,7 +851,6 @@ class StudentController extends Controller
                 ],
                 'message' => 'Lấy danh sách chức vụ thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -876,7 +908,6 @@ class StudentController extends Controller
                 'success' => true,
                 'message' => "Đã reset mật khẩu của sinh viên {$student->full_name} ({$student->user_code}) về 123456 thành công"
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
