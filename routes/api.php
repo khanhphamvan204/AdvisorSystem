@@ -48,6 +48,7 @@ Route::middleware(['auth.api'])->group(function () {
             Route::put('/{id}', [NotificationController::class, 'update']);
             Route::delete('/{id}', [NotificationController::class, 'destroy']);
             Route::get('/notification-statistics', [NotificationController::class, 'statistics']);
+            Route::get('/{id}/read-statistics', [NotificationController::class, 'getReadStatistics']);
         });
         // Common routes (cả Student và Advisor)
         Route::get('/', [NotificationController::class, 'index']);

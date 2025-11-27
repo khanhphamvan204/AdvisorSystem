@@ -189,7 +189,6 @@ class NotificationController extends Controller
                 'message' => 'Tạo thông báo thành công',
                 'data' => $notification->load(['classes', 'attachments'])
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -232,7 +231,6 @@ class NotificationController extends Controller
                 ->where('is_read', true)
                 ->count();
             $notification->total_responses = $notification->responses->count();
-
         } elseif ($role === 'student') {
             // Sinh viên chỉ xem được thông báo của lớp mình
             $student = Student::find($userId);
@@ -404,7 +402,6 @@ class NotificationController extends Controller
                 'message' => 'Cập nhật thông báo thành công',
                 'data' => $notification->load(['classes', 'attachments'])
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -508,6 +505,82 @@ class NotificationController extends Controller
                 'total_responses' => $totalResponses,
                 'pending_responses' => $pendingResponses,
                 'by_type' => $byType
+            ]
+        ]);
+    }
+
+    /**
+     * Lấy thống kê số sinh viên đã đọc/chưa đọc một thông báo cụ thể (chỉ Advisor)
+     * GET /api/notifications/{id}/read-statistics
+     */
+    public function getReadStatistics(Request $request, $id)
+    {
+        $role = $request->current_role;
+        $userId = $request->current_user_id;
+
+        if ($role !== 'advisor') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ cố vấn học tập mới có quyền xem thống kê'
+            ], 403);
+        }
+
+        // Kiểm tra thông báo có tồn tại không
+        $notification = Notification::find($id);
+
+        if (!$notification) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy thông báo'
+            ], 404);
+        }
+
+        // Kiểm tra quyền truy cập (chỉ xem được thông báo mình tạo)
+        if ($notification->advisor_id !== $userId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không có quyền xem thống kê thông báo này'
+            ], 403);
+        }
+
+        // Lấy tất cả recipient của thông báo này
+        $recipients = NotificationRecipient::where('notification_id', $id)->get();
+
+        // Phân loại sinh viên đã đọc và chưa đọc
+        $readRecipients = $recipients->where('is_read', true);
+        $unreadRecipients = $recipients->where('is_read', false);
+
+        // Lấy thông tin sinh viên đã đọc
+        $readStudentIds = $readRecipients->pluck('student_id')->toArray();
+        $readStudents = Student::whereIn('student_id', $readStudentIds)
+            ->select('student_id', 'name', 'email', 'class_id')
+            ->with('class:class_id,class_name')
+            ->get();
+
+        // Lấy thông tin sinh viên chưa đọc
+        $unreadStudentIds = $unreadRecipients->pluck('student_id')->toArray();
+        $unreadStudents = Student::whereIn('student_id', $unreadStudentIds)
+            ->select('student_id', 'name', 'email', 'class_id')
+            ->with('class:class_id,class_name')
+            ->get();
+
+        // Tính toán thống kê
+        $totalRecipients = $recipients->count();
+        $totalRead = $readRecipients->count();
+        $totalUnread = $unreadRecipients->count();
+        $readPercentage = $totalRecipients > 0 ? round(($totalRead / $totalRecipients) * 100, 2) : 0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'notification_id' => $id,
+                'notification_title' => $notification->title,
+                'total_recipients' => $totalRecipients,
+                'total_read' => $totalRead,
+                'total_unread' => $totalUnread,
+                'read_percentage' => $readPercentage,
+                'read_students' => $readStudents,
+                'unread_students' => $unreadStudents
             ]
         ]);
     }
