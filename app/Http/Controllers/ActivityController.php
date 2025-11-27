@@ -272,7 +272,6 @@ class ActivityController extends Controller
                 'message' => 'Tạo hoạt động thành công',
                 'data' => $activity
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi tạo hoạt động', [
@@ -382,7 +381,6 @@ class ActivityController extends Controller
                 'message' => 'Cập nhật hoạt động thành công',
                 'data' => $activity->load('classes')
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi cập nhật hoạt động', [
@@ -659,7 +657,6 @@ class ActivityController extends Controller
                     'skipped' => $skipped
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi cập nhật điểm danh', [
@@ -903,16 +900,8 @@ class ActivityController extends Controller
         // ===== KIỂM TRA LỊCH HỌC =====
         $scheduleService = app(ScheduleService::class);
 
-        $studentIds = $students->pluck('student_id')->toArray();
-        $scheduleCheck = $scheduleService->getAvailableStudentsForActivity(
-            $studentIds,
-            $activity->start_time,
-            $activity->end_time,
-            $semester->semester_id
-        );
-
         // Map students với thông tin lịch
-        $studentsData = $students->map(function ($student) use ($existingRegistrations, $semester, $scheduleCheck) {
+        $studentsData = $students->map(function ($student) use ($existingRegistrations, $semester, $scheduleService, $activity) {
             $registration = $existingRegistrations->get($student->student_id);
 
             $canAssign = true;
@@ -926,10 +915,15 @@ class ActivityController extends Controller
 
             // Kiểm tra trùng lịch học
             if ($canAssign) {
-                $conflict = collect($scheduleCheck['conflicts'])->firstWhere('student_id', $student->student_id);
-                if ($conflict) {
+                $conflictCheck = $scheduleService->checkScheduleConflict(
+                    $student->student_id,
+                    $activity->start_time,
+                    $activity->end_time
+                );
+
+                if ($conflictCheck['has_conflict']) {
                     $canAssign = false;
-                    $reasonCannotAssign = $conflict['reason'];
+                    $reasonCannotAssign = "Trùng lịch học: {$conflictCheck['conflict_course']} ({$conflictCheck['conflict_time']})";
                 }
             }
 
@@ -1182,7 +1176,6 @@ class ActivityController extends Controller
                     'skipped' => $skipped
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi phân công', [
@@ -1271,7 +1264,6 @@ class ActivityController extends Controller
                     'role_name' => $roleName
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi hủy phân công', [
@@ -1284,6 +1276,4 @@ class ActivityController extends Controller
             ], 500);
         }
     }
-
-
 }

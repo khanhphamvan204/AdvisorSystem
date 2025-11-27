@@ -542,6 +542,8 @@ Route::middleware(['auth.api', 'check_role:admin'])->prefix('admin/schedules')->
     // Import lịch học
     Route::post('/import', [ScheduleImportController::class, 'import']);
 
+    Route::post('/import-batch', [ScheduleImportController::class, 'importBatch']);
+
     // Tìm kiếm sinh viên theo lịch học (Admin search toàn bộ)
     Route::post('/search', [ScheduleImportController::class, 'searchBySchedule']);
 

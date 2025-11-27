@@ -20,274 +20,317 @@ class ScheduleService
         $this->db = $this->mongodb->selectDatabase(env('MONGODB_DATABASE', 'advisor_system'));
     }
 
+    /**
+     * Import lịch học từ Excel
+     * * CẤU TRÚC FILE THỰC TẾ (Dựa trên file mẫu):
+     * - Dòng 6: Mã SV (E6), Họ tên (J6)
+     * - Dòng 7: Lớp (E7), Ngành (J7)   
+     * - Dòng 8: Hệ đào tạo (E8), Loại đào tạo (J8)
+     * - Dòng 9: Học kỳ (E9), Năm học (J9)
+     * - Dòng 10: HEADER BẢNG
+     * - Dòng 11+: DỮ LIỆU CHI TIẾT
+     */
     public function importSchedulesFromExcel($excelFile)
     {
         $spreadsheet = IOFactory::load($excelFile);
+        $sheet = $spreadsheet->getActiveSheet();
 
-        // --- Sheet 1: Courses ---
-        $courseSheet = $spreadsheet->getSheet(0);
-        $courseData = [];
+        // ==================== ĐỌC THÔNG TIN SINH VIÊN ====================
+        // Dòng 6: Mã SV và Họ tên
+        $studentCode = $this->getCellValue($sheet, 'E', 6);
+        $studentName = $this->getCellValue($sheet, 'J', 6);
 
-        foreach ($courseSheet->getRowIterator(2) as $row) {
-            $cells = [];
-            foreach ($row->getCellIterator() as $cell) {
-                // Sử dụng getCalculatedValue() và xử lý trường hợp trả về array
-                $value = $cell->getCalculatedValue();
-                $cells[] = is_array($value) ? (string) ($value[0] ?? '') : $value;
-            }
+        // Dòng 7: Lớp và Ngành
+        $className = $this->getCellValue($sheet, 'E', 7);
+        $major = $this->getCellValue($sheet, 'J', 7);
 
-            if (empty($cells[1]))
-                continue;
+        // Dòng 8: Hệ đào tạo và Loại đào tạo
+        $educationType = $this->getCellValue($sheet, 'E', 8);
+        $educationMode = $this->getCellValue($sheet, 'J', 8);
 
-            $courseCode = trim((string) $cells[1]);
-            $phase = trim((string) ($cells[4] ?? 'Toàn khóa'));
-            $note = trim((string) ($cells[11] ?? ''));
+        // Dòng 9: Học kỳ và Năm học (ĐỌC TỪ FILE)
+        $semesterFromFile = $this->getCellValue($sheet, 'E', 9);
+        $academicYearFromFile = $this->getCellValue($sheet, 'J', 9);
 
-            // Phân loại LT / TH
-            $isPractice = false;
-            $keywords = ['thực hành', 'thuc hanh', '(th)', 'phòng máy', 'pm'];
-            foreach ($keywords as $keyword) {
-                if (mb_stripos($note, $keyword) !== false) {
-                    $isPractice = true;
+        // Chuẩn hóa mã sinh viên
+        $studentCode = trim(str_replace("'", "", $studentCode));
+
+        if (empty($studentCode)) {
+            throw new \Exception('Không tìm thấy mã sinh viên ở ô E6. Vui lòng kiểm tra lại cấu trúc file.');
+        }
+
+        Log::info('Reading student info from Excel', [
+            'student_code' => $studentCode,
+            'student_name' => $studentName,
+            'class_name' => $className,
+            'major' => $major,
+            'education_type' => $educationType,
+            'education_mode' => $educationMode,
+            'semester_from_file' => $semesterFromFile,
+            'academic_year_from_file' => $academicYearFromFile
+        ]);
+
+        // ==================== ĐỌC LỊCH HỌC ====================
+        $studentSchedule = [
+            'student_code' => $studentCode,
+            'student_name' => trim($studentName ?? ''),
+            'class_name' => trim($className ?? ''),
+            'education_type' => trim($educationType ?? 'Đại học'),
+            'education_mode' => trim($educationMode ?? 'Chính quy'),
+            'major' => trim($major ?? ''),
+            'flat_schedule' => []
+        ];
+
+        // Dòng 10: Header
+        // Dòng 11+: Dữ liệu bắt đầu
+        $rowIndex = 11;
+        $flatSchedule = [];
+        $semester = null;
+        $academicYear = null;
+
+        // Biến lưu tên môn học dòng trước để xử lý trường hợp merge cell hoặc ghi tắt
+        $lastCourseName = null;
+
+        while (true) {
+            $stt = $this->getCellValue($sheet, 'A', $rowIndex);
+
+            // Dừng khi gặp dòng trống hoặc STT không phải số
+            if (empty($stt) || !is_numeric($stt)) {
+                // Kiểm tra thêm dòng tiếp theo đề phòng dòng trống ngẫu nhiên
+                $nextStt = $this->getCellValue($sheet, 'A', $rowIndex + 1);
+                if (empty($nextStt)) {
                     break;
                 }
             }
-            $scheduleType = $isPractice ? 'TH' : 'LT';
 
-            $startDate = $this->parseExcelDate($cells[5]);
-            $endDate = $this->parseExcelDate($cells[6]);
+            // Đọc dữ liệu từng cột (A -> L)
+            $courseClassCode = $this->getCellValue($sheet, 'B', $rowIndex);
+            $courseName = $this->getCellValue($sheet, 'C', $rowIndex);
+            $courseType = $this->getCellValue($sheet, 'D', $rowIndex);
+            $dayOfWeek = $this->getCellValue($sheet, 'E', $rowIndex);
+            $startPeriod = $this->getCellValue($sheet, 'F', $rowIndex);
+            $endPeriod = $this->getCellValue($sheet, 'G', $rowIndex);
+            $startDate = $this->getCellValue($sheet, 'H', $rowIndex);
+            $endDate = $this->getCellValue($sheet, 'I', $rowIndex);
+            $instructor = $this->getCellValue($sheet, 'J', $rowIndex);
+            $room = $this->getCellValue($sheet, 'K', $rowIndex);
+            $scheduleType = $this->getCellValue($sheet, 'L', $rowIndex);
 
-            if (!$startDate || !$endDate) {
-                Log::warning('Invalid date', ['code' => $courseCode]);
+            // Bỏ qua nếu thiếu thông tin quan trọng
+            if (empty($courseClassCode)) {
+                $rowIndex++;
                 continue;
             }
 
-            if (!isset($courseData[$courseCode])) {
-                $courseData[$courseCode] = [
-                    'course_code' => $courseCode,
-                    'course_name' => $cells[2],
-                    'instructor' => $cells[3],
-                    'schedules' => []
-                ];
-            }
+            // Parse ngày
+            $parsedStartDate = $this->parseExcelDate($startDate);
+            $parsedEndDate = $this->parseExcelDate($endDate);
 
-            $courseData[$courseCode]['schedules'][] = [
-                'phase' => $phase,
-                'type' => $scheduleType,
-                'start_date' => new UTCDateTime($startDate->timestamp * 1000),
-                'end_date' => new UTCDateTime($endDate->timestamp * 1000),
-                'day_of_week' => $this->convertDayToNumber($cells[7]),
-                'start_period' => (int) $cells[8],
-                'end_period' => (int) $cells[9],
-                'start_time' => $this->periodToTime((int) $cells[8], false, $scheduleType),
-                'end_time' => $this->periodToTime((int) $cells[9], true, $scheduleType),
-                'room' => $cells[10],
-                'note' => $note
-            ];
-        }
-
-        // Insert Courses
-        $collection = $this->db->selectCollection('course_schedules');
-        foreach ($courseData as $course) {
-            $collection->updateOne(
-                ['course_code' => $course['course_code']],
-                ['$set' => array_merge($course, ['updated_at' => new UTCDateTime()])],
-                ['upsert' => true]
-            );
-        }
-
-        // --- Sheet 2: Students ---
-        $studentSheet = $spreadsheet->getSheet(1);
-        $studentSchedules = [];
-
-        foreach ($studentSheet->getRowIterator(2) as $row) {
-            $cells = [];
-            foreach ($row->getCellIterator() as $cell) {
-                // Sử dụng getCalculatedValue() và xử lý trường hợp trả về array
-                $value = $cell->getCalculatedValue();
-                $cells[] = is_array($value) ? (string) ($value[0] ?? '') : $value;
-            }
-            if (empty($cells[1]))
-                continue;
-
-            $studentCode = trim((string) $cells[1]);
-            $courseCode = trim((string) $cells[4]);
-
-            // Bỏ qua nếu course_code rỗng hoặc lỗi Excel
-            if (empty($courseCode) || str_starts_with($courseCode, '#')) {
-                continue;
-            }
-
-            if (!isset($studentSchedules[$studentCode])) {
-                $studentSchedules[$studentCode] = [
-                    'student_code' => $studentCode,
-                    'student_name' => trim((string) $cells[2]),
-                    'class_name' => trim((string) $cells[3]),
-                    'semester' => trim((string) $cells[5]),
-                    'academic_year' => trim((string) $cells[6]),
-                    'registered_courses' => []
-                ];
-            }
-
-            $courseSchedule = $courseData[$courseCode] ?? null;
-            if ($courseSchedule) {
-                $studentSchedules[$studentCode]['registered_courses'][] = [
-                    'course_code' => $courseCode,
-                    'course_name' => $courseSchedule['course_name'],
-                    'schedules' => $courseSchedule['schedules']
-                ];
-            } else {
-                Log::warning('Course not found for student', [
-                    'student_code' => $studentCode,
-                    'course_code' => $courseCode,
-                    'available_courses' => array_keys($courseData)
+            if (!$parsedStartDate || !$parsedEndDate) {
+                Log::warning('Invalid date in row', [
+                    'row' => $rowIndex,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
                 ]);
+                $rowIndex++;
+                continue;
             }
+
+            // Xác định học kỳ và năm học (ƯU TIÊN ĐỌC TỪ FILE)
+            if (!$semester || !$academicYear) {
+                if (!empty($semesterFromFile) && !empty($academicYearFromFile)) {
+                    // Đọc từ file Excel (dòng 9)
+                    $semester = trim($semesterFromFile);
+                    $academicYear = trim($academicYearFromFile);
+                } else {
+                    // Fallback: Tự động tính từ ngày
+                    $semesterInfo = $this->determineSemesterFromDate($parsedStartDate);
+                    $semester = $semesterInfo['semester'];
+                    $academicYear = $semesterInfo['academic_year'];
+
+                    Log::warning('Học kỳ không có trong file, tự động tính từ ngày', [
+                        'calculated_semester' => $semester,
+                        'calculated_academic_year' => $academicYear
+                    ]);
+                }
+            }
+
+            // Convert thứ sang số
+            $dayNumber = $this->convertDayToNumber($dayOfWeek);
+
+            // Xác định loại lịch (LT/TH)
+            $isPractice = (stripos($courseType, 'thực hành') !== false) ||
+                (stripos($courseType, 'thuc hanh') !== false);
+            $scheduleTypeCode = $isPractice ? 'TH' : 'LT';
+
+            // Convert tiết sang giờ
+            $startTime = $this->periodToTime((int) $startPeriod, false, $scheduleTypeCode);
+            $endTime = $this->periodToTime((int) $endPeriod, true, $scheduleTypeCode);
+
+            // Xử lý tên môn học đặc biệt (cùng môn)
+            $actualCourseName = $courseName;
+            if (
+                stripos($courseName, 'cùng môn') !== false ||
+                stripos($courseName, '(cùng môn trên)') !== false ||
+                empty(trim($courseName))
+            ) {
+                if ($lastCourseName) {
+                    $actualCourseName = $lastCourseName;
+                }
+            } else {
+                $lastCourseName = $courseName;
+            }
+
+            // Lưu trực tiếp vào flat schedule
+            $flatSchedule[] = [
+                'course_class_code' => $courseClassCode,
+                'course_name' => $actualCourseName,
+                'type' => $scheduleTypeCode,
+                'start_date' => new UTCDateTime($parsedStartDate->timestamp * 1000),
+                'end_date' => new UTCDateTime($parsedEndDate->timestamp * 1000),
+                'day_of_week' => $dayNumber,
+                'start_period' => (int) $startPeriod,
+                'end_period' => (int) $endPeriod,
+                'start_time_str' => $startTime,
+                'end_time_str' => $endTime,
+                'time_range' => $startTime . '-' . $endTime,
+                'periods' => range((int) $startPeriod, (int) $endPeriod),
+                'room' => trim($room ?? ''),
+                'instructor' => trim($instructor ?? ''),
+                'note' => $courseType,
+                'schedule_type' => $scheduleType
+            ];
+
+            $rowIndex++;
         }
 
-        // Insert Students
+        if (empty($flatSchedule)) {
+            throw new \Exception('Không có dữ liệu lịch học nào được tìm thấy (kiểm tra từ dòng 11 trở đi)');
+        }
+
+        // ==================== LƯU VÀO MONGODB ====================
+        $studentSchedule['semester'] = $semester;
+        $studentSchedule['academic_year'] = $academicYear;
+        $studentSchedule['flat_schedule'] = $flatSchedule;
+        $studentSchedule['updated_at'] = new UTCDateTime();
+
         $collection = $this->db->selectCollection('student_schedules');
-        foreach ($studentSchedules as $student) {
-            $student['flat_schedule'] = $this->buildFlatSchedule($student['registered_courses']);
-            $student['updated_at'] = new UTCDateTime();
 
-            Log::info('Importing student schedule', [
-                'student_code' => $student['student_code'],
-                'student_name' => $student['student_name'],
-                'registered_courses_count' => count($student['registered_courses']),
-                'flat_schedule_count' => count($student['flat_schedule'])
-            ]);
+        $result = $collection->updateOne(
+            [
+                'student_code' => $studentCode,
+                'semester' => $semester,
+                'academic_year' => $academicYear
+            ],
+            ['$set' => $studentSchedule],
+            ['upsert' => true]
+        );
 
-            $collection->updateOne(
-                [
-                    'student_code' => $student['student_code'],
-                    'semester' => $student['semester'],
-                    'academic_year' => $student['academic_year']
-                ],
-                ['$set' => $student],
-                ['upsert' => true]
-            );
-        }
+        Log::info('Imported schedule for student', [
+            'student_code' => $studentCode,
+            'student_name' => $studentName,
+            'semester' => $semester,
+            'academic_year' => $academicYear,
+            'total_schedules' => count($studentSchedule['flat_schedule'])
+        ]);
 
         return [
-            'courses_imported' => count($courseData),
-            'students_imported' => count($studentSchedules)
+            'student_code' => $studentCode,
+            'student_name' => $studentName,
+            'semester' => $semester,
+            'academic_year' => $academicYear,
+            'schedules_count' => count($studentSchedule['flat_schedule'])
         ];
     }
 
     /**
-     * Check Conflict bằng cách so sánh Time String (Chính xác nhất)
-     * Lấy thông tin semester từ MySQL rồi query MongoDB
+     * Kiểm tra xung đột lịch học - chỉ dựa vào thời gian
      */
-    public function checkScheduleConflict($studentId, $activityStartTime, $activityEndTime, $semesterId)
+    public function checkScheduleConflict($studentId, $activityStartTime, $activityEndTime)
     {
-        // Lấy thông tin semester và student từ MySQL
-        $semester = \App\Models\Semester::find($semesterId);
         $student = \App\Models\Student::find($studentId);
-
-        if (!$semester) {
-            return ['has_conflict' => false, 'error' => 'Học kỳ không tồn tại'];
-        }
 
         if (!$student) {
             return ['has_conflict' => false, 'error' => 'Sinh viên không tồn tại'];
         }
 
-        // Query MongoDB bằng student_code (MSSV), không phải student_id
         $collection = $this->db->selectCollection('student_schedules');
-
-        // Chuẩn hóa dữ liệu trước khi query (trim, convert string)
-        $semesterName = trim((string) $semester->semester_name);
-        $academicYear = trim((string) $semester->academic_year);
         $studentCode = strval(trim((string) $student->user_code));
 
+        // Lấy tất cả lịch học của sinh viên (không filter theo học kỳ)
+        $cursor = $collection->find(['student_code' => $studentCode]);
 
-        Log::info('Searching schedule in MongoDB', [
-            'student_code' => $studentCode,
-            'semester' => $semesterName,
-            'academic_year' => $academicYear
-        ]);
-
-        $studentSchedule = $collection->findOne([
-            'student_code' => $studentCode,  // Dùng MSSV để tìm
-            'semester' => $semesterName,
-            'academic_year' => $academicYear
-        ]);
-
-        if (!$studentSchedule) {
-            Log::warning('No schedule found in MongoDB', [
-                'student_code' => $studentCode,
-                'semester' => $semesterName,
-                'academic_year' => $academicYear
-            ]);
-            return ['has_conflict' => false];
-        }
+        // Convert cursor thành array để tránh lỗi "Cursors cannot rewind"
+        $studentSchedules = iterator_to_array($cursor);
 
         $actStartObj = Carbon::parse($activityStartTime);
         $actEndObj = Carbon::parse($activityEndTime);
 
-        // Lưu string ngày và giờ GỐC (không bị thay đổi)
-        $actStartDateStr = $actStartObj->toDateString(); // VD: '2025-11-22'
-        $actEndDateStr = $actEndObj->toDateString();     // VD: '2025-11-24'
-        $actStartTime = $actStartObj->format('H:i');     // VD: '14:30'
-        $actEndTime = $actEndObj->format('H:i');         // VD: '10:00'
+        $actStartDateStr = $actStartObj->toDateString();
+        $actEndDateStr = $actEndObj->toDateString();
+        $actStartTime = $actStartObj->format('H:i');
+        $actEndTime = $actEndObj->format('H:i');
 
-        // Duyệt qua TẤT CẢ các ngày trong khoảng thời gian hoạt động
         $currentDate = $actStartObj->copy()->startOfDay();
         $endDate = $actEndObj->copy()->startOfDay();
 
+        // Duyệt qua từng ngày của hoạt động
         while ($currentDate <= $endDate) {
             $activityDate = $currentDate->toDateString();
             $activityDayOfWeek = $currentDate->dayOfWeek == 0 ? 8 : $currentDate->dayOfWeek + 1;
 
-            // Tính giờ chính xác cho ngày này
             $dayStartTime = $actStartTime;
             $dayEndTime = $actEndTime;
 
-            // Nếu hoạt động kéo dài nhiều ngày:
+            // Điều chỉnh thời gian cho các ngày đầu/cuối nếu hoạt động kéo dài nhiều ngày
             if ($actStartDateStr !== $actEndDateStr) {
-                // Ngày đầu: từ giờ bắt đầu đến 23:59
                 if ($activityDate === $actStartDateStr) {
                     $dayEndTime = '23:59';
-                }
-                // Ngày cuối: từ 00:00 đến giờ kết thúc
-                elseif ($activityDate === $actEndDateStr) {
+                } elseif ($activityDate === $actEndDateStr) {
                     $dayStartTime = '00:00';
-                }
-                // Các ngày giữa: cả ngày (00:00 - 23:59)
-                else {
+                } else {
                     $dayStartTime = '00:00';
                     $dayEndTime = '23:59';
                 }
             }
 
-            foreach ($studentSchedule['flat_schedule'] as $schedule) {
-                // 1. Check Thứ
-                if ($schedule['day_of_week'] != $activityDayOfWeek)
-                    continue;
+            // Kiểm tra xung đột với tất cả lịch học của sinh viên
+            foreach ($studentSchedules as $studentSchedule) {
+                foreach ($studentSchedule['flat_schedule'] as $schedule) {
+                    // Kiểm tra thứ
+                    if ($schedule['day_of_week'] != $activityDayOfWeek) {
+                        continue;
+                    }
 
-                // 2. Check Ngày (Giai đoạn)
-                $schedStart = $schedule['start_date']->toDateTime()->format('Y-m-d');
-                $schedEnd = $schedule['end_date']->toDateTime()->format('Y-m-d');
-                if ($activityDate < $schedStart || $activityDate > $schedEnd)
-                    continue;
+                    // Kiểm tra ngày
+                    $schedStart = $schedule['start_date']->toDateTime()->format('Y-m-d');
+                    $schedEnd = $schedule['end_date']->toDateTime()->format('Y-m-d');
 
-                // 3. Check Giờ trùng (Dùng start_time_str và end_time_str từ DB)
-                $classStartStr = $schedule['start_time_str'];
-                $classEndStr = $schedule['end_time_str'];
+                    if ($activityDate < $schedStart || $activityDate > $schedEnd) {
+                        continue;
+                    }
 
-                // Logic Overlap: (StartA < EndB) && (EndA > StartB)
-                if ($dayStartTime < $classEndStr && $dayEndTime > $classStartStr) {
-                    return [
-                        'has_conflict' => true,
-                        'conflict_course' => $schedule['course_code'],
-                        'conflict_phase' => $schedule['phase'] ?? 'Không xác định',
-                        'conflict_time' => $schedule['time_range'],
-                        'conflict_room' => $schedule['room'],
-                        'conflict_periods' => $schedule['periods'],
-                        'conflict_date_range' => $schedStart . ' đến ' . $schedEnd,
-                        'conflict_date' => $activityDate
-                    ];
+                    // Kiểm tra thời gian
+                    $classStartStr = $schedule['start_time_str'];
+                    $classEndStr = $schedule['end_time_str'];
+
+                    if ($dayStartTime < $classEndStr && $dayEndTime > $classStartStr) {
+                        return [
+                            'has_conflict' => true,
+                            'conflict_course' => $schedule['course_name'],
+                            'conflict_course_class' => $schedule['course_class_code'],
+                            'conflict_time' => $schedule['time_range'],
+                            'conflict_room' => $schedule['room'],
+                            'conflict_instructor' => $schedule['instructor'],
+                            'conflict_periods' => $schedule['periods'],
+                            'conflict_date_range' => $schedStart . ' đến ' . $schedEnd,
+                            'conflict_date' => $activityDate,
+                            'conflict_type' => $schedule['type'],
+                            'conflict_schedule_type' => $schedule['schedule_type'] ?? 'Lịch học',
+                            'conflict_semester' => $studentSchedule['semester'] ?? null,
+                            'conflict_academic_year' => $studentSchedule['academic_year'] ?? null
+                        ];
+                    }
                 }
             }
 
@@ -297,29 +340,35 @@ class ScheduleService
         return ['has_conflict' => false];
     }
 
-    public function getAvailableStudentsForActivity($studentIds, $activityStartTime, $activityEndTime, $semesterId)
+    /**
+     * Lấy giá trị cell
+     */
+    private function getCellValue($sheet, $column, $row)
     {
-        $available = [];
-        $conflicts = [];
+        try {
+            $cell = $sheet->getCell($column . $row);
+            $value = $cell->getCalculatedValue();
 
-        foreach ($studentIds as $studentId) {
-            $check = $this->checkScheduleConflict($studentId, $activityStartTime, $activityEndTime, $semesterId);
-            if ($check['has_conflict']) {
-                $conflicts[] = [
-                    'student_id' => $studentId,
-                    'reason' => "Trùng môn {$check['conflict_course']} ({$check['conflict_time']})"
-                ];
-            } else {
-                $available[] = $studentId;
+            if (is_array($value)) {
+                return (string) ($value[0] ?? '');
             }
+
+            return trim((string) $value);
+        } catch (\Exception $e) {
+            return '';
         }
-        return ['available' => $available, 'conflicts' => $conflicts];
     }
 
+    /**
+     * Parse ngày từ Excel
+     */
     private function parseExcelDate($value)
     {
-        if (empty($value))
+        if (empty($value)) {
             return null;
+        }
+
+        // Nếu là số Excel date
         if (is_numeric($value)) {
             try {
                 return Carbon::instance(ExcelDate::excelToDateTimeObject($value));
@@ -327,27 +376,87 @@ class ScheduleService
                 return null;
             }
         }
+
+        // Thử các định dạng khác
         $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'm/d/Y'];
         foreach ($formats as $format) {
             try {
                 $date = Carbon::createFromFormat($format, $value);
-                if ($date !== false)
+                if ($date !== false) {
                     return $date->startOfDay();
+                }
             } catch (\Exception $e) {
                 continue;
             }
         }
+
         return null;
     }
 
+    /**
+     * Tự động xác định học kỳ từ ngày
+     */
+    private function determineSemesterFromDate($date)
+    {
+        $month = $date->month;
+        $year = $date->year;
+
+        // Học kỳ 1: Tháng 8 -> Tháng 12
+        if ($month >= 8 && $month <= 12) {
+            return [
+                'semester' => 'Học kỳ 1',
+                'academic_year' => $year . '-' . ($year + 1)
+            ];
+        }
+        // Học kỳ 2: Tháng 1 -> Tháng 5
+        elseif ($month >= 1 && $month <= 5) {
+            return [
+                'semester' => 'Học kỳ 2',
+                'academic_year' => ($year - 1) . '-' . $year
+            ];
+        }
+        // Học kỳ hè: Tháng 6 -> Tháng 7
+        else {
+            return [
+                'semester' => 'Học kỳ hè',
+                'academic_year' => $year . '-' . ($year + 1)
+            ];
+        }
+    }
+
+    /**
+     * Convert thứ sang số
+     */
     private function convertDayToNumber($day)
     {
-        $mapping = ['2' => 2, 'T2' => 2, 'Thứ 2' => 2, '3' => 3, 'T3' => 3, 'Thứ 3' => 3, '4' => 4, 'T4' => 4, 'Thứ 4' => 4, '5' => 5, 'T5' => 5, 'Thứ 5' => 5, '6' => 6, 'T6' => 6, 'Thứ 6' => 6, '7' => 7, 'T7' => 7, 'Thứ 7' => 7, 'CN' => 8, 'Chủ nhật' => 8];
+        $day = trim($day);
+        $mapping = [
+            '2' => 2,
+            'T2' => 2,
+            'Thứ 2' => 2,
+            '3' => 3,
+            'T3' => 3,
+            'Thứ 3' => 3,
+            '4' => 4,
+            'T4' => 4,
+            'Thứ 4' => 4,
+            '5' => 5,
+            'T5' => 5,
+            'Thứ 5' => 5,
+            '6' => 6,
+            'T6' => 6,
+            'Thứ 6' => 6,
+            '7' => 7,
+            'T7' => 7,
+            'Thứ 7' => 7,
+            'CN' => 8,
+            'Chủ nhật' => 8
+        ];
         return $mapping[$day] ?? 2;
     }
 
     /**
-     * Map Tiết -> Giờ (Hỗ trợ LT và TH)
+     * Map tiết -> giờ
      */
     private function periodToTime($period, $isEnd = false, $type = 'LT')
     {
@@ -371,7 +480,6 @@ class ScheduleService
             17 => ['21:00', '21:45']
         ];
 
-        // Ví dụ: Thực hành 
         $practiceMap = [
             1 => ['07:00', '07:45'],
             2 => ['07:45', '08:30'],
@@ -394,31 +502,5 @@ class ScheduleService
 
         $map = ($type === 'TH') ? $practiceMap : $theoryMap;
         return $map[$period][$isEnd ? 1 : 0] ?? '07:00';
-    }
-
-    /**
-     * Cập nhật buildFlatSchedule để lưu thêm start_time_str, end_time_str
-     */
-    private function buildFlatSchedule($registeredCourses)
-    {
-        $flat = [];
-        foreach ($registeredCourses as $course) {
-            foreach ($course['schedules'] as $schedule) {
-                $flat[] = [
-                    'course_code' => $course['course_code'],
-                    'phase' => $schedule['phase'] ?? 'Toàn khóa',
-                    'start_date' => $schedule['start_date'],
-                    'end_date' => $schedule['end_date'],
-                    'day_of_week' => $schedule['day_of_week'],
-                    'periods' => range($schedule['start_period'], $schedule['end_period']),
-                    // Lưu giờ dạng string để so sánh conflict
-                    'start_time_str' => $schedule['start_time'],
-                    'end_time_str' => $schedule['end_time'],
-                    'time_range' => $schedule['start_time'] . '-' . $schedule['end_time'],
-                    'room' => $schedule['room']
-                ];
-            }
-        }
-        return $flat;
     }
 }
