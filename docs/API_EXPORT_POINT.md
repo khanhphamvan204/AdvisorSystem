@@ -2,12 +2,12 @@
 
 ## Tổng quan
 
-API cho phép Admin xuất điểm rèn luyện và điểm công tác xã hội theo lớp hoặc theo khoa, theo học kỳ cụ thể. File xuất ra định dạng Excel (.xlsx) với header đầy đủ thông tin trường, khoa, học kỳ.
+API cho phép Admin xuất điểm rèn luyện và điểm công tác xã hội theo lớp hoặc theo khoa. File xuất ra định dạng Excel (.xlsx) với header đầy đủ thông tin trường, khoa.
 
 **Đặc điểm quan trọng:**
 
 -   ✅ **Điểm rèn luyện**: Tính theo từng học kỳ (70 điểm ban đầu + attended - absent)
--   ✅ **Điểm CTXH**: Tích lũy từ đầu khóa đến học kỳ được chọn
+-   ✅ **Điểm CTXH**: Tích lũy từ đầu khóa đến thời điểm hiện tại (không cần chọn học kỳ)
 -   ✅ Sử dụng `PointCalculationService` để đảm bảo logic tính điểm nhất quán
 -   ✅ Xuất file Excel với thống kê chi tiết và phân bổ xếp loại
 
@@ -132,13 +132,14 @@ GET /admin/export/training-points/faculty
 
 | Tham số     | Kiểu dữ liệu | Bắt buộc | Mô tả                       |
 | ----------- | ------------ | -------- | --------------------------- |
-| faculty_id  | integer      | Có       | ID của khoa cần xuất điểm   |
 | semester_id | integer      | Có       | ID của học kỳ cần xuất điểm |
+
+**Lưu ý**: `faculty_id` được lấy tự động từ `unit_id` của admin đang đăng nhập, không cần truyền trong request.
 
 ### Ví dụ Request
 
 ```
-GET /admin/export/training-points/faculty?faculty_id=1&semester_id=1
+GET /admin/export/training-points/faculty?semester_id=1
 ```
 
 ### Response Success (200)
@@ -149,7 +150,7 @@ GET /admin/export/training-points/faculty?faculty_id=1&semester_id=1
 -   **Content-Disposition**: `attachment; filename="DiemRenLuyen_Khoa Công nghệ Thông tin_Học kỳ 1_20250327143525.xlsx"`
 -   File sẽ tự động download về máy người dùng
 
-**Lưu ý**: File xuất theo khoa sẽ chứa sinh viên từ tất cả các lớp thuộc khoa đó, được sắp xếp theo lớp và MSSV.
+**Lưu ý**: File xuất theo khoa sẽ chứa sinh viên từ tất cả các lớp thuộc khoa của admin đang đăng nhập, được sắp xếp theo lớp và MSSV.
 
 ---
 
@@ -171,32 +172,31 @@ GET /admin/export/social-points/class
 
 ### Query Parameters
 
-| Tham số     | Kiểu dữ liệu | Bắt buộc | Mô tả                       |
-| ----------- | ------------ | -------- | --------------------------- |
-| class_id    | integer      | Có       | ID của lớp cần xuất điểm    |
-| semester_id | integer      | Có       | ID của học kỳ cần xuất điểm |
+| Tham số  | Kiểu dữ liệu | Bắt buộc | Mô tả                    |
+| -------- | ------------ | -------- | ------------------------ |
+| class_id | integer      | Có       | ID của lớp cần xuất điểm |
 
 ### Ví dụ Request
 
 ```
-GET /admin/export/social-points/class?class_id=1&semester_id=1
+GET /admin/export/social-points/class?class_id=1
 ```
 
 ### Logic tính điểm
 
-**Điểm CTXH = Σ(điểm tất cả HĐ CTXH attended từ đầu khóa đến học kỳ được chọn)**
+**Điểm CTXH = Σ(điểm tất cả HĐ CTXH attended từ đầu khóa đến thời điểm hiện tại)**
 
--   **TÍCH LŨY** từ đầu khóa học (không reset mỗi học kỳ)
+-   **TÍCH LŨY** từ đầu khóa học đến hiện tại (không reset mỗi học kỳ)
 -   Chỉ tính hoạt động có `status = 'attended'`
 -   Chỉ tính hoạt động có `point_type = 'ctxh'`
--   Tính tất cả hoạt động có `start_time <= end_date` của học kỳ được chọn
+-   Tính tất cả hoạt động đã tham gia từ khi sinh viên nhập học
 
 ### Response Success (200)
 
 **File Excel được tải về trực tiếp**
 
 -   **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
--   **Content-Disposition**: `attachment; filename="DiemCTXH_DH21CNTT_Học kỳ 1_20250327144030.xlsx"`
+-   **Content-Disposition**: `attachment; filename="DiemCTXH_TichLuy_DH21CNTT_20250327144030.xlsx"`
 -   File sẽ tự động download về máy người dùng
 
 ### Cấu trúc file Excel xuất ra
@@ -208,25 +208,23 @@ GET /admin/export/social-points/class?class_id=1&semester_id=1
 │                                                                            │
 │               BẢNG ĐIỂM CÔNG TÁC XÃ HỘI (TÍCH LŨY)                       │
 │                         Lớp: DH21CNTT                                     │
-│            Tính đến: Học kỳ 1 - Năm học: 2024-2025                       │
-│              (Điểm CTXH được tích lũy từ đầu khóa học)                   │
+│                    Tính đến: 27/11/2025                                   │
+│        (Điểm CTXH được tích lũy từ đầu khóa học đến thời điểm hiện tại)  │
 │                                                                            │
 ├─────┬─────────┬──────────────┬──────────┬────────────┬──────────────┬─────┤
 │ STT │  MSSV   │  Họ và tên   │   Lớp    │ Số HĐ CTXH │  Điểm CTXH   │ Xếp │
 │     │         │              │          │            │              │loại │
 ├─────┼─────────┼──────────────┼──────────┼────────────┼──────────────┼─────┤
-│  1  │ 210001  │ Nguyễn Văn H │ DH21CNTT │     5      │      25      │ Xuất│
-│     │         │              │          │            │              │ sắc │
-│  2  │ 210002  │ Trần Thị T.. │ DH21CNTT │     2      │       8      │ Khá │
+│  1  │ 210001  │ Nguyễn Văn H │ DH21CNTT │     35     │     180      │ Đạt │
+│  2  │ 210002  │ Trần Thị T.. │ DH21CNTT │     28     │     150      │Không│
+│     │         │              │          │            │              │ đạt │
 ├─────┴─────────┴──────────────┴──────────┴────────────┴──────────────┴─────┤
 │                            THỐNG KÊ CHUNG                                  │
 │ Tổng số sinh viên: 10                                                     │
-│ Điểm trung bình: 15.80                                                    │
+│ Điểm trung bình: 165.50                                                   │
 │ Phân bổ xếp loại:                                                         │
-│   - Xuất sắc: 3 SV (30.0%)                                               │
-│   - Tốt: 2 SV (20.0%)                                                    │
-│   - Khá: 3 SV (30.0%)                                                    │
-│   - Trung bình: 2 SV (20.0%)                                             │
+│   - Đạt: 6 SV (60.0%)                                                     │
+│   - Không đạt: 4 SV (40.0%)                                               │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -238,7 +236,7 @@ GET /admin/export/social-points/class?class_id=1&semester_id=1
 4. **Lớp**: Tên lớp
 5. **Số HĐ CTXH**: Tổng số hoạt động CTXH đã tham dự (tích lũy)
 6. **Điểm CTXH**: Tổng điểm CTXH tích lũy
-7. **Xếp loại**: Xuất sắc/Tốt/Khá/TB/Yếu
+7. **Xếp loại**: Đạt (≥170) / Không đạt (<170)
 
 ---
 
@@ -260,15 +258,12 @@ GET /admin/export/social-points/faculty
 
 ### Query Parameters
 
-| Tham số     | Kiểu dữ liệu | Bắt buộc | Mô tả                               |
-| ----------- | ------------ | -------- | ----------------------------------- |
-| faculty_id  | integer      | Có       | ID của khoa cần xuất điểm           |
-| semester_id | integer      | Có       | ID của học kỳ làm mốc tính tích lũy |
+**Không cần tham số** - `faculty_id` được lấy tự động từ `unit_id` của admin đang đăng nhập.
 
 ### Ví dụ Request
 
 ```
-GET /admin/export/social-points/faculty?faculty_id=1&semester_id=1
+GET /admin/export/social-points/faculty
 ```
 
 ### Response Success (200)
@@ -276,7 +271,7 @@ GET /admin/export/social-points/faculty?faculty_id=1&semester_id=1
 **File Excel được tải về trực tiếp**
 
 -   **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
--   **Content-Disposition**: `attachment; filename="DiemCTXH_Khoa Công nghệ Thông tin_Học kỳ 1_20250327144535.xlsx"`
+-   **Content-Disposition**: `attachment; filename="DiemCTXH_TichLuy_Khoa Công nghệ Thông tin_20250327144535.xlsx"`
 -   File sẽ tự động download về máy người dùng
 
 ---
@@ -341,27 +336,25 @@ GET /admin/export/social-points/faculty?faculty_id=1&semester_id=1
 
 ### Xếp loại điểm CTXH
 
-| Xếp loại   | Khoảng điểm |
-| ---------- | ----------- |
-| Xuất sắc   | ≥ 20        |
-| Tốt        | 15-19       |
-| Khá        | 10-14       |
-| Trung bình | 5-9         |
-| Yếu        | < 5         |
+| Xếp loại  | Khoảng điểm |
+| --------- | ----------- |
+| Đạt       | ≥ 170       |
+| Không đạt | < 170       |
 
 ---
 
 ## SO SÁNH ĐIỂM RÈN LUYỆN VS ĐIỂM CTXH
 
-| Tiêu chí         | Điểm Rèn luyện      | Điểm CTXH            |
-| ---------------- | ------------------- | -------------------- |
-| **Phạm vi tính** | Theo từng học kỳ    | Tích lũy từ đầu khóa |
-| **Điểm ban đầu** | 70                  | 0                    |
-| **Reset mỗi kỳ** | ✅ Có (reset về 70) | ❌ Không (tích lũy)  |
-| **Attended**     | Cộng điểm           | Cộng điểm            |
-| **Absent**       | Trừ điểm (penalize) | Không tính           |
-| **Registered**   | Không tính          | Không tính           |
-| **Point type**   | `ren_luyen`         | `ctxh`               |
+| Tiêu chí         | Điểm Rèn luyện      | Điểm CTXH                         |
+| ---------------- | ------------------- | --------------------------------- |
+| **Phạm vi tính** | Theo từng học kỳ    | Tích lũy từ đầu đến hiện tại      |
+| **Điểm ban đầu** | 70                  | 0                                 |
+| **Reset mỗi kỳ** | ✅ Có (reset về 70) | ❌ Không (tích lũy)               |
+| **Attended**     | Cộng điểm           | Cộng điểm                         |
+| **Absent**       | Trừ điểm (penalize) | Không tính                        |
+| **Registered**   | Không tính          | Không tính                        |
+| **Point type**   | `ren_luyen`         | `ctxh`                            |
+| **Xuất theo kỳ** | ✅ Cần semester_id  | ❌ Không cần (luôn tính tích lũy) |
 
 ---
 
@@ -379,15 +372,18 @@ Sinh viên A trong HK1 có:
 
 **Tổng điểm DRL = 70 + 8 + 10 - 5 = 83 (Tốt)**
 
-### Ví dụ 2: Điểm CTXH tích lũy
+### Ví dụ 2: Điểm CTXH tích lũy (từ đầu đến giờ)
 
-Sinh viên B từ HK1 đến HK3:
+Sinh viên B từ khi nhập học đến hiện tại:
 
--   HK1: Hiến máu (+5), Tình nguyện (+10) → **15 điểm**
--   HK2: Dọn vệ sinh (+3), Hiến máu (+5) → **+8 điểm**
--   HK3: Chưa tham gia → **+0 điểm**
+-   HK1: Hiến máu (+5), Tình nguyện mùa hè (+15), Chiến dịch Xuân tình nguyện (+20) → **40 điểm**
+-   HK2: Dọn vệ sinh trường (+3), Hiến máu (+5), Hỗ trợ tân sinh viên (+10), Tham gia CLB tình nguyện (+25) → **+43 điểm**
+-   HK3: Chiến dịch Mùa hè Xanh (+30), Hỗ trợ cộng đồng (+20), Hiến máu (+5) → **+55 điểm**
+-   HK4: Tình nguyện vùng cao (+35), Hiến máu (+5) → **+40 điểm**
 
-**Tổng điểm CTXH đến HK3 = 15 + 8 + 0 = 23 (Xuất sắc)**
+**Tổng điểm CTXH tích lũy = 40 + 43 + 55 + 40 = 178 điểm (Đạt)**
+
+**Lưu ý**: Khi xuất điểm CTXH, hệ thống sẽ tính tất cả điểm từ đầu khóa đến thời điểm xuất báo cáo, không cần chọn học kỳ. Sinh viên cần đạt tối thiểu 170 điểm để được xếp loại "Đạt".
 
 ---
 
@@ -404,7 +400,7 @@ curl -X GET "https://your-domain.com/api/admin/export/training-points/class?clas
 ### Xuất điểm CTXH theo khoa
 
 ```bash
-curl -X GET "https://your-domain.com/api/admin/export/social-points/faculty?faculty_id=1&semester_id=1" \
+curl -X GET "https://your-domain.com/api/admin/export/social-points/faculty" \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
   -o DiemCTXH.xlsx
 ```
@@ -417,20 +413,22 @@ curl -X GET "https://your-domain.com/api/admin/export/social-points/faculty?facu
 
 -   ✅ Sử dụng `PointCalculationService::calculateTrainingPoints()` và `PointCalculationService::calculateSocialPoints()`
 -   ✅ Đảm bảo nhất quán với các API khác trong hệ thống
--   ✅ Điểm rèn luyện: tính theo HK, điểm CTXH: tích lũy
+-   ✅ Điểm rèn luyện: tính theo HK (cần semester_id), điểm CTXH: tích lũy từ đầu đến giờ (không cần semester_id)
 
 ### 2. Middleware
 
 -   `auth.api`: Xác thực JWT token
 -   `check_role:admin`: Kiểm tra quyền Admin
 -   Token payload tự động inject `current_user_id` và `current_role` vào request
+-   **Xuất theo khoa**: Tự động lấy `faculty_id` từ `unit_id` của admin đang đăng nhập
 
 ### 3. File xuất
 
 -   Định dạng: `.xlsx` (Excel 2007+)
 -   Lưu tại: `storage/app/public/exports/`
 -   URL download: `https://domain.com/storage/exports/filename.xlsx`
--   Tên file: `DiemRenLuyen_{Tên}_HocKy_{Timestamp}.xlsx`
+-   Tên file rèn luyện: `DiemRenLuyen_{Tên}_HocKy_{Timestamp}.xlsx`
+-   Tên file CTXH: `DiemCTXH_TichLuy_{Tên}_{Timestamp}.xlsx`
 
 ### 4. Dữ liệu
 

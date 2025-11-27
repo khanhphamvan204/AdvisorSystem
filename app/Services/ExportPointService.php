@@ -139,15 +139,12 @@ class ExportPointService
     }
 
     /**
-     * Xuất điểm CTXH theo lớp
+     * Xuất điểm CTXH theo lớp (Tích lũy từ đầu đến giờ)
      */
-    public function exportSocialPointsByClass(int $classId, int $semesterId)
+    public function exportSocialPointsByClass(int $classId)
     {
         // Lấy thông tin lớp
         $class = ClassModel::with('faculty')->findOrFail($classId);
-
-        // Lấy thông tin học kỳ
-        $semester = Semester::findOrFail($semesterId);
 
         // Lấy danh sách sinh viên và sắp xếp theo tên (chữ cuối cùng)
         $students = Student::where('class_id', $classId)
@@ -159,18 +156,17 @@ class ExportPointService
             })
             ->values(); // Reset lại keys sau khi sort
 
-        // Tính điểm CTXH cho từng sinh viên (tích lũy từ đầu khóa đến học kỳ này)
-        $studentsWithPoints = $students->map(function ($student) use ($semesterId) {
+        // Tính điểm CTXH cho từng sinh viên (tích lũy từ đầu đến giờ)
+        $studentsWithPoints = $students->map(function ($student) {
             try {
+                // Không truyền $semesterId => tính tích lũy từ đầu đến giờ
                 $socialPoints = PointCalculationService::calculateSocialPoints(
-                    $student->student_id,
-                    $semesterId
+                    $student->student_id
                 );
 
-                // Lấy chi tiết hoạt động CTXH
+                // Lấy chi tiết hoạt động CTXH từ đầu đến giờ
                 $activities = PointCalculationService::getSocialActivitiesDetail(
-                    $student->student_id,
-                    $semesterId
+                    $student->student_id
                 );
 
                 return [
@@ -188,19 +184,16 @@ class ExportPointService
             }
         });
 
-        return $this->generateSocialPointsExcel($studentsWithPoints, $class, $semester, 'class');
+        return $this->generateSocialPointsExcel($studentsWithPoints, $class, null, 'class');
     }
 
     /**
-     * Xuất điểm CTXH theo khoa
+     * Xuất điểm CTXH theo khoa (Tích lũy từ đầu đến giờ)
      */
-    public function exportSocialPointsByFaculty(int $facultyId, int $semesterId)
+    public function exportSocialPointsByFaculty(int $facultyId)
     {
         // Lấy thông tin khoa
         $faculty = Unit::where('type', 'faculty')->findOrFail($facultyId);
-
-        // Lấy thông tin học kỳ
-        $semester = Semester::findOrFail($semesterId);
 
         // Lấy danh sách sinh viên thuộc các lớp của khoa
         $students = Student::whereHas('class', function ($query) use ($facultyId) {
@@ -211,17 +204,16 @@ class ExportPointService
             ->orderBy('full_name')
             ->get();
 
-        // Tính điểm CTXH cho từng sinh viên
-        $studentsWithPoints = $students->map(function ($student) use ($semesterId) {
+        // Tính điểm CTXH cho từng sinh viên (tích lũy từ đầu đến giờ)
+        $studentsWithPoints = $students->map(function ($student) {
             try {
+                // Không truyền $semesterId => tính tích lũy từ đầu đến giờ
                 $socialPoints = PointCalculationService::calculateSocialPoints(
-                    $student->student_id,
-                    $semesterId
+                    $student->student_id
                 );
 
                 $activities = PointCalculationService::getSocialActivitiesDetail(
-                    $student->student_id,
-                    $semesterId
+                    $student->student_id
                 );
 
                 return [
@@ -239,7 +231,7 @@ class ExportPointService
             }
         });
 
-        return $this->generateSocialPointsExcel($studentsWithPoints, $faculty, $semester, 'faculty');
+        return $this->generateSocialPointsExcel($studentsWithPoints, $faculty, null, 'faculty');
     }
 
     /**
@@ -435,20 +427,22 @@ class ExportPointService
         $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 16, true, 'FF0000');
         $row++;
 
-        // Thông tin học kỳ và lớp
+        // Thông tin lớp
         if ($type === 'class') {
             $sheet->setCellValueExplicit('A' . $row, 'Lớp: ' . $entity->class_name, DataType::TYPE_STRING);
+        } else {
+            $sheet->setCellValueExplicit('A' . $row, 'Khoa: ' . $entity->unit_name, DataType::TYPE_STRING);
         }
         $sheet->mergeCells('A' . $row . ':G' . $row);
         $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 12);
         $row++;
 
-        $sheet->setCellValueExplicit('A' . $row, 'Tính đến: ' . $semester->semester_name . ' - Năm học: ' . $semester->academic_year, DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('A' . $row, 'Tính đến: ' . date('d/m/Y'), DataType::TYPE_STRING);
         $sheet->mergeCells('A' . $row . ':G' . $row);
         $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 12);
         $row++;
 
-        $sheet->setCellValueExplicit('A' . $row, '(Điểm CTXH được tích lũy từ đầu khóa học)', DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('A' . $row, '(Điểm CTXH được tích lũy từ đầu khóa học đến thời điểm hiện tại)', DataType::TYPE_STRING);
         $sheet->mergeCells('A' . $row . ':G' . $row);
         $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 10, false, '666666');
         $row++;
@@ -507,11 +501,8 @@ class ExportPointService
 
         // Thống kê xếp loại
         $classifications = [
-            'Xuất sắc' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 20)->count(),
-            'Tốt' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 15 && $s['social_points'] < 20)->count(),
-            'Khá' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 10 && $s['social_points'] < 15)->count(),
-            'Trung bình' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 5 && $s['social_points'] < 10)->count(),
-            'Yếu' => $studentsWithPoints->filter(fn($s) => $s['social_points'] < 5)->count(),
+            'Đạt' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 170)->count(),
+            'Không đạt' => $studentsWithPoints->filter(fn($s) => $s['social_points'] < 170)->count(),
         ];
 
         $sheet->setCellValueExplicit('A' . $row, 'Phân bổ xếp loại:', DataType::TYPE_STRING);
@@ -540,7 +531,7 @@ class ExportPointService
         $writer = new Xlsx($spreadsheet);
         $writer->setPreCalculateFormulas(false);
 
-        $fileName = 'DiemCTXH_' . ($type === 'class' ? $entity->class_name : $entity->unit_name) . '_' . $semester->semester_name . '_' . date('YmdHis') . '.xlsx';
+        $fileName = 'DiemCTXH_TichLuy_' . ($type === 'class' ? $entity->class_name : $entity->unit_name) . '_' . date('YmdHis') . '.xlsx';
         $filePath = storage_path('app/public/exports/' . $fileName);
 
         if (!file_exists(storage_path('app/public/exports'))) {
@@ -653,14 +644,8 @@ class ExportPointService
      */
     private function classifySocialPoints($point)
     {
-        if ($point >= 20)
-            return 'Xuất sắc';
-        if ($point >= 15)
-            return 'Tốt';
-        if ($point >= 10)
-            return 'Khá';
-        if ($point >= 5)
-            return 'Trung bình';
-        return 'Yếu';
+        if ($point >= 170)
+            return 'Đạt';
+        return 'Không đạt';
     }
 }
