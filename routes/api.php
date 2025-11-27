@@ -25,6 +25,7 @@ use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\PointFeedbackController;
 use App\Http\Controllers\StudentMonitoringNoteController;
 use App\Http\Controllers\ActivityAttendanceController;
+use App\Http\Controllers\ExportPointController;
 
 
 // ========== Authentication Routes ==========
@@ -149,8 +150,6 @@ Route::middleware(['auth.api'])->prefix('activities/{activityId}/roles')->group(
 
         // Xem danh sách sinh viên đã đăng ký vai trò này
         Route::get('/{roleId}/registrations', [ActivityRoleController::class, 'getRegistrations']);
-
-
     });
 });
 
@@ -280,8 +279,6 @@ Route::middleware(['auth.api'])->group(function () {
         // Xem danh sách sinh viên học một môn
         Route::get('/{course_id}/students', [CourseController::class, 'getCourseStudents']);
     });
-
-
 });
 
 /**
@@ -345,7 +342,6 @@ Route::middleware(['auth.api'])->group(function () {
         // Xem tổng quan điểm của khoa
         Route::get('/faculty-overview', [GradeController::class, 'getFacultyGradesOverview']);
     });
-
 });
 
 
@@ -403,6 +399,38 @@ Route::middleware(['auth.api'])->group(function () {
         // Cập nhật báo cáo hàng loạt cho cả lớp
         Route::post('/batch-update-semester-reports', [AcademicMonitoringController::class, 'batchUpdateSemesterReports']);
     });
+
+    /**
+     * ROUTES CHO ADMIN - IMPORT/EXPORT CẢNH CÁO HỌC VỤ
+     */
+    Route::middleware(['check_role:admin'])->prefix('academic')->group(function () {
+
+        // Download template import cảnh cáo
+        Route::get('/download-warnings-template', [AcademicMonitoringController::class, 'downloadWarningsTemplate']);
+
+        // Import cảnh cáo học vụ từ Excel
+        Route::post('/import-warnings', [AcademicMonitoringController::class, 'importAcademicWarnings']);
+    });
+
+    /**
+     * ROUTES CHO ADMIN - XUẤT ĐIỂM RÈN LUYỆN VÀ ĐIỂM CTXH
+     */
+    Route::middleware(['check_role:admin'])->prefix('admin/export')->group(function () {
+
+        // Xuất điểm rèn luyện theo lớp
+        Route::get('/training-points/class', [ExportPointController::class, 'exportTrainingPointsByClass']);
+
+        // Xuất điểm rèn luyện theo khoa
+        Route::get('/training-points/faculty', [ExportPointController::class, 'exportTrainingPointsByFaculty']);
+
+        // Xuất điểm CTXH theo lớp
+        Route::get('/social-points/class', [ExportPointController::class, 'exportSocialPointsByClass']);
+
+        // Xuất điểm CTXH theo khoa
+        Route::get('/social-points/faculty', [ExportPointController::class, 'exportSocialPointsByFaculty']);
+    });
+
+
 
     /**
      * ROUTES CHO STUDENT - ĐIỂM RÈN LUYỆN & CTXH
@@ -554,8 +582,8 @@ Route::middleware(['auth.api'])->group(function () {
     });
 
     // ============================================================
-// STUDENTS ROUTES
-// ============================================================
+    // STUDENTS ROUTES
+    // ============================================================
     Route::prefix('students')->group(function () {
         // Xem danh sách và chi tiết - Tất cả role
         Route::get('/', [StudentController::class, 'index']);
@@ -582,13 +610,13 @@ Route::middleware(['auth.api'])->group(function () {
     });
 
     // ============================================================
-// CLASS POSITIONS ROUTES
-// ============================================================
+    // CLASS POSITIONS ROUTES
+    // ============================================================
     Route::get('/classes/{classId}/positions', [StudentController::class, 'getClassPositions']);
 
     // ============================================================
-// ADVISORS ROUTES
-// ============================================================
+    // ADVISORS ROUTES
+    // ============================================================
     Route::prefix('advisors')->group(function () {
         // Xem danh sách và chi tiết - Admin và Advisor
         Route::middleware(['check_role:admin,advisor'])->group(function () {
@@ -659,7 +687,6 @@ Route::middleware(['auth.api'])->group(function () {
         // Tìm kiếm tin nhắn
         Route::get('/messages/search', [DialogController::class, 'searchMessages']);
     });
-
 });
 
 // ===================================================================
@@ -838,4 +865,3 @@ Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
 Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
     Route::get('/advisor/overview', [StatisticsController::class, 'getAdvisorOverview']);
 });
-
