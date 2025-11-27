@@ -67,7 +67,6 @@ class ClassController extends Controller
                 'data' => $classes,
                 'message' => 'Lấy danh sách lớp thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -131,7 +130,6 @@ class ClassController extends Controller
                 'data' => $class,
                 'message' => 'Lấy thông tin lớp thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -185,7 +183,6 @@ class ClassController extends Controller
                 'data' => $class,
                 'message' => 'Tạo lớp thành công'
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -242,7 +239,6 @@ class ClassController extends Controller
                 'data' => $class,
                 'message' => 'Cập nhật lớp thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -291,7 +287,6 @@ class ClassController extends Controller
                 'success' => true,
                 'message' => 'Xóa lớp thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -350,8 +345,11 @@ class ClassController extends Controller
                     break;
             }
 
-            // Lấy thông tin sinh viên kèm theo cảnh cáo học vụ
-            $studentsWithWarnings = $class->students->map(function ($student) {
+            // Lấy học kỳ gần nhất
+            $latestSemester = \App\Models\Semester::orderBy('start_date', 'desc')->first();
+
+            // Lấy thông tin sinh viên kèm theo cảnh cáo học vụ và điểm
+            $studentsWithWarnings = $class->students->map(function ($student) use ($latestSemester) {
                 // Lấy toàn bộ cảnh cáo học vụ của sinh viên
                 $warnings = \App\Models\AcademicWarning::where('student_id', $student->student_id)
                     ->with('semester')
@@ -368,6 +366,31 @@ class ClassController extends Controller
                         ];
                     });
 
+                // Tính điểm rèn luyện (học kỳ gần nhất) và điểm công tác xã hội (tích lũy từ đầu)
+                $trainingPoints = 0;
+                $socialPoints = 0;
+
+                if ($latestSemester) {
+                    try {
+                        $trainingPoints = \App\Services\PointCalculationService::calculateTrainingPoints(
+                            $student->student_id,
+                            $latestSemester->semester_id
+                        );
+                    } catch (\Exception $e) {
+                        // Nếu có lỗi khi tính điểm rèn luyện, giữ giá trị 0
+                    }
+                }
+
+                try {
+                    // Điểm công tác xã hội tích lũy từ đầu đến hiện tại
+                    $socialPoints = \App\Services\PointCalculationService::calculateSocialPoints(
+                        $student->student_id,
+                        null // null = tính từ đầu đến giờ
+                    );
+                } catch (\Exception $e) {
+                    // Nếu có lỗi khi tính điểm công tác xã hội, giữ giá trị 0
+                }
+
                 return [
                     'student_id' => $student->student_id,
                     'user_code' => $student->user_code,
@@ -376,6 +399,9 @@ class ClassController extends Controller
                     'phone' => $student->phone,
                     'status' => $student->status,
                     'position' => $student->position,
+                    'training_points' => $trainingPoints,
+                    'training_points_semester' => $latestSemester ? $latestSemester->semester_name . ' ' . $latestSemester->academic_year : null,
+                    'social_points' => $socialPoints,
                     'has_academic_warning' => $warnings->isNotEmpty(),
                     'warnings' => $warnings,
                     'warnings_count' => $warnings->count()
@@ -387,7 +413,6 @@ class ClassController extends Controller
                 'data' => $studentsWithWarnings,
                 'message' => 'Lấy danh sách sinh viên thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

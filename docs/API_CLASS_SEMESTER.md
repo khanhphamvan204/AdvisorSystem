@@ -19,48 +19,52 @@
 **Mô tả:** Lấy danh sách lớp học theo quyền của người dùng
 
 **Phân quyền:**
-- **Admin:** Xem các lớp thuộc khoa mình quản lý
-- **Advisor:** Xem các lớp mình làm cố vấn
-- **Student:** Xem lớp của mình
+
+-   **Admin:** Xem các lớp thuộc khoa mình quản lý
+-   **Advisor:** Xem các lớp mình làm cố vấn
+-   **Student:** Xem lớp của mình
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "class_id": 1,
-      "class_name": "DH21CNTT",
-      "advisor_id": 1,
-      "faculty_id": 1,
-      "description": "Lớp Đại học 2021 ngành Công nghệ Thông tin",
-      "advisor": {
-        "advisor_id": 1,
-        "full_name": "ThS. Trần Văn An",
-        "email": "gv.an@school.edu.vn"
-      },
-      "faculty": {
-        "unit_id": 1,
-        "unit_name": "Khoa Công nghệ Thông tin",
-        "type": "faculty"
-      }
-    }
-  ],
-  "message": "Lấy danh sách lớp thành công"
+    "success": true,
+    "data": [
+        {
+            "class_id": 1,
+            "class_name": "DH21CNTT",
+            "advisor_id": 1,
+            "faculty_id": 1,
+            "description": "Lớp Đại học 2021 ngành Công nghệ Thông tin",
+            "advisor": {
+                "advisor_id": 1,
+                "full_name": "ThS. Trần Văn An",
+                "email": "gv.an@school.edu.vn"
+            },
+            "faculty": {
+                "unit_id": 1,
+                "unit_name": "Khoa Công nghệ Thông tin",
+                "type": "faculty"
+            }
+        }
+    ],
+    "message": "Lấy danh sách lớp thành công"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy thông tin đơn vị quản lý"
+    "success": false,
+    "message": "Không tìm thấy thông tin đơn vị quản lý"
 }
 ```
 
@@ -73,68 +77,74 @@ Content-Type: application/json
 **Mô tả:** Xem thông tin chi tiết của một lớp
 
 **Phân quyền:**
-- **Admin:** Chỉ xem lớp trong khoa mình quản lý
-- **Advisor:** Chỉ xem lớp mình cố vấn
-- **Student:** Chỉ xem lớp của mình
+
+-   **Admin:** Chỉ xem lớp trong khoa mình quản lý
+-   **Advisor:** Chỉ xem lớp mình cố vấn
+-   **Student:** Chỉ xem lớp của mình
 
 **Parameters:**
-- `id` (path, required): ID của lớp
+
+-   `id` (path, required): ID của lớp
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "class_id": 1,
-    "class_name": "DH21CNTT",
-    "advisor_id": 1,
-    "faculty_id": 1,
-    "description": "Lớp Đại học 2021 ngành Công nghệ Thông tin",
-    "advisor": {
-      "advisor_id": 1,
-      "full_name": "ThS. Trần Văn An",
-      "email": "gv.an@school.edu.vn",
-      "phone_number": "090111222"
+    "success": true,
+    "data": {
+        "class_id": 1,
+        "class_name": "DH21CNTT",
+        "advisor_id": 1,
+        "faculty_id": 1,
+        "description": "Lớp Đại học 2021 ngành Công nghệ Thông tin",
+        "advisor": {
+            "advisor_id": 1,
+            "full_name": "ThS. Trần Văn An",
+            "email": "gv.an@school.edu.vn",
+            "phone_number": "090111222"
+        },
+        "faculty": {
+            "unit_id": 1,
+            "unit_name": "Khoa Công nghệ Thông tin",
+            "type": "faculty",
+            "description": "Quản lý các ngành thuộc lĩnh vực CNTT"
+        },
+        "students": [
+            {
+                "student_id": 1,
+                "user_code": "210001",
+                "full_name": "Nguyễn Văn Hùng",
+                "email": "sv.hung@school.edu.vn",
+                "phone_number": "091122334",
+                "status": "studying"
+            }
+        ]
     },
-    "faculty": {
-      "unit_id": 1,
-      "unit_name": "Khoa Công nghệ Thông tin",
-      "type": "faculty",
-      "description": "Quản lý các ngành thuộc lĩnh vực CNTT"
-    },
-    "students": [
-      {
-        "student_id": 1,
-        "user_code": "210001",
-        "full_name": "Nguyễn Văn Hùng",
-        "email": "sv.hung@school.edu.vn",
-        "phone_number": "091122334",
-        "status": "studying"
-      }
-    ]
-  },
-  "message": "Lấy thông tin lớp thành công"
+    "message": "Lấy thông tin lớp thành công"
 }
 ```
 
 **Response Error (403):**
+
 ```json
 {
-  "success": false,
-  "message": "Bạn không có quyền xem lớp này"
+    "success": false,
+    "message": "Bạn không có quyền xem lớp này"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy lớp"
+    "success": false,
+    "message": "Không tìm thấy lớp"
 }
 ```
 
@@ -149,63 +159,65 @@ Authorization: Bearer {token}
 **Phân quyền:** Admin (và chỉ tạo được lớp cho khoa mình quản lý)
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "class_name": "DH24CNTT",
-  "advisor_id": 1,
-  "faculty_id": 1,
-  "description": "Lớp Đại học 2024 ngành Công nghệ Thông tin"
-}
-```
-
-**Validation Rules:**
-- `class_name`: required, string, max 50 ký tự, unique
-- `advisor_id`: nullable, phải tồn tại trong bảng Advisors
-- `faculty_id`: required, phải tồn tại trong bảng Units
-- `description`: nullable, string
-
-**Response Success (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "class_id": 6,
     "class_name": "DH24CNTT",
     "advisor_id": 1,
     "faculty_id": 1,
     "description": "Lớp Đại học 2024 ngành Công nghệ Thông tin"
-  },
-  "message": "Tạo lớp thành công"
+}
+```
+
+**Validation Rules:**
+
+-   `class_name`: required, string, max 50 ký tự, unique
+-   `advisor_id`: nullable, phải tồn tại trong bảng Advisors
+-   `faculty_id`: required, phải tồn tại trong bảng Units
+-   `description`: nullable, string
+
+**Response Success (201):**
+
+```json
+{
+    "success": true,
+    "data": {
+        "class_id": 6,
+        "class_name": "DH24CNTT",
+        "advisor_id": 1,
+        "faculty_id": 1,
+        "description": "Lớp Đại học 2024 ngành Công nghệ Thông tin"
+    },
+    "message": "Tạo lớp thành công"
 }
 ```
 
 **Response Error (403):**
+
 ```json
 {
-  "success": false,
-  "message": "Bạn chỉ có thể tạo lớp cho khoa mình quản lý"
+    "success": false,
+    "message": "Bạn chỉ có thể tạo lớp cho khoa mình quản lý"
 }
 ```
 
 **Response Error (422):**
+
 ```json
 {
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "class_name": [
-      "Tên lớp đã tồn tại"
-    ],
-    "faculty_id": [
-      "Khoa không được để trống"
-    ]
-  }
+    "success": false,
+    "message": "Dữ liệu không hợp lệ",
+    "errors": {
+        "class_name": ["Tên lớp đã tồn tại"],
+        "faculty_id": ["Khoa không được để trống"]
+    }
 }
 ```
 
@@ -220,57 +232,64 @@ Content-Type: application/json
 **Phân quyền:** Admin (chỉ sửa được lớp trong khoa mình quản lý)
 
 **Parameters:**
-- `id` (path, required): ID của lớp
+
+-   `id` (path, required): ID của lớp
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "class_name": "DH24CNTT_Updated",
-  "advisor_id": 2,
-  "description": "Mô tả đã cập nhật"
+    "class_name": "DH24CNTT_Updated",
+    "advisor_id": 2,
+    "description": "Mô tả đã cập nhật"
 }
 ```
 
 **Validation Rules:**
-- `class_name`: optional, string, max 50 ký tự, unique (trừ bản thân)
-- `advisor_id`: optional, phải tồn tại trong bảng Advisors
-- `faculty_id`: optional, phải tồn tại trong bảng Units
-- `description`: optional, string
+
+-   `class_name`: optional, string, max 50 ký tự, unique (trừ bản thân)
+-   `advisor_id`: optional, phải tồn tại trong bảng Advisors
+-   `faculty_id`: optional, phải tồn tại trong bảng Units
+-   `description`: optional, string
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "class_id": 1,
-    "class_name": "DH24CNTT_Updated",
-    "advisor_id": 2,
-    "faculty_id": 1,
-    "description": "Mô tả đã cập nhật"
-  },
-  "message": "Cập nhật lớp thành công"
+    "success": true,
+    "data": {
+        "class_id": 1,
+        "class_name": "DH24CNTT_Updated",
+        "advisor_id": 2,
+        "faculty_id": 1,
+        "description": "Mô tả đã cập nhật"
+    },
+    "message": "Cập nhật lớp thành công"
 }
 ```
 
 **Response Error (403):**
+
 ```json
 {
-  "success": false,
-  "message": "Bạn không có quyền cập nhật lớp này"
+    "success": false,
+    "message": "Bạn không có quyền cập nhật lớp này"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy lớp"
+    "success": false,
+    "message": "Không tìm thấy lớp"
 }
 ```
 
@@ -285,42 +304,48 @@ Content-Type: application/json
 **Phân quyền:** Admin (chỉ xóa được lớp trong khoa mình quản lý)
 
 **Parameters:**
-- `id` (path, required): ID của lớp
+
+-   `id` (path, required): ID của lớp
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "message": "Xóa lớp thành công"
+    "success": true,
+    "message": "Xóa lớp thành công"
 }
 ```
 
 **Response Error (400):**
+
 ```json
 {
-  "success": false,
-  "message": "Không thể xóa lớp có sinh viên"
+    "success": false,
+    "message": "Không thể xóa lớp có sinh viên"
 }
 ```
 
 **Response Error (403):**
+
 ```json
 {
-  "success": false,
-  "message": "Bạn không có quyền xóa lớp này"
+    "success": false,
+    "message": "Bạn không có quyền xóa lớp này"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy lớp"
+    "success": false,
+    "message": "Không tìm thấy lớp"
 }
 ```
 
@@ -333,58 +358,18 @@ Authorization: Bearer {token}
 **Mô tả:** Lấy danh sách sinh viên trong một lớp
 
 **Phân quyền:**
-- **Admin:** Xem sinh viên trong lớp thuộc khoa mình quản lý
-- **Advisor:** Xem sinh viên trong lớp mình cố vấn
-- **Student:** Xem danh sách bạn cùng lớp
+
+-   **Admin:** Xem sinh viên trong lớp thuộc khoa mình quản lý
+-   **Advisor:** Xem sinh viên trong lớp mình cố vấn
+-   **Student:** Xem danh sách bạn cùng lớp
 
 **Parameters:**
-- `id` (path, required): ID của lớp
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+-   `id` (path, required): ID của lớp
 
-**Response Success (200):**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "student_id": 1,
-      "user_code": "210001",
-      "full_name": "Nguyễn Văn Hùng",
-      "email": "sv.hung@school.edu.vn",
-      "phone_number": "091122334",
-      "avatar_url": null,
-      "class_id": 1,
-      "status": "studying",
-      "created_at": "2024-01-01T00:00:00.000000Z",
-      "last_login": "2024-11-12T10:00:00.000000Z"
-    },
-    {
-      "student_id": 2,
-      "user_code": "210002",
-      "full_name": "Trần Thị Thu Cẩm",
-      "email": "sv.cam@school.edu.vn",
-      "phone_number": "091234567",
-      "avatar_url": null,
-      "class_id": 1,
-      "status": "studying",
-      "created_at": "2024-01-01T00:00:00.000000Z",
-      "last_login": "2024-11-11T14:30:00.000000Z"
+    "message": "Bạn không có quyền xem lớp này"
     }
-  ],
-  "message": "Lấy danh sách sinh viên thành công"
-}
-```
 
-**Response Error (403):**
-```json
-{
-  "success": false,
-  "message": "Bạn không có quyền xem lớp này"
-}
 ```
 
 ---
@@ -401,8 +386,10 @@ Authorization: Bearer {token}
 
 **Headers:**
 ```
+
 Authorization: Bearer {token}
-```
+
+````
 
 **Response Success (200):**
 ```json
@@ -426,7 +413,7 @@ Authorization: Bearer {token}
   ],
   "message": "Lấy danh sách học kỳ thành công"
 }
-```
+````
 
 ---
 
@@ -439,33 +426,37 @@ Authorization: Bearer {token}
 **Phân quyền:** Admin, Advisor, Student
 
 **Parameters:**
-- `id` (path, required): ID của học kỳ
+
+-   `id` (path, required): ID của học kỳ
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "semester_id": 1,
-    "semester_name": "Học kỳ 1",
-    "academic_year": "2024-2025",
-    "start_date": "2024-09-05",
-    "end_date": "2025-01-15"
-  },
-  "message": "Lấy thông tin học kỳ thành công"
+    "success": true,
+    "data": {
+        "semester_id": 1,
+        "semester_name": "Học kỳ 1",
+        "academic_year": "2024-2025",
+        "start_date": "2024-09-05",
+        "end_date": "2025-01-15"
+    },
+    "message": "Lấy thông tin học kỳ thành công"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy học kỳ"
+    "success": false,
+    "message": "Không tìm thấy học kỳ"
 }
 ```
 
@@ -480,63 +471,65 @@ Authorization: Bearer {token}
 **Phân quyền:** Admin
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "semester_name": "Học kỳ hè",
-  "academic_year": "2024-2025",
-  "start_date": "2025-07-01",
-  "end_date": "2025-08-31"
-}
-```
-
-**Validation Rules:**
-- `semester_name`: required, string, max 50 ký tự
-- `academic_year`: required, string, max 20 ký tự
-- `start_date`: required, date
-- `end_date`: required, date, phải sau start_date
-
-**Response Success (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "semester_id": 6,
     "semester_name": "Học kỳ hè",
     "academic_year": "2024-2025",
     "start_date": "2025-07-01",
     "end_date": "2025-08-31"
-  },
-  "message": "Tạo học kỳ thành công"
+}
+```
+
+**Validation Rules:**
+
+-   `semester_name`: required, string, max 50 ký tự
+-   `academic_year`: required, string, max 20 ký tự
+-   `start_date`: required, date
+-   `end_date`: required, date, phải sau start_date
+
+**Response Success (201):**
+
+```json
+{
+    "success": true,
+    "data": {
+        "semester_id": 6,
+        "semester_name": "Học kỳ hè",
+        "academic_year": "2024-2025",
+        "start_date": "2025-07-01",
+        "end_date": "2025-08-31"
+    },
+    "message": "Tạo học kỳ thành công"
 }
 ```
 
 **Response Error (400):**
+
 ```json
 {
-  "success": false,
-  "message": "Học kỳ này đã tồn tại"
+    "success": false,
+    "message": "Học kỳ này đã tồn tại"
 }
 ```
 
 **Response Error (422):**
+
 ```json
 {
-  "success": false,
-  "message": "Dữ liệu không hợp lệ",
-  "errors": {
-    "semester_name": [
-      "Tên học kỳ không được để trống"
-    ],
-    "end_date": [
-      "Ngày kết thúc phải sau ngày bắt đầu"
-    ]
-  }
+    "success": false,
+    "message": "Dữ liệu không hợp lệ",
+    "errors": {
+        "semester_name": ["Tên học kỳ không được để trống"],
+        "end_date": ["Ngày kết thúc phải sau ngày bắt đầu"]
+    }
 }
 ```
 
@@ -551,43 +544,48 @@ Content-Type: application/json
 **Phân quyền:** Admin
 
 **Parameters:**
-- `id` (path, required): ID của học kỳ
+
+-   `id` (path, required): ID của học kỳ
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
-  "semester_name": "Học kỳ 1 (Cập nhật)",
-  "start_date": "2024-09-10",
-  "end_date": "2025-01-20"
+    "semester_name": "Học kỳ 1 (Cập nhật)",
+    "start_date": "2024-09-10",
+    "end_date": "2025-01-20"
 }
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "semester_id": 1,
-    "semester_name": "Học kỳ 1 (Cập nhật)",
-    "academic_year": "2024-2025",
-    "start_date": "2024-09-10",
-    "end_date": "2025-01-20"
-  },
-  "message": "Cập nhật học kỳ thành công"
+    "success": true,
+    "data": {
+        "semester_id": 1,
+        "semester_name": "Học kỳ 1 (Cập nhật)",
+        "academic_year": "2024-2025",
+        "start_date": "2024-09-10",
+        "end_date": "2025-01-20"
+    },
+    "message": "Cập nhật học kỳ thành công"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy học kỳ"
+    "success": false,
+    "message": "Không tìm thấy học kỳ"
 }
 ```
 
@@ -602,34 +600,39 @@ Content-Type: application/json
 **Phân quyền:** Admin
 
 **Parameters:**
-- `id` (path, required): ID của học kỳ
+
+-   `id` (path, required): ID của học kỳ
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "message": "Xóa học kỳ thành công"
+    "success": true,
+    "message": "Xóa học kỳ thành công"
 }
 ```
 
 **Response Error (400):**
+
 ```json
 {
-  "success": false,
-  "message": "Không thể xóa học kỳ có dữ liệu điểm"
+    "success": false,
+    "message": "Không thể xóa học kỳ có dữ liệu điểm"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy học kỳ"
+    "success": false,
+    "message": "Không tìm thấy học kỳ"
 }
 ```
 
@@ -642,32 +645,106 @@ Authorization: Bearer {token}
 **Mô tả:** Lấy danh sách báo cáo học kỳ của sinh viên
 
 **Phân quyền:**
-- **Admin:** Xem báo cáo sinh viên trong khoa mình quản lý
-- **Advisor:** Xem báo cáo sinh viên trong lớp mình cố vấn
-- **Student:** Chỉ xem báo cáo của mình
+
+-   **Admin:** Xem báo cáo sinh viên trong khoa mình quản lý
+-   **Advisor:** Xem báo cáo sinh viên trong lớp mình cố vấn
+-   **Student:** Chỉ xem báo cáo của mình
 
 **Parameters:**
-- `id` (path, required): ID của học kỳ
+
+-   `id` (path, required): ID của học kỳ
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "semester": {
-      "semester_id": 1,
-      "semester_name": "Học kỳ 1",
-      "academic_year": "2024-2025",
-      "start_date": "2024-09-05",
-      "end_date": "2025-01-15"
+    "success": true,
+    "data": {
+        "semester": {
+            "semester_id": 1,
+            "semester_name": "Học kỳ 1",
+            "academic_year": "2024-2025",
+            "start_date": "2024-09-05",
+            "end_date": "2025-01-15"
+        },
+        "reports": [
+            {
+                "report_id": 1,
+                "student_id": 1,
+                "semester_id": 1,
+                "gpa": "7.75",
+                "gpa_4_scale": "3.00",
+                "cpa_10_scale": "7.75",
+                "cpa_4_scale": "3.00",
+                "credits_registered": 8,
+                "credits_passed": 8,
+                "training_point_summary": 85,
+                "social_point_summary": 15,
+                "outcome": "Học tiếp",
+                "student": {
+                    "student_id": 1,
+                    "user_code": "210001",
+                    "full_name": "Nguyễn Văn Hùng",
+                    "email": "sv.hung@school.edu.vn",
+                    "class": {
+                        "class_id": 1,
+                        "class_name": "DH21CNTT",
+                        "faculty_id": 1
+                    }
+                }
+            }
+        ]
     },
-    "reports": [
-      {
+    "message": "Lấy báo cáo học kỳ thành công"
+}
+```
+
+**Response Error (404):**
+
+```json
+{
+    "success": false,
+    "message": "Không tìm thấy học kỳ"
+}
+```
+
+---
+
+### 2.7. Lấy báo cáo của một sinh viên cụ thể
+
+**Endpoint:** `GET /semesters/{semesterId}/students/{studentId}/report`
+
+**Mô tả:** Lấy báo cáo học kỳ của một sinh viên cụ thể
+
+**Phân quyền:**
+
+-   **Admin:** Xem báo cáo sinh viên trong khoa mình quản lý
+-   **Advisor:** Xem báo cáo sinh viên trong lớp mình cố vấn
+-   **Student:** Chỉ xem báo cáo của mình
+
+**Parameters:**
+
+-   `semesterId` (path, required): ID của học kỳ
+-   `studentId` (path, required): ID của sinh viên
+
+**Headers:**
+
+```
+Authorization: Bearer {token}
+```
+
+**Response Success (200):**
+
+```json
+{
+    "success": true,
+    "data": {
         "report_id": 1,
         "student_id": 1,
         "semester_id": 1,
@@ -681,100 +758,37 @@ Authorization: Bearer {token}
         "social_point_summary": 15,
         "outcome": "Học tiếp",
         "student": {
-          "student_id": 1,
-          "user_code": "210001",
-          "full_name": "Nguyễn Văn Hùng",
-          "email": "sv.hung@school.edu.vn",
-          "class": {
-            "class_id": 1,
-            "class_name": "DH21CNTT",
-            "faculty_id": 1
-          }
+            "student_id": 1,
+            "user_code": "210001",
+            "full_name": "Nguyễn Văn Hùng",
+            "email": "sv.hung@school.edu.vn",
+            "class_id": 1
+        },
+        "semester": {
+            "semester_id": 1,
+            "semester_name": "Học kỳ 1",
+            "academic_year": "2024-2025"
         }
-      }
-    ]
-  },
-  "message": "Lấy báo cáo học kỳ thành công"
-}
-```
-
-**Response Error (404):**
-```json
-{
-  "success": false,
-  "message": "Không tìm thấy học kỳ"
-}
-```
-
----
-
-### 2.7. Lấy báo cáo của một sinh viên cụ thể
-
-**Endpoint:** `GET /semesters/{semesterId}/students/{studentId}/report`
-
-**Mô tả:** Lấy báo cáo học kỳ của một sinh viên cụ thể
-
-**Phân quyền:**
-- **Admin:** Xem báo cáo sinh viên trong khoa mình quản lý
-- **Advisor:** Xem báo cáo sinh viên trong lớp mình cố vấn
-- **Student:** Chỉ xem báo cáo của mình
-
-**Parameters:**
-- `semesterId` (path, required): ID của học kỳ
-- `studentId` (path, required): ID của sinh viên
-
-**Headers:**
-```
-Authorization: Bearer {token}
-```
-
-**Response Success (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "report_id": 1,
-    "student_id": 1,
-    "semester_id": 1,
-    "gpa": "7.75",
-    "gpa_4_scale": "3.00",
-    "cpa_10_scale": "7.75",
-    "cpa_4_scale": "3.00",
-    "credits_registered": 8,
-    "credits_passed": 8,
-    "training_point_summary": 85,
-    "social_point_summary": 15,
-    "outcome": "Học tiếp",
-    "student": {
-      "student_id": 1,
-      "user_code": "210001",
-      "full_name": "Nguyễn Văn Hùng",
-      "email": "sv.hung@school.edu.vn",
-      "class_id": 1
     },
-    "semester": {
-      "semester_id": 1,
-      "semester_name": "Học kỳ 1",
-      "academic_year": "2024-2025"
-    }
-  },
-  "message": "Lấy báo cáo thành công"
+    "message": "Lấy báo cáo thành công"
 }
 ```
 
 **Response Error (403):**
+
 ```json
 {
-  "success": false,
-  "message": "Bạn không có quyền xem báo cáo này"
+    "success": false,
+    "message": "Bạn không có quyền xem báo cáo này"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không tìm thấy báo cáo"
+    "success": false,
+    "message": "Không tìm thấy báo cáo"
 }
 ```
 
@@ -789,30 +803,33 @@ Authorization: Bearer {token}
 **Phân quyền:** Admin, Advisor, Student
 
 **Headers:**
+
 ```
 Authorization: Bearer {token}
 ```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": {
-    "semester_id": 1,
-    "semester_name": "Học kỳ 1",
-    "academic_year": "2024-2025",
-    "start_date": "2024-09-05",
-    "end_date": "2025-01-15"
-  },
-  "message": "Lấy học kỳ hiện tại thành công"
+    "success": true,
+    "data": {
+        "semester_id": 1,
+        "semester_name": "Học kỳ 1",
+        "academic_year": "2024-2025",
+        "start_date": "2024-09-05",
+        "end_date": "2025-01-15"
+    },
+    "message": "Lấy học kỳ hiện tại thành công"
 }
 ```
 
 **Response Error (404):**
+
 ```json
 {
-  "success": false,
-  "message": "Không có học kỳ đang diễn ra"
+    "success": false,
+    "message": "Không có học kỳ đang diễn ra"
 }
 ```
 
@@ -820,16 +837,16 @@ Authorization: Bearer {token}
 
 ## 3. ERROR CODES
 
-| Code | Meaning | Description |
-|------|---------|-------------|
-| 200 | OK | Yêu cầu thành công |
-| 201 | Created | Tạo mới thành công |
-| 400 | Bad Request | Dữ liệu không hợp lệ hoặc vi phạm ràng buộc |
-| 401 | Unauthorized | Token không hợp lệ hoặc hết hạn |
-| 403 | Forbidden | Không có quyền truy cập |
-| 404 | Not Found | Không tìm thấy tài nguyên |
-| 422 | Unprocessable Entity | Validation failed |
-| 500 | Internal Server Error | Lỗi server |
+| Code | Meaning               | Description                                 |
+| ---- | --------------------- | ------------------------------------------- |
+| 200  | OK                    | Yêu cầu thành công                          |
+| 201  | Created               | Tạo mới thành công                          |
+| 400  | Bad Request           | Dữ liệu không hợp lệ hoặc vi phạm ràng buộc |
+| 401  | Unauthorized          | Token không hợp lệ hoặc hết hạn             |
+| 403  | Forbidden             | Không có quyền truy cập                     |
+| 404  | Not Found             | Không tìm thấy tài nguyên                   |
+| 422  | Unprocessable Entity  | Validation failed                           |
+| 500  | Internal Server Error | Lỗi server                                  |
 
 ---
 
@@ -842,35 +859,39 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
 
 Token được lấy từ API đăng nhập và chứa thông tin:
-- `id`: ID của user (student_id hoặc advisor_id)
-- `role`: Vai trò (student, advisor, admin)
-- `name`: Tên đầy đủ
+
+-   `id`: ID của user (student_id hoặc advisor_id)
+-   `role`: Vai trò (student, advisor, admin)
+-   `name`: Tên đầy đủ
 
 ---
 
 ## 5. ROLE PERMISSIONS SUMMARY
 
 ### Admin
-- ✅ Quản lý lớp trong khoa mình (CRUD)
-- ✅ Quản lý học kỳ (CRUD)
-- ✅ Xem sinh viên trong khoa mình
-- ✅ Xem báo cáo sinh viên trong khoa mình
+
+-   ✅ Quản lý lớp trong khoa mình (CRUD)
+-   ✅ Quản lý học kỳ (CRUD)
+-   ✅ Xem sinh viên trong khoa mình
+-   ✅ Xem báo cáo sinh viên trong khoa mình
 
 ### Advisor
-- ✅ Xem lớp mình cố vấn
-- ✅ Xem tất cả học kỳ
-- ✅ Xem sinh viên trong lớp mình cố vấn
-- ✅ Xem báo cáo sinh viên trong lớp mình cố vấn
-- ❌ KHÔNG được tạo/sửa/xóa lớp
-- ❌ KHÔNG được tạo/sửa/xóa học kỳ
+
+-   ✅ Xem lớp mình cố vấn
+-   ✅ Xem tất cả học kỳ
+-   ✅ Xem sinh viên trong lớp mình cố vấn
+-   ✅ Xem báo cáo sinh viên trong lớp mình cố vấn
+-   ❌ KHÔNG được tạo/sửa/xóa lớp
+-   ❌ KHÔNG được tạo/sửa/xóa học kỳ
 
 ### Student
-- ✅ Xem lớp của mình
-- ✅ Xem tất cả học kỳ
-- ✅ Xem bạn cùng lớp
-- ✅ Xem báo cáo của mình
-- ❌ KHÔNG được tạo/sửa/xóa lớp
-- ❌ KHÔNG được tạo/sửa/xóa học kỳ
+
+-   ✅ Xem lớp của mình
+-   ✅ Xem tất cả học kỳ
+-   ✅ Xem bạn cùng lớp
+-   ✅ Xem báo cáo của mình
+-   ❌ KHÔNG được tạo/sửa/xóa lớp
+-   ❌ KHÔNG được tạo/sửa/xóa học kỳ
 
 ---
 
@@ -916,15 +937,18 @@ curl -X GET https://yourdomain.com/api/semesters/current \
 ## 7. TESTING NOTES
 
 ### Postman Collection
+
 Import file `api_collection.json` vào Postman để test nhanh.
 
 ### Environment Variables
+
 ```
 BASE_URL: https://yourdomain.com/api
 TOKEN: Bearer eyJ0eXAiOiJKV1QiLCJhbGci...
 ```
 
 ### Test Scenarios
+
 1. ✅ Admin tạo lớp cho khoa khác → Expect 403
 2. ✅ Advisor xem lớp không cố vấn → Expect 403
 3. ✅ Student xem báo cáo người khác → Expect 403
@@ -936,11 +960,12 @@ TOKEN: Bearer eyJ0eXAiOiJKV1QiLCJhbGci...
 ## 8. CHANGELOG
 
 ### Version 1.0.0 (12/11/2024)
-- ✅ Initial release
-- ✅ Class Management API
-- ✅ Semester Management API
-- ✅ Role-based access control
-- ✅ Complete validation & error handling
+
+-   ✅ Initial release
+-   ✅ Class Management API
+-   ✅ Semester Management API
+-   ✅ Role-based access control
+-   ✅ Complete validation & error handling
 
 ---
 
