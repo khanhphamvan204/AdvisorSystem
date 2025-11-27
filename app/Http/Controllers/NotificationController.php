@@ -162,24 +162,25 @@ class NotificationController extends Controller
             }
 
             // Tạo bản ghi NotificationRecipient cho từng sinh viên trong các lớp
-            $studentIds = Student::whereIn('class_id', $request->class_ids)
-                ->pluck('student_id');
+            $students = Student::whereIn('class_id', $request->class_ids)->get();
 
             $recipients = [];
-            foreach ($studentIds as $studentId) {
+            foreach ($students as $student) {
                 $recipients[] = [
                     'notification_id' => $notification->notification_id,
-                    'student_id' => $studentId,
+                    'student_id' => $student->student_id,
                     'is_read' => false,
                     'read_at' => null
                 ];
-                $student = DB::table('Students')->where('student_id', $studentId)->first();
-                $this->emailService->sendNotificationEmail($student, $notification);
             }
 
             if (!empty($recipients)) {
                 NotificationRecipient::insert($recipients);
             }
+
+            // Gửi email bất đồng bộ qua Queue (không chờ đợi)
+            // Điều này giúp API response nhanh hơn rất nhiều
+            $this->emailService->queueBulkNotificationEmails($students, $notification);
 
 
             DB::commit();

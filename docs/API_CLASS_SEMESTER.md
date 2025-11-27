@@ -351,31 +351,6 @@ Authorization: Bearer {token}
 
 ---
 
-### 1.6. Lấy danh sách sinh viên trong lớp
-
-**Endpoint:** `GET /classes/{id}/students`
-
-**Mô tả:** Lấy danh sách sinh viên trong một lớp
-
-**Phân quyền:**
-
--   **Admin:** Xem sinh viên trong lớp thuộc khoa mình quản lý
--   **Advisor:** Xem sinh viên trong lớp mình cố vấn
--   **Student:** Xem danh sách bạn cùng lớp
-
-**Parameters:**
-
--   `id` (path, required): ID của lớp
-
-    "message": "Bạn không có quyền xem lớp này"
-    }
-
-```
-
----
-
-## 2. SEMESTER MANAGEMENT API
-
 ### 2.1. Lấy danh sách học kỳ
 
 **Endpoint:** `GET /semesters`
@@ -385,35 +360,37 @@ Authorization: Bearer {token}
 **Phân quyền:** Admin, Advisor, Student (tất cả đều có thể xem)
 
 **Headers:**
+
 ```
 
 Authorization: Bearer {token}
 
-````
+```
 
 **Response Success (200):**
+
 ```json
 {
-  "success": true,
-  "data": [
-    {
-      "semester_id": 1,
-      "semester_name": "Học kỳ 1",
-      "academic_year": "2024-2025",
-      "start_date": "2024-09-05",
-      "end_date": "2025-01-15"
-    },
-    {
-      "semester_id": 2,
-      "semester_name": "Học kỳ 2",
-      "academic_year": "2024-2025",
-      "start_date": "2025-02-10",
-      "end_date": "2025-06-30"
-    }
-  ],
-  "message": "Lấy danh sách học kỳ thành công"
+    "success": true,
+    "data": [
+        {
+            "semester_id": 1,
+            "semester_name": "Học kỳ 1",
+            "academic_year": "2024-2025",
+            "start_date": "2024-09-05",
+            "end_date": "2025-01-15"
+        },
+        {
+            "semester_id": 2,
+            "semester_name": "Học kỳ 2",
+            "academic_year": "2024-2025",
+            "start_date": "2025-02-10",
+            "end_date": "2025-06-30"
+        }
+    ],
+    "message": "Lấy danh sách học kỳ thành công"
 }
-````
+```
 
 ---
 

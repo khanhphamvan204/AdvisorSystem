@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use App\Mail\NotificationMail;
+use App\Jobs\SendNotificationEmailJob;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class EmailService
 {
     /**
-     * Gửi email thông báo cho sinh viên
+     * Gửi email thông báo cho sinh viên (synchronous)
      */
     public function sendNotificationEmail($student, $notification)
     {
@@ -38,6 +39,66 @@ class EmailService
             ]);
             return false;
         }
+    }
+
+    /**
+     * Queue email thông báo (gửi bất đồng bộ qua Laravel Queue)
+     * Thay vì gửi ngay, email sẽ được đẩy vào queue và xử lý background
+     */
+    public function queueNotificationEmail($student, $notification)
+    {
+        try {
+            // Dispatch job vào queue
+            SendNotificationEmailJob::dispatch($student, $notification);
+
+            Log::info('Email queued for sending', [
+                'student_id' => $student->student_id,
+                'notification_id' => $notification->notification_id
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to queue notification email', [
+                'student_id' => $student->student_id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Queue nhiều email thông báo cùng lúc
+     * Hiệu quả hơn việc gọi queueNotificationEmail nhiều lần
+     */
+    public function queueBulkNotificationEmails($students, $notification)
+    {
+        $queuedCount = 0;
+        $failedCount = 0;
+
+        foreach ($students as $student) {
+            try {
+                SendNotificationEmailJob::dispatch($student, $notification);
+                $queuedCount++;
+            } catch (\Exception $e) {
+                $failedCount++;
+                Log::error('Failed to queue email for student', [
+                    'student_id' => $student->student_id ?? null,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        Log::info('Bulk emails queued', [
+            'total' => count($students),
+            'queued' => $queuedCount,
+            'failed' => $failedCount
+        ]);
+
+        return [
+            'queued' => $queuedCount,
+            'failed' => $failedCount,
+            'total' => count($students)
+        ];
     }
 
     /**

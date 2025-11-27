@@ -58,150 +58,150 @@
 
                             <!-- Main content based on type -->
                             @if($type === 'notification')
+                            <div
+                                style="background-color: #ffffff; border: 2px solid #e3f2fd; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,102,204,0.08);">
                                 <div
-                                    style="background-color: #ffffff; border: 2px solid #e3f2fd; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,102,204,0.08);">
-                                    <div
-                                        style="display: inline-block; background-color: #0066cc; color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
-                                        📢 THÔNG BÁO
-                                    </div>
-                                    <h2 style="color: #0066cc; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
-                                        {{ $notificationTitle }}
-                                    </h2>
-                                    <p
-                                        style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; text-align: justify;">
-                                        {{ $notificationContent }}
-                                    </p>
+                                    style="display: inline-block; background-color: #0066cc; color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
+                                    📢 THÔNG BÁO
                                 </div>
+                                <h2 style="color: #0066cc; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
+                                    {{ $notificationTitle }}
+                                </h2>
+                                <p
+                                    style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0; text-align: justify;">
+                                    {{ $notificationContent }}
+                                </p>
+                            </div>
 
-                                @if(isset($notificationLink))
-                                    <div style="text-align: center; margin: 25px 0;">
-                                        <a href="{{ $notificationLink }}"
-                                            style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,102,204,0.3); transition: all 0.3s;">
-                                            Xem chi tiết →
-                                        </a>
-                                    </div>
-                                @endif
+                            @if(isset($notificationLink))
+                            <div style="text-align: center; margin: 25px 0;">
+                                <a href="{{ $notificationLink }}"
+                                    style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,102,204,0.3); transition: all 0.3s;">
+                                    Xem chi tiết →
+                                </a>
+                            </div>
+                            @endif
 
                             @elseif($type === 'activity')
+                            <div
+                                style="background-color: #ffffff; border: 2px solid #e3f2fd; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,102,204,0.08);">
                                 <div
-                                    style="background-color: #ffffff; border: 2px solid #e3f2fd; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,102,204,0.08);">
-                                    <div
-                                        style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
-                                        🎯 HOẠT ĐỘNG
-                                    </div>
-                                    <h2 style="color: #0066cc; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
-                                        {{ $activityTitle }}
-                                    </h2>
-                                    <p
-                                        style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 20px 0; text-align: justify;">
-                                        {{ $activityDescription }}
-                                    </p>
-
-                                    <table width="100%" cellpadding="0" cellspacing="0"
-                                        style="background-color: #f8f9fa; border-radius: 6px; overflow: hidden;">
-                                        <tr>
-                                            <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
-                                                <span style="color: #666666; font-size: 14px;">📍 <strong>Địa
-                                                        điểm:</strong></span>
-                                                <span
-                                                    style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $activityLocation ?? 'Chưa xác định' }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
-                                                <span style="color: #666666; font-size: 14px;">📅 <strong>Thời
-                                                        gian:</strong></span>
-                                                <span
-                                                    style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $activityTime ?? 'Chưa xác định' }}</span>
-                                            </td>
-                                        </tr>
-                                        @if(isset($activityPoints))
-                                            <tr>
-                                                <td style="padding: 12px 15px;">
-                                                    <span style="color: #666666; font-size: 14px;">⭐ <strong>Điểm
-                                                            thưởng:</strong></span>
-                                                    <span
-                                                        style="display: inline-block; background-color: #ffd700; color: #b8860b; font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 12px; margin-left: 10px;">{{ $activityPoints }}
-                                                        điểm</span>
-                                                </td>
-                                            </tr>
-                                        @endif
-                                    </table>
+                                    style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
+                                    🎯 HOẠT ĐỘNG
                                 </div>
+                                <h2 style="color: #0066cc; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
+                                    {{ $activityTitle }}
+                                </h2>
+                                <p
+                                    style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 20px 0; text-align: justify;">
+                                    {{ $activityDescription }}
+                                </p>
 
-                                <div style="text-align: center; margin: 25px 0;">
-                                    <a href="{{ $activityLink ?? '#' }}"
-                                        style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,102,204,0.3);">
-                                        Xem chi tiết hoạt động →
-                                    </a>
-                                </div>
+                                <table width="100%" cellpadding="0" cellspacing="0"
+                                    style="background-color: #f8f9fa; border-radius: 6px; overflow: hidden;">
+                                    <tr>
+                                        <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                                            <span style="color: #666666; font-size: 14px;">📍 <strong>Địa
+                                                    điểm:</strong></span>
+                                            <span
+                                                style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $activityLocation ?? 'Chưa xác định' }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px 15px; border-bottom: 1px solid #e0e0e0;">
+                                            <span style="color: #666666; font-size: 14px;">📅 <strong>Thời
+                                                    gian:</strong></span>
+                                            <span
+                                                style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $activityTime ?? 'Chưa xác định' }}</span>
+                                        </td>
+                                    </tr>
+                                    @if(isset($activityPoints))
+                                    <tr>
+                                        <td style="padding: 12px 15px;">
+                                            <span style="color: #666666; font-size: 14px;">⭐ <strong>Điểm
+                                                    thưởng:</strong></span>
+                                            <span
+                                                style="display: inline-block; background-color: #ffd700; color: #b8860b; font-size: 14px; font-weight: 700; padding: 4px 12px; border-radius: 12px; margin-left: 10px;">{{ $activityPoints }}
+                                                điểm</span>
+                                        </td>
+                                    </tr>
+                                    @endif
+                                </table>
+                            </div>
+
+                            <div style="text-align: center; margin: 25px 0;">
+                                <a href="{{ $activityLink ?? '#' }}"
+                                    style="display: inline-block; background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,102,204,0.3);">
+                                    Xem chi tiết hoạt động →
+                                </a>
+                            </div>
 
                             @elseif($type === 'warning')
+                            <div
+                                style="background-color: #ffffff; border: 2px solid #ffe0b2; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,152,0,0.1);">
                                 <div
-                                    style="background-color: #ffffff; border: 2px solid #ffe0b2; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(255,152,0,0.1);">
-                                    <div
-                                        style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
-                                        ⚠️ CẢNH BÁO
-                                    </div>
-                                    <h2 style="color: #e65100; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
-                                        {{ $warningTitle }}
-                                    </h2>
-                                    <p
-                                        style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 15px 0; text-align: justify;">
-                                        {{ $warningContent }}
-                                    </p>
-                                    @if(isset($warningAdvice))
-                                        <div
-                                            style="background-color: #fff8e1; padding: 15px; border-left: 3px solid #ffa726; border-radius: 4px; margin-top: 15px;">
-                                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                💡 <strong style="color: #f57c00;">Lời khuyên:</strong> {{ $warningAdvice }}
-                                            </p>
-                                        </div>
-                                    @endif
+                                    style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
+                                    ⚠️ CẢNH BÁO
                                 </div>
+                                <h2 style="color: #e65100; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
+                                    {{ $warningTitle }}
+                                </h2>
+                                <p
+                                    style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 15px 0; text-align: justify;">
+                                    {{ $warningContent }}
+                                </p>
+                                @if(isset($warningAdvice))
+                                <div
+                                    style="background-color: #fff8e1; padding: 15px; border-left: 3px solid #ffa726; border-radius: 4px; margin-top: 15px;">
+                                    <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0;">
+                                        💡 <strong style="color: #f57c00;">Lời khuyên:</strong> {{ $warningAdvice }}
+                                    </p>
+                                </div>
+                                @endif
+                            </div>
 
                             @elseif($type === 'meeting')
+                            <div
+                                style="background-color: #ffffff; border: 2px solid #c8e6c9; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(76,175,80,0.1);">
                                 <div
-                                    style="background-color: #ffffff; border: 2px solid #c8e6c9; padding: 25px; margin-bottom: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(76,175,80,0.1);">
-                                    <div
-                                        style="display: inline-block; background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
-                                        👥 CUỘC HỌP
-                                    </div>
-                                    <h2 style="color: #2e7d32; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
-                                        {{ $meetingTitle }}
-                                    </h2>
-                                    <p
-                                        style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 20px 0; text-align: justify;">
-                                        {{ $meetingSummary ?? '' }}
-                                    </p>
-
-                                    <table width="100%" cellpadding="0" cellspacing="0"
-                                        style="background-color: #f1f8e9; border-radius: 6px; overflow: hidden;">
-                                        <tr>
-                                            <td style="padding: 12px 15px; border-bottom: 1px solid #dcedc8;">
-                                                <span style="color: #666666; font-size: 14px;">📍 <strong>Địa
-                                                        điểm:</strong></span>
-                                                <span
-                                                    style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $meetingLocation }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 12px 15px;">
-                                                <span style="color: #666666; font-size: 14px;">🕐 <strong>Thời
-                                                        gian:</strong></span>
-                                                <span
-                                                    style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $meetingTime }}</span>
-                                            </td>
-                                        </tr>
-                                    </table>
+                                    style="display: inline-block; background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: #ffffff; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 15px;">
+                                    👥 CUỘC HỌP
                                 </div>
+                                <h2 style="color: #2e7d32; margin: 0 0 15px 0; font-size: 20px; font-weight: 700;">
+                                    {{ $meetingTitle }}
+                                </h2>
+                                <p
+                                    style="color: #333333; font-size: 15px; line-height: 1.8; margin: 0 0 20px 0; text-align: justify;">
+                                    {{ $meetingSummary ?? '' }}
+                                </p>
 
-                                <div style="text-align: center; margin: 25px 0;">
-                                    <a href="{{ $meetingLink ?? '#' }}"
-                                        style="display: inline-block; background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(76,175,80,0.3);">
-                                        Tham gia cuộc họp →
-                                    </a>
-                                </div>
+                                <table width="100%" cellpadding="0" cellspacing="0"
+                                    style="background-color: #f1f8e9; border-radius: 6px; overflow: hidden;">
+                                    <tr>
+                                        <td style="padding: 12px 15px; border-bottom: 1px solid #dcedc8;">
+                                            <span style="color: #666666; font-size: 14px;">📍 <strong>Địa
+                                                    điểm:</strong></span>
+                                            <span
+                                                style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $meetingLocation }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px 15px;">
+                                            <span style="color: #666666; font-size: 14px;">🕐 <strong>Thời
+                                                    gian:</strong></span>
+                                            <span
+                                                style="color: #333333; font-size: 14px; margin-left: 10px;">{{ $meetingTime }}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div style="text-align: center; margin: 25px 0;">
+                                <a href="{{ $meetingLink ?? '#' }}"
+                                    style="display: inline-block; background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: #ffffff; text-decoration: none; padding: 14px 35px; border-radius: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(76,175,80,0.3);">
+                                    Tham gia cuộc họp →
+                                </a>
+                            </div>
                             @endif
 
                             <!-- Footer message -->
@@ -256,7 +256,7 @@
                                                             style="font-size: 11px; color: #999999; margin-bottom: 3px;">
                                                             Website</div>
                                                         <a href="https://huit.edu.vn"
-                                                            style="color: #0066cc; text-decoration: none; font-size: 12px; font-weight: 600;">hcmcit.edu.vn</a>
+                                                            style="color: #0066cc; text-decoration: none; font-size: 12px; font-weight: 600;">huit.edu.vn</a>
                                                     </div>
                                                 </td>
                                                 <td width="33%" valign="top" style="padding: 0 10px;">
