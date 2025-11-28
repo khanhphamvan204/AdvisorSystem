@@ -34,7 +34,7 @@
                                         </h1>
                                         <p
                                             style="color: #b3d9ff; margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.3px;">
-                                            🎓 Hệ thống quản lý cố vấn học tập
+                                            🎓 Hệ thống quản lý công tác cố vấn học tập
                                         </p>
                                     </td>
                                 </tr>
@@ -52,7 +52,7 @@
                                     Kính chào <strong style="color: #0066cc;">{{ $studentName }}</strong>,
                                 </p>
                                 <p style="color: #666666; font-size: 14px; margin: 8px 0 0 0;">
-                                    Bạn nhận được thông báo mới từ hệ thống cố vấn học tập
+                                    Bạn nhận được thông báo mới từ Hệ thống quản lý công tác cố vấn học tập
                                 </p>
                             </div>
 
@@ -277,7 +277,7 @@
                                 <tr>
                                     <td style="padding-top: 20px; border-top: 1px solid #dee2e6; text-align: center;">
                                         <p style="color: #999999; font-size: 11px; margin: 0; line-height: 1.6;">
-                                            Email này được gửi tự động từ Hệ thống Quản lý Cố vấn Học tập<br>
+                                            Email này được gửi tự động từ Hệ thống quản lý công tác cố vấn học tập<br>
                                             © {{ date('Y') }} Trường Đại học Công Thương TP.HCM. All rights reserved.
                                         </p>
                                     </td>

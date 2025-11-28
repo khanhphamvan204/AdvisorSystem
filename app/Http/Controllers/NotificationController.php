@@ -178,8 +178,8 @@ class NotificationController extends Controller
                 NotificationRecipient::insert($recipients);
             }
 
-            // Gửi email bất đồng bộ qua Queue (không chờ đợi)
-            // Điều này giúp API response nhanh hơn rất nhiều
+            // // Gửi email bất đồng bộ qua Queue (không chờ đợi)
+            // // Điều này giúp API response nhanh hơn rất nhiều
             $this->emailService->queueBulkNotificationEmails($students, $notification);
 
 
