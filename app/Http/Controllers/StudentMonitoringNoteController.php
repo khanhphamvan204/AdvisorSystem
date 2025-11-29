@@ -8,6 +8,8 @@ use App\Models\Student;
 use App\Models\Advisor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\AcademicMonitoringService;
+use App\Services\PointCalculationService;
 
 /**
  * StudentMonitoringNoteController
@@ -92,9 +94,44 @@ class StudentMonitoringNoteController extends Controller
 
             $notes = $query->orderBy('created_at', 'desc')->get();
 
+            // Initialize services
+            $academicService = new AcademicMonitoringService();
+            $pointService = new PointCalculationService();
+
+            // Enrich notes with student academic data
+            $enrichedNotes = $notes->map(function ($note) use ($academicService, $pointService) {
+                $studentId = $note->student_id;
+                $semesterId = $note->semester_id;
+
+                // Calculate GPA and CPA for the semester
+                $gpa = $academicService->calculateGPA($studentId, $semesterId);
+                $cpa = $academicService->calculateCPA($studentId, $semesterId);
+
+                // Count academic warnings
+                $academicWarningsCount = $note->student->academicWarnings()->count();
+
+                // Calculate training points for the semester
+                $trainingPoints = $pointService->calculateTrainingPoints($studentId, $semesterId);
+
+                // Calculate cumulative social work points up to now
+                $socialPoints = $pointService->calculateSocialPoints($studentId);
+
+                // Add the calculated data to the note
+                $noteArray = $note->toArray();
+                $noteArray['student_academic_data'] = [
+                    'gpa_semester' => $gpa,
+                    'cpa_semester' => $cpa,
+                    'academic_warnings_count' => $academicWarningsCount,
+                    'training_points_semester' => $trainingPoints,
+                    'social_points_cumulative' => $socialPoints
+                ];
+
+                return $noteArray;
+            });
+
             return response()->json([
                 'success' => true,
-                'data' => $notes
+                'data' => $enrichedNotes
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -157,9 +194,33 @@ class StudentMonitoringNoteController extends Controller
                 }
             }
 
+            // Initialize services
+            $academicService = new AcademicMonitoringService();
+            $pointService = new PointCalculationService();
+
+            // Calculate student academic data
+            $studentId = $note->student_id;
+            $semesterId = $note->semester_id;
+
+            $gpa = $academicService->calculateGPA($studentId, $semesterId);
+            $cpa = $academicService->calculateCPA($studentId, $semesterId);
+            $academicWarningsCount = $note->student->academicWarnings()->count();
+            $trainingPoints = $pointService->calculateTrainingPoints($studentId, $semesterId);
+            $socialPoints = $pointService->calculateSocialPoints($studentId);
+
+            // Add the calculated data to the note
+            $noteArray = $note->toArray();
+            $noteArray['student_academic_data'] = [
+                'gpa_semester' => $gpa,
+                'cpa_semester' => $cpa,
+                'academic_warnings_count' => $academicWarningsCount,
+                'training_points_semester' => $trainingPoints,
+                'social_points_cumulative' => $socialPoints
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $note
+                'data' => $noteArray
             ]);
         } catch (\Exception $e) {
             return response()->json([

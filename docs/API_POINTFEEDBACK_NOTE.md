@@ -600,12 +600,31 @@ GET /api/monitoring-notes
           "semester_id": 1,
           "semester_name": "Học kỳ 1",
           "academic_year": "2024-2025"
+        },
+        "student_academic_data": {
+          "gpa_semester": 6.5,
+          "cpa_semester": 7.2,
+          "academic_warnings_count": 1,
+          "training_points_semester": 75,
+          "social_points_cumulative": 120
         }
       }
     ]
   }
 }
 ```
+
+### Response Fields - student_academic_data
+
+Mỗi ghi chú bao gồm thông tin học vụ của sinh viên trong học kỳ đó:
+
+| Field                      | Type    | Description                                                   |
+| -------------------------- | ------- | ------------------------------------------------------------- |
+| `gpa_semester`             | float   | Điểm trung bình học kỳ (GPA) của sinh viên trong học kỳ đó    |
+| `cpa_semester`             | float   | Điểm trung bình tích lũy (CPA) của sinh viên đến học kỳ đó    |
+| `academic_warnings_count`  | integer | Tổng số lần cảnh cáo học vụ của sinh viên                     |
+| `training_points_semester` | integer | Điểm rèn luyện (DRL) của sinh viên trong học kỳ đó            |
+| `social_points_cumulative` | integer | Điểm công tác xã hội (CTXH) tích lũy từ đầu khóa đến hiện tại |
 
 ---
 
@@ -664,12 +683,46 @@ GET /api/monitoring-notes/{id}
             "semester_id": 1,
             "semester_name": "Học kỳ 1",
             "academic_year": "2024-2025"
+        },
+        "student_academic_data": {
+            "gpa_semester": 6.5,
+            "cpa_semester": 7.2,
+            "academic_warnings_count": 1,
+            "training_points_semester": 75,
+            "social_points_cumulative": 120
         }
     }
 }
 ```
 
----
+### Response Fields - student_academic_data
+
+Tương tự endpoint `GET /api/monitoring-notes`, response bao gồm thông tin học vụ của sinh viên:
+
+| Field                      | Type    | Description                                                   |
+| -------------------------- | ------- | ------------------------------------------------------------- |
+| `gpa_semester`             | float   | Điểm trung bình học kỳ (GPA) của sinh viên trong học kỳ đó    |
+| `cpa_semester`             | float   | Điểm trung bình tích lũy (CPA) của sinh viên đến học kỳ đó    |
+| `academic_warnings_count`  | integer | Tổng số lần cảnh cáo học vụ của sinh viên                     |
+| `training_points_semester` | integer | Điểm rèn luyện (DRL) của sinh viên trong học kỳ đó            |
+| `social_points_cumulative` | integer | Điểm công tác xã hội (CTXH) tích lũy từ đầu khóa đến hiện tại |
+
+### Response Error (404)
+
+```json
+{
+    "success": false,
+    "message": "Không tìm thấy ghi chú"
+}
+```
+
+### Response Error (403)
+
+````json
+{
+    "success": false,
+    "message": "Bạn không có quyền xem ghi chú này"
+}
 
 ## 3. Tạo ghi chú mới
 
@@ -677,7 +730,7 @@ GET /api/monitoring-notes/{id}
 
 ```http
 POST /api/monitoring-notes
-```
+````
 
 ### Authorization
 
