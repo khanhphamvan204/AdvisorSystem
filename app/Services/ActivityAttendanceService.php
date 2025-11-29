@@ -14,9 +14,17 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Carbon\Carbon;
+use App\Services\ExcelHeaderService;
 
 class ActivityAttendanceService
 {
+    protected ExcelHeaderService $excelHeaderService;
+
+    public function __construct(ExcelHeaderService $excelHeaderService)
+    {
+        $this->excelHeaderService = $excelHeaderService;
+    }
+
     /**
      * Export danh sách đăng ký hoạt động ra Excel
      * 
@@ -33,21 +41,13 @@ class ActivityAttendanceService
             ])->find($activityId);
 
             if (!$activity) {
-                return [
-                    'success' => false,
-                    'message' => 'Hoạt động không tồn tại'
-                ];
+                return ['success' => false, 'message' => 'Hoạt động không tồn tại'];
             }
 
-            // Kiểm tra quyền
             if ($activity->advisor_id != $advisorId) {
-                return [
-                    'success' => false,
-                    'message' => 'Bạn không có quyền xuất danh sách hoạt động này'
-                ];
+                return ['success' => false, 'message' => 'Bạn không có quyền xuất danh sách hoạt động này'];
             }
 
-            // Lấy danh sách đăng ký
             $registrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
                 $q->where('activity_id', $activityId);
             })
@@ -60,160 +60,82 @@ class ActivityAttendanceService
                 ->get();
 
             if ($registrations->isEmpty()) {
-                return [
-                    'success' => false,
-                    'message' => 'Chưa có sinh viên nào đăng ký hoạt động này'
+                return ['success' => false, 'message' => 'Chưa có sinh viên nào đăng ký hoạt động này'];
+            }
+
+            // Tạo spreadsheet với header đẹp từ đầu
+            $spreadsheet = $this->excelHeaderService->createWithProfessionalHeader();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Điền tiêu đề chính (dòng 5 - KHÔNG động vào 1-3)
+            $this->excelHeaderService->fillTitle($sheet, 'DANH SÁCH ĐĂNG KÝ HOẠT ĐỘNG', 5, 'I');
+
+            // Điền thông tin hoạt động (bắt đầu từ dòng 7)
+            $currentRow = $this->excelHeaderService->fillInfoSection($sheet, [
+                'Tên hoạt động:' => $activity->title,
+                'Đơn vị tổ chức:' => $activity->organizerUnit->unit_name ?? 'N/A',
+                'Thời gian:' => Carbon::parse($activity->start_time)->format('d/m/Y H:i') .
+                    ' - ' .
+                    Carbon::parse($activity->end_time)->format('d/m/Y H:i'),
+                'Địa điểm:' => $activity->location ?? 'N/A',
+                'Cố vấn phụ trách:' => $activity->advisor->full_name,
+                'Ngày xuất:' => Carbon::now()->format('d/m/Y H:i'),
+            ], 7, 'I');
+
+            // Dòng trống
+            $currentRow++;
+
+            // Header bảng
+            $this->excelHeaderService->createTableHeader($sheet, [
+                'STT',
+                'MSSV',
+                'Họ và tên',
+                'Lớp',
+                'Vai trò',
+                'Điểm',
+                'Loại điểm',
+                'Trạng thái',
+                'Ghi chú'
+            ], $currentRow);
+
+            // Chuẩn bị dữ liệu
+            $tableData = [];
+            foreach ($registrations as $index => $reg) {
+                $tableData[] = [
+                    $index + 1,
+                    $reg->student->user_code,
+                    $reg->student->full_name,
+                    $reg->student->class->class_name ?? 'N/A',
+                    $reg->role->role_name,
+                    $reg->role->points_awarded,
+                    $this->formatPointType($reg->role->point_type),
+                    $this->formatStatus($reg->status),
+                    ''
                 ];
             }
 
-            // Tạo Spreadsheet
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
+            // Điền dữ liệu
+            $lastRow = $this->excelHeaderService->fillTableData($sheet, $tableData, $currentRow + 1);
 
-            // ===== HEADER THÔNG TIN HOẠT ĐỘNG =====
-            $sheet->setCellValue('A1', 'DANH SÁCH ĐĂNG KÝ HOẠT ĐỘNG');
-            $sheet->mergeCells('A1:I1');
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-            $sheet->setCellValue('A2', 'Tên hoạt động:');
-            $sheet->setCellValue('B2', $activity->title);
-            $sheet->mergeCells('B2:I2');
-
-            $sheet->setCellValue('A3', 'Đơn vị tổ chức:');
-            $sheet->setCellValue('B3', $activity->organizerUnit->unit_name ?? 'N/A');
-
-            $sheet->setCellValue('A4', 'Thời gian:');
-            $sheet->setCellValue(
-                'B4',
-                Carbon::parse($activity->start_time)->format('d/m/Y H:i') .
-                ' - ' .
-                Carbon::parse($activity->end_time)->format('d/m/Y H:i')
+            // Auto format columns
+            $this->excelHeaderService->autoFormatColumns(
+                $sheet,
+                range('A', 'I'),
+                [
+                    'C' => 30, // Họ tên rộng hơn
+                    'G' => 38, // Giữ nguyên width cho "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"
+                    'H' => 18,
+                    'I' => 15
+                ]
             );
-            $sheet->mergeCells('B4:I4');
 
-            $sheet->setCellValue('A5', 'Địa điểm:');
-            $sheet->setCellValue('B5', $activity->location ?? 'N/A');
-            $sheet->mergeCells('B5:I5');
-
-            $sheet->setCellValue('A6', 'Cố vấn phụ trách:');
-            $sheet->setCellValue('B6', $activity->advisor->full_name);
-
-            $sheet->setCellValue('A7', 'Ngày xuất:');
-            $sheet->setCellValue('B7', Carbon::now()->format('d/m/Y H:i'));
-
-            // Style cho phần header
-            $sheet->getStyle('A2:A7')->getFont()->setBold(true);
-            $sheet->getStyle('A2:B7')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-
-            // ===== HEADER BẢNG =====
-            $headerRow = 9;
-            $headers = [
-                'A' => 'STT',
-                'B' => 'MSSV',
-                'C' => 'Họ và tên',
-                'D' => 'Lớp',
-                'E' => 'Vai trò',
-                'F' => 'Điểm',
-                'G' => 'Loại điểm',
-                'H' => 'Trạng thái',
-                'I' => 'Ghi chú'
-            ];
-
-            foreach ($headers as $col => $header) {
-                $sheet->setCellValue($col . $headerRow, $header);
-            }
-
-            // Style cho header bảng
-            $headerStyle = $sheet->getStyle('A' . $headerRow . ':I' . $headerRow);
-            $headerStyle->getFont()->setBold(true)->setSize(12);
-            $headerStyle->getFill()
-                ->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FF4472C4');
-            $headerStyle->getFont()->getColor()->setARGB('FFFFFFFF');
-            $headerStyle->getAlignment()
-                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                ->setVertical(Alignment::VERTICAL_CENTER);
-            $headerStyle->getBorders()->getAllBorders()
-                ->setBorderStyle(Border::BORDER_THIN);
-
-            // ===== DỮ LIỆU =====
-            $row = $headerRow + 1;
-            $stt = 1;
-
-            foreach ($registrations as $registration) {
-                $sheet->setCellValue('A' . $row, $stt);
-                $sheet->setCellValue('B' . $row, $registration->student->user_code);
-                $sheet->setCellValue('C' . $row, $registration->student->full_name);
-                $sheet->setCellValue('D' . $row, $registration->student->class->class_name ?? 'N/A');
-                $sheet->setCellValue('E' . $row, $registration->role->role_name);
-                $sheet->setCellValue('F' . $row, $registration->role->points_awarded);
-                $sheet->setCellValue('G' . $row, $this->formatPointType($registration->role->point_type));
-                $sheet->setCellValue('H' . $row, $this->formatStatus($registration->status));
-                $sheet->setCellValue('I' . $row, ''); // Ghi chú để trống
-
-                // Style cho dữ liệu
-                $sheet->getStyle('A' . $row . ':I' . $row)
-                    ->getAlignment()
-                    ->setVertical(Alignment::VERTICAL_CENTER);
-
-                $sheet->getStyle('A' . $row)
-                    ->getAlignment()
-                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-                // Border
-                $sheet->getStyle('A' . $row . ':I' . $row)
-                    ->getBorders()
-                    ->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN);
-
-                $row++;
-                $stt++;
-            }
-
-            // ===== TỔNG KẾT =====
-            $summaryRow = $row + 1;
-            $sheet->setCellValue('A' . $summaryRow, 'TỔNG SỐ SINH VIÊN:');
-            $sheet->setCellValue('B' . $summaryRow, $registrations->count());
-            $sheet->getStyle('A' . $summaryRow)->getFont()->setBold(true);
-
-            // Thống kê theo trạng thái
-            $summaryRow++;
-            $statusCounts = $registrations->groupBy('status')->map(function ($items) {
-                return $items->count();
-            });
-
-            $sheet->setCellValue('A' . $summaryRow, 'Đã đăng ký:');
-            $sheet->setCellValue('B' . $summaryRow, $statusCounts->get('registered', 0));
-
-            $summaryRow++;
-            $sheet->setCellValue('A' . $summaryRow, 'Đã tham gia:');
-            $sheet->setCellValue('B' . $summaryRow, $statusCounts->get('attended', 0));
-
-            $summaryRow++;
-            $sheet->setCellValue('A' . $summaryRow, 'Vắng mặt:');
-            $sheet->setCellValue('B' . $summaryRow, $statusCounts->get('absent', 0));
-
-            $summaryRow++;
-            $sheet->setCellValue('A' . $summaryRow, 'Đã hủy:');
-            $sheet->setCellValue('B' . $summaryRow, $statusCounts->get('cancelled', 0));
-
-            // ===== AUTO SIZE COLUMNS =====
-            foreach (range('A', 'I') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-            }
-
-            // Đảm bảo cột C (Họ tên) đủ rộng
-            $sheet->getColumnDimension('C')->setWidth(30);
-
-            // ===== LƯU FILE =====
+            // Lưu file
             $fileName = 'DanhSach_DangKy_' .
                 preg_replace('/[^A-Za-z0-9_-]/', '_', $activity->title) . '_' .
                 Carbon::now()->format('YmdHis') . '.xlsx';
 
             $filePath = storage_path('app/exports/' . $fileName);
 
-            // Tạo thư mục nếu chưa tồn tại
             if (!file_exists(storage_path('app/exports'))) {
                 mkdir(storage_path('app/exports'), 0755, true);
             }
@@ -223,7 +145,6 @@ class ActivityAttendanceService
 
             Log::info('Export danh sách đăng ký thành công', [
                 'activity_id' => $activityId,
-                'advisor_id' => $advisorId,
                 'file_name' => $fileName,
                 'total_records' => $registrations->count()
             ]);
@@ -235,7 +156,6 @@ class ActivityAttendanceService
                 'file_name' => $fileName,
                 'total_records' => $registrations->count()
             ];
-
         } catch (\Exception $e) {
             Log::error('Lỗi khi export danh sách đăng ký', [
                 'activity_id' => $activityId,
@@ -251,10 +171,6 @@ class ActivityAttendanceService
 
     /**
      * Export mẫu file điểm danh (template)
-     * 
-     * @param int $activityId
-     * @param int $advisorId
-     * @return array
      */
     public function exportAttendanceTemplate(int $activityId, int $advisorId): array
     {
@@ -265,24 +181,17 @@ class ActivityAttendanceService
             ])->find($activityId);
 
             if (!$activity) {
-                return [
-                    'success' => false,
-                    'message' => 'Hoạt động không tồn tại'
-                ];
+                return ['success' => false, 'message' => 'Hoạt động không tồn tại'];
             }
 
             if ($activity->advisor_id != $advisorId) {
-                return [
-                    'success' => false,
-                    'message' => 'Bạn không có quyền xuất file mẫu cho hoạt động này'
-                ];
+                return ['success' => false, 'message' => 'Bạn không có quyền xuất file mẫu cho hoạt động này'];
             }
 
-            // Lấy danh sách đăng ký với status registered hoặc attended
             $registrations = ActivityRegistration::whereHas('role', function ($q) use ($activityId) {
                 $q->where('activity_id', $activityId);
             })
-                ->whereIn('status', ['registered', 'attended'])
+                ->whereIn('status', ['registered', 'attended', 'absent'])
                 ->with([
                     'student:student_id,user_code,full_name,class_id',
                     'student.class:class_id,class_name',
@@ -292,111 +201,103 @@ class ActivityAttendanceService
                 ->get();
 
             if ($registrations->isEmpty()) {
-                return [
-                    'success' => false,
-                    'message' => 'Không có sinh viên nào để điểm danh'
+                return ['success' => false, 'message' => 'Không có sinh viên nào để điểm danh'];
+            }
+
+            // Tạo spreadsheet với header đẹp từ đầu
+            $spreadsheet = $this->excelHeaderService->createWithProfessionalHeader();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Điền tiêu đề chính (dòng 5 - KHÔNG động vào 1-3)
+            $this->excelHeaderService->fillTitle($sheet, 'FILE ĐIỂM DANH HOẠT ĐỘNG', 5, 'I');
+
+            // Điền thông tin hoạt động (bắt đầu từ dòng 7)
+            $currentRow = $this->excelHeaderService->fillInfoSection($sheet, [
+                'Tên hoạt động:' => $activity->title,
+                'Đơn vị tổ chức:' => $activity->organizerUnit->unit_name ?? 'N/A',
+                'Thời gian:' => Carbon::parse($activity->start_time)->format('d/m/Y H:i') .
+                    ' - ' .
+                    Carbon::parse($activity->end_time)->format('d/m/Y H:i'),
+                'Địa điểm:' => $activity->location ?? 'N/A',
+                'Cố vấn phụ trách:' => $activity->advisor->full_name,
+                'Ngày xuất:' => Carbon::now()->format('d/m/Y H:i'),
+            ], 7, 'I');
+
+            // Dòng trống
+            $currentRow++;
+
+            // Hướng dẫn
+            $sheet->setCellValue('A' . $currentRow, 'HƯỚNG DẪN:');
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->getColor()->setRGB('FF0000');
+            $currentRow++;
+
+            $instructions = [
+                '1. KHÔNG thay đổi cột STT, Registration ID, MSSV, Họ tên, Vai trò',
+                '2. Cột "Trạng thái điểm danh" chỉ điền: "Có mặt" hoặc "Vắng mặt"',
+                '3. Sau khi điền xong, lưu file và import lại vào hệ thống'
+            ];
+
+            foreach ($instructions as $instruction) {
+                $sheet->setCellValue('A' . $currentRow, $instruction);
+                $sheet->getStyle('A' . $currentRow)->getFont()->setItalic(true);
+                $currentRow++;
+            }
+
+            // Dòng trống
+            $currentRow++;
+
+            // Header bảng
+            $this->excelHeaderService->createTableHeader($sheet, [
+                'STT',
+                'Registration ID',
+                'MSSV',
+                'Họ và tên',
+                'Vai trò',
+                'Trạng thái điểm danh'
+            ], $currentRow);
+
+            // Chuẩn bị dữ liệu
+            $tableData = [];
+            foreach ($registrations as $index => $reg) {
+                $tableData[] = [
+                    $index + 1,
+                    $reg->registration_id,
+                    $reg->student->user_code,
+                    $reg->student->full_name,
+                    $reg->role->role_name,
+                    '' // Trống để advisor điền
                 ];
             }
 
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
+            // Điền dữ liệu
+            $dataStartRow = $currentRow + 1;
+            $lastRow = $this->excelHeaderService->fillTableData($sheet, $tableData, $dataStartRow);
 
-            // ===== HEADER =====
-            $sheet->setCellValue('A1', 'FILE ĐIỂM DANH HOẠT ĐỘNG');
-            $sheet->mergeCells('A1:F1');
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-            $sheet->setCellValue('A2', 'Tên hoạt động:');
-            $sheet->setCellValue('B2', $activity->title);
-            $sheet->mergeCells('B2:F2');
-
-            $sheet->setCellValue('A3', 'Thời gian:');
-            $sheet->setCellValue(
-                'B3',
-                Carbon::parse($activity->start_time)->format('d/m/Y H:i') .
-                ' - ' .
-                Carbon::parse($activity->end_time)->format('d/m/Y H:i')
-            );
-            $sheet->mergeCells('B3:F3');
-
-            // ===== HƯỚNG DẪN =====
-            $sheet->setCellValue('A5', 'HƯỚNG DẪN:');
-            $sheet->getStyle('A5')->getFont()->setBold(true)->getColor()->setARGB('FFFF0000');
-
-            $sheet->setCellValue('A6', '1. KHÔNG thay đổi cột STT, Registration ID, MSSV, Họ tên, Vai trò');
-            $sheet->setCellValue('A7', '2. Cột "Trạng thái điểm danh" chỉ điền: attended (có mặt) hoặc absent (vắng mặt)');
-            $sheet->setCellValue('A8', '3. Sau khi điền xong, lưu file và import lại vào hệ thống');
-            $sheet->getStyle('A6:A8')->getFont()->setItalic(true);
-
-            // ===== HEADER BẢNG =====
-            $headerRow = 10;
-            $headers = [
-                'A' => 'STT',
-                'B' => 'Registration ID',
-                'C' => 'MSSV',
-                'D' => 'Họ và tên',
-                'E' => 'Vai trò',
-                'F' => 'Trạng thái điểm danh'
-            ];
-
-            foreach ($headers as $col => $header) {
-                $sheet->setCellValue($col . $headerRow, $header);
-            }
-
-            // Style header
-            $headerStyle = $sheet->getStyle('A' . $headerRow . ':F' . $headerRow);
-            $headerStyle->getFont()->setBold(true)->setSize(12);
-            $headerStyle->getFill()
-                ->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FF4472C4');
-            $headerStyle->getFont()->getColor()->setARGB('FFFFFFFF');
-            $headerStyle->getAlignment()
-                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-                ->setVertical(Alignment::VERTICAL_CENTER);
-            $headerStyle->getBorders()->getAllBorders()
-                ->setBorderStyle(Border::BORDER_THIN);
-
-            // ===== DỮ LIỆU =====
-            $row = $headerRow + 1;
-            $stt = 1;
-
-            foreach ($registrations as $registration) {
-                $sheet->setCellValue('A' . $row, $stt);
-                $sheet->setCellValue('B' . $row, $registration->registration_id);
-                $sheet->setCellValue('C' . $row, $registration->student->user_code);
-                $sheet->setCellValue('D' . $row, $registration->student->full_name);
-                $sheet->setCellValue('E' . $row, $registration->role->role_name);
-                $sheet->setCellValue('F' . $row, ''); // Để trống cho advisor điền
-
-                // Màu nền cho cột F (để dễ nhận biết)
-                $sheet->getStyle('F' . $row)
-                    ->getFill()
+            // Highlight cột điểm danh (cột F - để dễ nhận biết)
+            for ($row = $dataStartRow; $row < $lastRow; $row++) {
+                $sheet->getStyle('F' . $row)->getFill()
                     ->setFillType(Fill::FILL_SOLID)
-                    ->getStartColor()->setARGB('FFFFFF00'); // Màu vàng nhạt
-
-                // Border
-                $sheet->getStyle('A' . $row . ':F' . $row)
-                    ->getBorders()
-                    ->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN);
-
-                // Center align
-                $sheet->getStyle('A' . $row . ':F' . $row)
-                    ->getAlignment()
-                    ->setVertical(Alignment::VERTICAL_CENTER);
-
-                $row++;
-                $stt++;
+                    ->getStartColor()->setRGB('FFFF00'); // Màu vàng
             }
 
-            // ===== AUTO SIZE =====
-            foreach (range('A', 'F') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-            }
-            $sheet->getColumnDimension('D')->setWidth(30);
+            // Auto format columns - specify TẤT CẢ widths để không bị autoSize ghi đè
+            $this->excelHeaderService->autoFormatColumns(
+                $sheet,
+                range('A', 'I'),
+                [
+                    'A' => 8,  // STT
+                    'B' => 18, // Registration ID / Thông tin trường
+                    'C' => 30, // MSSV / Thông tin trường
+                    'D' => 30, // Họ tên
+                    'E' => 25, // Vai trò
+                    'F' => 25, // Trạng thái điểm danh
+                    'G' => 38, // "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"
+                    'H' => 18,
+                    'I' => 15
+                ]
+            );
 
-            // ===== LƯU FILE =====
+            // Lưu file
             $fileName = 'DiemDanh_' .
                 preg_replace('/[^A-Za-z0-9_-]/', '_', $activity->title) . '_' .
                 Carbon::now()->format('YmdHis') . '.xlsx';
@@ -412,7 +313,6 @@ class ActivityAttendanceService
 
             Log::info('Export file mẫu điểm danh thành công', [
                 'activity_id' => $activityId,
-                'advisor_id' => $advisorId,
                 'file_name' => $fileName,
                 'total_records' => $registrations->count()
             ]);
@@ -424,7 +324,6 @@ class ActivityAttendanceService
                 'file_name' => $fileName,
                 'total_records' => $registrations->count()
             ];
-
         } catch (\Exception $e) {
             Log::error('Lỗi khi export file mẫu điểm danh', [
                 'activity_id' => $activityId,
@@ -440,43 +339,26 @@ class ActivityAttendanceService
 
     /**
      * Import file điểm danh và cập nhật trạng thái
-     * 
-     * @param string $filePath
-     * @param int $activityId
-     * @param int $advisorId
-     * @return array
      */
     public function importAttendance(string $filePath, int $activityId, int $advisorId): array
     {
         try {
             if (!file_exists($filePath)) {
-                return [
-                    'success' => false,
-                    'message' => 'File không tồn tại'
-                ];
+                return ['success' => false, 'message' => 'File không tồn tại'];
             }
 
             $activity = Activity::find($activityId);
 
             if (!$activity) {
-                return [
-                    'success' => false,
-                    'message' => 'Hoạt động không tồn tại'
-                ];
+                return ['success' => false, 'message' => 'Hoạt động không tồn tại'];
             }
 
             if ($activity->advisor_id != $advisorId) {
-                return [
-                    'success' => false,
-                    'message' => 'Bạn không có quyền cập nhật điểm danh cho hoạt động này'
-                ];
+                return ['success' => false, 'message' => 'Bạn không có quyền cập nhật điểm danh cho hoạt động này'];
             }
 
             if (in_array($activity->status, ['cancelled', 'upcoming'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Không thể điểm danh cho hoạt động chưa diễn ra hoặc đã bị hủy'
-                ];
+                return ['success' => false, 'message' => 'Không thể điểm danh cho hoạt động chưa diễn ra hoặc đã bị hủy'];
             }
 
             // Đọc file Excel
@@ -484,8 +366,19 @@ class ActivityAttendanceService
             $sheet = $spreadsheet->getActiveSheet();
             $highestRow = $sheet->getHighestRow();
 
-            // Bắt đầu từ row 11 (row 10 là header, 1-9 là thông tin và hướng dẫn)
-            $dataStartRow = 11;
+            // Tìm dòng bắt đầu dữ liệu (sau header "STT", "Registration ID", ...)
+            $dataStartRow = null;
+            for ($row = 1; $row <= 20; $row++) {
+                $cellValue = trim($sheet->getCell('A' . $row)->getValue());
+                if (strtoupper($cellValue) === 'STT') {
+                    $dataStartRow = $row + 1;
+                    break;
+                }
+            }
+
+            if (!$dataStartRow) {
+                return ['success' => false, 'message' => 'Không tìm thấy header bảng dữ liệu trong file'];
+            }
 
             $updated = [];
             $skipped = [];
@@ -494,7 +387,6 @@ class ActivityAttendanceService
             DB::beginTransaction();
             try {
                 for ($row = $dataStartRow; $row <= $highestRow; $row++) {
-                    // Sử dụng getCalculatedValue() để lấy giá trị thực tế (kể cả khi cell chứa formula)
                     $registrationId = $sheet->getCell('B' . $row)->getCalculatedValue();
                     $mssv = $sheet->getCell('C' . $row)->getCalculatedValue();
                     $studentName = $sheet->getCell('D' . $row)->getCalculatedValue();
@@ -505,21 +397,33 @@ class ActivityAttendanceService
                         continue;
                     }
 
-                    // Validate status
-                    if (!in_array($status, ['attended', 'absent'])) {
+                    // Chuyển đổi tiếng Việt sang tiếng Anh
+                    $statusMapping = [
+                        'có mặt' => 'attended',
+                        'co mat' => 'attended',
+                        'vắng mặt' => 'absent',
+                        'vang mat' => 'absent',
+                        'attended' => 'attended', // Vẫn chấp nhận tiếng Anh
+                        'absent' => 'absent'
+                    ];
+
+                    $normalizedStatus = strtolower(trim($status));
+                    if (!isset($statusMapping[$normalizedStatus])) {
                         $errors[] = [
                             'row' => $row,
                             'registration_id' => $registrationId,
                             'mssv' => $mssv,
                             'student_name' => $studentName,
-                            'reason' => 'Trạng thái không hợp lệ. Chỉ chấp nhận: attended hoặc absent. Giá trị hiện tại: "' . $status . '"'
+                            'reason' => 'Trạng thái không hợp lệ. Chỉ chấp nhận: "Có mặt" hoặc "Vắng mặt". Giá trị: "' . $status . '"'
                         ];
                         continue;
                     }
 
+                    // Convert sang English để lưu vào database
+                    $status = $statusMapping[$normalizedStatus];
+
                     // Tìm registration
-                    $registration = ActivityRegistration::with(['role', 'student'])
-                        ->find($registrationId);
+                    $registration = ActivityRegistration::with(['role', 'student'])->find($registrationId);
 
                     if (!$registration) {
                         $skipped[] = [
@@ -532,7 +436,6 @@ class ActivityAttendanceService
                         continue;
                     }
 
-                    // Kiểm tra registration có thuộc activity này không
                     if ($registration->role->activity_id != $activityId) {
                         $skipped[] = [
                             'row' => $row,
@@ -544,7 +447,6 @@ class ActivityAttendanceService
                         continue;
                     }
 
-                    // Kiểm tra trạng thái hiện tại
                     if (!in_array($registration->status, ['registered', 'attended', 'absent'])) {
                         $skipped[] = [
                             'row' => $row,
@@ -574,7 +476,6 @@ class ActivityAttendanceService
 
                 Log::info('Import điểm danh thành công', [
                     'activity_id' => $activityId,
-                    'advisor_id' => $advisorId,
                     'total_updated' => count($updated),
                     'total_skipped' => count($skipped),
                     'total_errors' => count($errors)
@@ -592,12 +493,10 @@ class ActivityAttendanceService
                         'errors' => $errors
                     ]
                 ];
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
-
         } catch (\Exception $e) {
             Log::error('Lỗi khi import điểm danh', [
                 'activity_id' => $activityId,
