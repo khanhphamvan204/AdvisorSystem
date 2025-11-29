@@ -749,6 +749,12 @@ Route::middleware(['auth.api', 'check_role:advisor,admin'])->group(function () {
 
     // Thống kê cuộc họp
     Route::get('meetings/statistics/overview', [MeetingController::class, 'getStatistics']);
+
+    // Kiểm tra trạng thái phản hồi từ Google Calendar
+    Route::get('meetings/{id}/google-attendance', [MeetingController::class, 'checkGoogleAttendance']);
+
+    // Đồng bộ điểm danh từ Google Calendar về hệ thống
+    Route::post('meetings/{id}/sync-google-attendance', [MeetingController::class, 'syncGoogleAttendance']);
 });
 
 Route::middleware(['auth.api', 'check_role:admin'])->group(function () {
@@ -868,3 +874,31 @@ Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
 Route::middleware(['auth.api', 'check_role:advisor'])->group(function () {
     Route::get('/advisor/overview', [StatisticsController::class, 'getAdvisorOverview']);
 });
+
+
+use App\Http\Controllers\GoogleAuthController;
+
+// ============================================
+// GOOGLE CALENDAR AUTHENTICATION ROUTES
+// ============================================
+
+// Debug configuration
+Route::get('/auth/google/debug', [GoogleAuthController::class, 'debugConfig']);
+
+// Redirect to Google OAuth
+Route::get('/auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
+
+// Callback from Google OAuth
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+
+// Check authentication status
+Route::get('/auth/google/status', [GoogleAuthController::class, 'checkAuthStatus']);
+
+// Revoke authentication (xóa token)
+Route::delete('/auth/google/revoke', [GoogleAuthController::class, 'revokeAuth']);
+
+// ============================================
+// MEETING ROUTES (existing routes)
+// ============================================
+
+// ... các routes khác của bạn

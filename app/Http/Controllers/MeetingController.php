@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
 use PhpOffice\PhpWord\IOFactory;
 use Carbon\Carbon;
+use App\Services\GoogleCalendarService;
+use Illuminate\Support\Facades\Log;
 
 class MeetingController extends Controller
 {
@@ -20,6 +22,11 @@ class MeetingController extends Controller
      * Lấy danh sách cuộc họp
      * GET /api/meetings
      */
+    protected $googleCalendarService;
+    public function __construct(GoogleCalendarService $googleCalendarService)
+    {
+        $this->googleCalendarService = $googleCalendarService;
+    }
     public function index(Request $request)
     {
         try {
@@ -87,13 +94,16 @@ class MeetingController extends Controller
      * POST /api/meetings
      * Chỉ CVHT và Admin mới có quyền tạo
      */
+    /**
+     * Tạo cuộc họp mới với tùy chọn tạo Google Meet tự động
+     * POST /api/meetings
+     */
     public function store(Request $request)
     {
         try {
             $userRole = $request->current_role;
             $userId = $request->current_user_id;
 
-            // Kiểm tra quyền
             if (!in_array($userRole, ['advisor', 'admin'])) {
                 return response()->json([
                     'success' => false,
@@ -110,7 +120,8 @@ class MeetingController extends Controller
                 'meeting_link' => 'nullable|url|max:2083',
                 'location' => 'nullable|string|max:255',
                 'meeting_time' => 'required|date',
-                'end_time' => 'nullable|date|after:meeting_time'
+                'end_time' => 'nullable|date|after:meeting_time',
+                'auto_create_meet' => 'nullable|boolean' // Tham số mới
             ]);
 
             if ($validator->fails()) {
@@ -123,7 +134,7 @@ class MeetingController extends Controller
 
             // CVHT chỉ được tạo họp cho lớp mình phụ trách
             if ($userRole === 'advisor') {
-                $class = ClassModel::where('class_id', $request->class_id)
+                $class = \App\Models\ClassModel::where('class_id', $request->class_id)
                     ->where('advisor_id', $userId)
                     ->first();
 
@@ -135,12 +146,9 @@ class MeetingController extends Controller
                 }
             }
 
-            // Lấy advisor_id từ token
-            $advisorId = $userId;
-
-            // Tạo cuộc họp
+            // Tạo cuộc họp trong database
             $meeting = Meeting::create([
-                'advisor_id' => $advisorId,
+                'advisor_id' => $userId,
                 'class_id' => $request->class_id,
                 'title' => $request->title,
                 'summary' => $request->summary,
@@ -148,9 +156,12 @@ class MeetingController extends Controller
                 'meeting_link' => $request->meeting_link,
                 'location' => $request->location,
                 'meeting_time' => $request->meeting_time,
-                'end_time' => $request->end_time,
+                'end_time' => $request->end_time ?: Carbon::parse($request->meeting_time)->addHour(),
                 'status' => 'scheduled'
             ]);
+
+            // Lưu meeting_id để sử dụng
+            $meetingId = $meeting->meeting_id;
 
             // Tự động gán cuộc họp cho tất cả sinh viên trong lớp
             $students = Student::where('class_id', $request->class_id)->get();
@@ -162,13 +173,54 @@ class MeetingController extends Controller
                 ]);
             }
 
+            $googleMeetData = null;
+
+            // Nếu yêu cầu tạo Google Meet tự động
+            if ($request->auto_create_meet === true) {
+                // Lấy danh sách email sinh viên
+                $studentEmails = $students->pluck('email')->filter()->toArray();
+
+                // Tạo mô tả chi tiết
+                $description = "Cuộc họp lớp: {$meeting->class->class_name}\n";
+                $description .= "ID Hệ thống: {$meetingId}\n\n";
+                $description .= $meeting->summary ?? 'Không có mô tả';
+
+                // Gọi service tạo Google Meet
+                $result = $this->googleCalendarService->createMeeting(
+                    $meetingId,
+                    $meeting->title,
+                    $description,
+                    Carbon::parse($meeting->meeting_time),
+                    Carbon::parse($meeting->end_time),
+                    $studentEmails
+                );
+
+                if ($result['success']) {
+                    // Cập nhật meeting_link vào database (không cần thêm cột mới)
+                    $meeting->update([
+                        'meeting_link' => $result['meet_link']
+                    ]);
+
+                    $googleMeetData = [
+                        'meet_link' => $result['meet_link'],
+                        'calendar_link' => $result['html_link'],
+                        'attendees_invited' => $result['attendees_count'],
+                        'google_event_id' => $result['event_id']
+                    ];
+                } else {
+                    // Log lỗi nhưng vẫn tạo meeting thành công
+                    Log::warning('Failed to create Google Meet: ' . $result['error']);
+                }
+            }
+
             // Load relationships
             $meeting->load(['advisor', 'class', 'attendees.student']);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Tạo cuộc họp thành công',
-                'data' => $meeting
+                'data' => $meeting,
+                'google_meet' => $googleMeetData
             ], 201);
 
         } catch (\Exception $e) {
@@ -233,7 +285,6 @@ class MeetingController extends Controller
     /**
      * Cập nhật cuộc họp
      * PUT /api/meetings/{id}
-     * Chỉ CVHT và Admin mới có quyền cập nhật
      */
     public function update(Request $request, $id)
     {
@@ -241,7 +292,6 @@ class MeetingController extends Controller
             $userRole = $request->current_role;
             $userId = $request->current_user_id;
 
-            // Kiểm tra quyền
             if (!in_array($userRole, ['advisor', 'admin'])) {
                 return response()->json([
                     'success' => false,
@@ -257,7 +307,6 @@ class MeetingController extends Controller
                 ], 404);
             }
 
-            // CVHT chỉ được sửa cuộc họp của mình
             if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
                 return response()->json([
                     'success' => false,
@@ -274,7 +323,8 @@ class MeetingController extends Controller
                 'location' => 'nullable|string|max:255',
                 'meeting_time' => 'sometimes|date',
                 'end_time' => 'nullable|date|after:meeting_time',
-                'status' => 'sometimes|in:scheduled,completed,cancelled'
+                'status' => 'sometimes|in:scheduled,completed,cancelled',
+                'sync_to_google' => 'nullable|boolean'
             ]);
 
             if ($validator->fails()) {
@@ -285,7 +335,7 @@ class MeetingController extends Controller
                 ], 422);
             }
 
-            // Cập nhật
+            // Cập nhật database
             $meeting->update($request->only([
                 'title',
                 'summary',
@@ -296,6 +346,28 @@ class MeetingController extends Controller
                 'end_time',
                 'status'
             ]));
+
+            // Đồng bộ với Google Calendar nếu có yêu cầu
+            if ($request->sync_to_google === true && $meeting->meeting_link) {
+                // Kiểm tra xem link có phải là Google Meet không
+                if (strpos($meeting->meeting_link, 'meet.google.com') !== false) {
+                    $students = Student::where('class_id', $meeting->class_id)->get();
+                    $studentEmails = $students->pluck('email')->filter()->toArray();
+
+                    $result = $this->googleCalendarService->updateMeeting(
+                        $meeting->meeting_id,
+                        $request->title,
+                        $request->summary,
+                        $request->meeting_time ? Carbon::parse($request->meeting_time) : null,
+                        $request->end_time ? Carbon::parse($request->end_time) : null,
+                        $studentEmails
+                    );
+
+                    if (!$result['success']) {
+                        Log::warning('Failed to update Google Meet: ' . $result['error']);
+                    }
+                }
+            }
 
             $meeting->load(['advisor', 'class', 'attendees.student']);
 
@@ -316,7 +388,6 @@ class MeetingController extends Controller
     /**
      * Xóa cuộc họp
      * DELETE /api/meetings/{id}
-     * Chỉ CVHT và Admin mới có quyền xóa
      */
     public function destroy(Request $request, $id)
     {
@@ -324,7 +395,6 @@ class MeetingController extends Controller
             $userRole = $request->current_role;
             $userId = $request->current_user_id;
 
-            // Kiểm tra quyền
             if (!in_array($userRole, ['advisor', 'admin'])) {
                 return response()->json([
                     'success' => false,
@@ -340,12 +410,19 @@ class MeetingController extends Controller
                 ], 404);
             }
 
-            // CVHT chỉ được xóa cuộc họp của mình
             if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền xóa cuộc họp này'
                 ], 403);
+            }
+
+            // Xóa trên Google Calendar nếu có Google Meet link
+            if ($meeting->meeting_link && strpos($meeting->meeting_link, 'meet.google.com') !== false) {
+                $result = $this->googleCalendarService->deleteMeeting($meeting->meeting_id);
+                if (!$result['success']) {
+                    Log::warning('Failed to delete Google Meet: ' . $result['error']);
+                }
             }
 
             // Xóa biên bản nếu có
@@ -1087,5 +1164,190 @@ class MeetingController extends Controller
             return 'Microsoft Teams';
         }
         return 'Platform Online';
+    }
+    /**
+     * Kiểm tra trạng thái phản hồi từ Google Calendar
+     * GET /api/meetings/{id}/google-attendance
+     */
+    public function checkGoogleAttendance(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xem trạng thái này'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền xem cuộc họp này'
+                ], 403);
+            }
+
+            if (!$meeting->meeting_link || strpos($meeting->meeting_link, 'meet.google.com') === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cuộc họp này không có Google Meet'
+                ], 400);
+            }
+
+            // Lấy trạng thái từ Google Calendar
+            $result = $this->googleCalendarService->getAttendanceStatus($meeting->meeting_id);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lỗi khi lấy dữ liệu từ Google Calendar',
+                    'error' => $result['error']
+                ], 500);
+            }
+
+            // Map email với thông tin sinh viên
+            $students = Student::where('class_id', $meeting->class_id)->get()->keyBy('email');
+
+            $attendanceData = collect($result['attendees'])->map(function ($attendee) use ($students) {
+                $student = $students->get($attendee['email']);
+
+                return [
+                    'email' => $attendee['email'],
+                    'student_id' => $student ? $student->student_id : null,
+                    'student_name' => $student ? $student->full_name : $attendee['display_name'],
+                    'response_status' => $attendee['response_status'],
+                    'status_text' => $this->getStatusText($attendee['response_status']),
+                    'comment' => $attendee['comment']
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'meeting_id' => $meeting->meeting_id,
+                    'meeting_title' => $meeting->title,
+                    'attendees' => $attendanceData,
+                    'summary' => $result['summary'],
+                    'event_link' => $result['event_link']
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi kiểm tra điểm danh: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Đồng bộ điểm danh từ Google Calendar về hệ thống
+     * POST /api/meetings/{id}/sync-google-attendance
+     */
+    public function syncGoogleAttendance(Request $request, $id)
+    {
+        try {
+            $userRole = $request->current_role;
+            $userId = $request->current_user_id;
+
+            if (!in_array($userRole, ['advisor', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền thực hiện đồng bộ'
+                ], 403);
+            }
+
+            $meeting = Meeting::find($id);
+            if (!$meeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy cuộc họp'
+                ], 404);
+            }
+
+            if ($userRole === 'advisor' && $meeting->advisor_id !== $userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền đồng bộ cuộc họp này'
+                ], 403);
+            }
+
+            // Lấy trạng thái từ Google
+            $result = $this->googleCalendarService->getAttendanceStatus($meeting->meeting_id);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể lấy dữ liệu từ Google Calendar'
+                ], 500);
+            }
+
+            // Map email với student_id
+            $students = Student::where('class_id', $meeting->class_id)->get()->keyBy('email');
+
+            $syncedCount = 0;
+            foreach ($result['attendees'] as $attendee) {
+                $student = $students->get($attendee['email']);
+
+                if ($student) {
+                    // Chỉ coi là có mặt nếu status là 'accepted'
+                    $attended = ($attendee['response_status'] === 'accepted');
+
+                    MeetingStudent::where('meeting_id', $meeting->meeting_id)
+                        ->where('student_id', $student->student_id)
+                        ->update(['attended' => $attended]);
+
+                    $syncedCount++;
+                }
+            }
+
+            // Cập nhật trạng thái meeting
+            if ($meeting->status === 'scheduled') {
+                $meeting->update(['status' => 'completed']);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đã đồng bộ điểm danh cho {$syncedCount} sinh viên",
+                'data' => [
+                    'synced_count' => $syncedCount,
+                    'accepted' => $result['summary']['accepted'],
+                    'declined' => $result['summary']['declined'],
+                    'tentative' => $result['summary']['tentative'],
+                    'no_response' => $result['summary']['needsAction']
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi đồng bộ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper: Chuyển đổi response status sang text tiếng Việt
+     */
+    private function getStatusText($status)
+    {
+        $statusMap = [
+            'accepted' => 'Đã chấp nhận',
+            'declined' => 'Từ chối',
+            'tentative' => 'Chưa chắc chắn',
+            'needsAction' => 'Chưa phản hồi'
+        ];
+
+        return $statusMap[$status] ?? 'Không xác định';
     }
 }
