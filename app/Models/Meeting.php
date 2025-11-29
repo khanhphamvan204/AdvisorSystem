@@ -17,7 +17,6 @@ class Meeting extends Model
         'class_id',
         'title',
         'summary',
-        'class_feedback',
         'meeting_link',
         'location',
         'meeting_time',

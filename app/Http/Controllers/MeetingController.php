@@ -115,7 +115,6 @@ class MeetingController extends Controller
                 'class_id' => 'required|exists:Classes,class_id',
                 'title' => 'required|string|max:255',
                 'summary' => 'nullable|string',
-                'class_feedback' => 'nullable|string',
                 'meeting_link' => 'nullable|url|max:2083',
                 'location' => 'nullable|string|max:255',
                 'meeting_time' => 'required|date',
@@ -173,7 +172,6 @@ class MeetingController extends Controller
                 'class_id' => $request->class_id,
                 'title' => $request->title,
                 'summary' => $request->summary,
-                'class_feedback' => $request->class_feedback,
                 'meeting_link' => $request->meeting_link,
                 'location' => $request->location,
                 'meeting_time' => $request->meeting_time,
@@ -337,7 +335,6 @@ class MeetingController extends Controller
             $validator = Validator::make($request->all(), [
                 'title' => 'sometimes|string|max:255',
                 'summary' => 'nullable|string',
-                'class_feedback' => 'nullable|string',
                 'meeting_link' => 'nullable|url|max:2083',
                 'location' => 'nullable|string|max:255',
                 'meeting_time' => 'sometimes|date',
@@ -385,7 +382,6 @@ class MeetingController extends Controller
             $meeting->update($request->only([
                 'title',
                 'summary',
-                'class_feedback',
                 'meeting_link',
                 'location',
                 'meeting_time',
@@ -656,7 +652,8 @@ class MeetingController extends Controller
                 'class.students' => function ($query) {
                     $query->whereIn('position', ['leader', 'vice_leader', 'secretary']);
                 },
-                'attendees.student'
+                'attendees.student',
+                'feedbacks.student' // Load feedbacks từ sinh viên
             ])->find($id);
 
             if (!$meeting) {
@@ -732,8 +729,17 @@ class MeetingController extends Controller
             $summary = $meeting->summary ?: 'Nội dung họp chưa được cập nhật.';
             $templateProcessor->setValue('MEETING_SUMMARY', $summary);
 
-            // Ý kiến đóng góp của lớp
-            $classFeedback = $meeting->class_feedback ?: 'Lớp không có ý kiến.';
+            // Ý kiến đóng góp của lớp - lấy từ tất cả feedback của sinh viên
+            $feedbacks = $meeting->feedbacks;
+            if ($feedbacks->isEmpty()) {
+                $classFeedback = 'Lớp không có ý kiến.';
+            } else {
+                $feedbackList = [];
+                foreach ($feedbacks as $index => $feedback) {
+                    $feedbackList[] = ($index + 1) . '. ' . $feedback->student->full_name . ': ' . $feedback->feedback_content;
+                }
+                $classFeedback = implode("\n", $feedbackList);
+            }
             $templateProcessor->setValue('CLASS_FEEDBACK', $classFeedback);
 
             // Thời gian kết thúc
@@ -1005,8 +1011,7 @@ class MeetingController extends Controller
             }
 
             $validator = Validator::make($request->all(), [
-                'summary' => 'nullable|string',
-                'class_feedback' => 'nullable|string'
+                'summary' => 'nullable|string'
             ]);
 
             if ($validator->fails()) {
@@ -1017,7 +1022,7 @@ class MeetingController extends Controller
                 ], 422);
             }
 
-            $meeting->update($request->only(['summary', 'class_feedback']));
+            $meeting->update($request->only(['summary']));
 
             return response()->json([
                 'success' => true,

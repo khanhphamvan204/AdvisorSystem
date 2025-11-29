@@ -146,7 +146,6 @@ GET /api/meetings
             "class_id": 1,
             "title": "Họp lớp DH21CNTT tháng 3/2025",
             "summary": "Thông báo điểm rèn luyện...",
-            "class_feedback": "Lớp không có ý kiến.",
             "meeting_link": "https://meet.google.com/abc-defg-hij",
             "location": "Phòng B.101",
             "meeting_time": "2025-03-15 10:00:00",
@@ -181,7 +180,6 @@ GET /api/meetings/{id}
     "meeting_id": 1,
     "title": "Họp lớp DH21CNTT tháng 3/2025",
     "summary": "...",
-    "class_feedback": "...",
     "meeting_time": "2025-03-15 10:00:00",
     "end_time": "2025-03-15 11:30:00",
     "status": "completed",
@@ -211,7 +209,6 @@ POST /api/meetings
     "class_id": 1,
     "title": "Họp lớp DH21CNTT tháng 4/2025",
     "summary": "Thông báo lịch thi cuối kỳ...",
-    "class_feedback": null,
     "meeting_link": "https://meet.google.com/abc-defg-hij",
     "location": "Họp Online",
     "meeting_time": "2025-04-15 14:00:00",
@@ -227,7 +224,6 @@ POST /api/meetings
 | `class_id`         | integer      | Yes      | ID lớp                                             |
 | `title`            | string       | Yes      | Tiêu đề (max: 255)                                 |
 | `summary`          | string       | No       | Nội dung họp                                       |
-| `class_feedback`   | string       | No       | Ý kiến đóng góp của lớp                            |
 | `meeting_link`     | string (URL) | No       | Link họp online (max: 2083)                        |
 | `location`         | string       | No       | Địa điểm (max: 255)                                |
 | `meeting_time`     | datetime     | Yes      | Thời gian bắt đầu                                  |
@@ -294,7 +290,6 @@ PUT /api/meetings/{id}
 | ---------------- | -------- | ------------------------------------------------- |
 | `title`          | string   | Tiêu đề                                           |
 | `summary`        | string   | Nội dung họp                                      |
-| `class_feedback` | string   | Ý kiến lớp                                        |
 | `meeting_link`   | string   | Link họp                                          |
 | `location`       | string   | Địa điểm                                          |
 | `meeting_time`   | datetime | Thời gian bắt đầu                                 |
@@ -378,7 +373,7 @@ GET /api/meetings/{id}/export-minutes
 
 **Quyền**: Advisor (của lớp), Admin
 
-**Description**: Tự động tạo biên bản từ template và dữ liệu cuộc họp
+**Description**: Tự động tạo biên bản từ template và dữ liệu cuộc họp. **Ý kiến lớp sẽ được tổng hợp tự động từ tất cả feedback của sinh viên** (từ bảng `Meeting_Feedbacks`), mỗi feedback trên một dòng với định dạng: `<số thứ tự>. <Tên sinh viên>: <Nội dung feedback>`. Nếu không có feedback nào, sẽ hiển thị "Lớp không có ý kiến."
 
 **Response**: File .docx (download)
 
@@ -424,7 +419,7 @@ DELETE /api/meetings/{id}/minutes
 
 ---
 
-### 11. Cập nhật nội dung họp & ý kiến lớp
+### 11. Cập nhật nội dung họp
 
 ```http
 PUT /api/meetings/{id}/summary
@@ -436,10 +431,11 @@ PUT /api/meetings/{id}/summary
 
 ```json
 {
-    "summary": "Thông báo về danh sách điểm rèn luyện HK2...",
-    "class_feedback": "Lớp không có ý kiến."
+    "summary": "Thông báo về danh sách điểm rèn luyện HK2..."
 }
 ```
+
+**Lưu ý**: Endpoint này chỉ cho phép cập nhật `summary` (nội dung họp). Ý kiến lớp được tự động tổng hợp từ feedback của sinh viên khi xuất biên bản.
 
 ---
 
@@ -774,7 +770,7 @@ await fetch(`/api/meetings/${meetingId}/attendance`, {
     }),
 });
 
-// 3. Cập nhật nội dung và ý kiến lớp
+// 3. Cập nhật nội dung họp
 await fetch(`/api/meetings/${meetingId}/summary`, {
     method: "PUT",
     headers: {
@@ -783,7 +779,6 @@ await fetch(`/api/meetings/${meetingId}/summary`, {
     },
     body: JSON.stringify({
         summary: "Thông báo điểm rèn luyện...",
-        class_feedback: "Lớp không có ý kiến.",
     }),
 });
 

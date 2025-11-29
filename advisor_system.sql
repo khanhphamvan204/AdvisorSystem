@@ -251,7 +251,7 @@ CREATE TABLE Notification_Responses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ========================================
--- BẢNG MEETINGS (ĐÃ THÊM END_TIME VÀ CLASS_FEEDBACK)
+-- BẢNG MEETINGS (ĐÃ THÊM END_TIME)
 -- ========================================
 CREATE TABLE Meetings (
     meeting_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -259,7 +259,6 @@ CREATE TABLE Meetings (
     class_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     summary TEXT NULL,
-    class_feedback TEXT NULL COMMENT 'Ý kiến đóng góp tổng hợp của lớp',
     meeting_link VARCHAR(2083) NULL,
     location VARCHAR(255) NULL,
     meeting_time DATETIME NOT NULL,
@@ -471,11 +470,10 @@ INSERT INTO Notification_Responses (notification_id, student_id, content, status
 (4, 5, 'Em sẽ tham gia ạ.', 'resolved', NULL, NULL, NULL),
 (2, 1, 'Em đã đăng ký môn hè rồi ạ.', 'pending', NULL, NULL, NULL);
 
--- 20. Meetings (ĐÃ THÊM END_TIME VÀ CLASS_FEEDBACK)
-INSERT INTO Meetings (advisor_id, class_id, title, summary, class_feedback, location, meeting_time, end_time, status, minutes_file_path) VALUES
+-- 20. Meetings (ĐÃ THÊM END_TIME)
+INSERT INTO Meetings (advisor_id, class_id, title, summary, location, meeting_time, end_time, status, minutes_file_path) VALUES
 (1, 1, 'Họp lớp DH21CNTT tháng 3/2025', 
 'Thông báo về danh sách điểm rèn luyện HK2 năm 2024-2025. Thông báo thời gian thực tập. Thông báo lịch thi cuối kỳ (HK Hè). Thông báo về danh sách sinh viên gia hạn học phí kỳ I năm học 2025-2026.',
-'Lớp không có ý kiến.',
 'Phòng B.101', 
 '2025-03-15 10:00:00', 
 '2025-03-15 11:30:00',
@@ -484,7 +482,6 @@ INSERT INTO Meetings (advisor_id, class_id, title, summary, class_feedback, loca
 
 (4, 3, 'Họp lớp DH21NNA tháng 3/2025', 
 'Triển khai kế hoạch học tập HK2. Thông báo về các hoạt động ngoại khóa.',
-NULL,
 'Phòng C.202', 
 '2025-03-18 10:00:00', 
 '2025-03-18 11:00:00',
@@ -493,7 +490,6 @@ NULL),
 
 (2, 2, 'Họp lớp DH22KT tháng 3/2025', 
 'Triển khai cuộc thi Ý tưởng Khởi nghiệp. Hướng dẫn làm báo cáo thực tập.',
-'Lớp đề nghị tổ chức thêm buổi tư vấn khởi nghiệp.',
 'Phòng B.205', 
 '2025-03-20 14:00:00', 
 '2025-03-20 15:30:00',
