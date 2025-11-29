@@ -80,7 +80,6 @@ class MeetingController extends Controller
                 'success' => true,
                 'data' => $meetings
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -129,6 +128,28 @@ class MeetingController extends Controller
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
                     'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Kiểm tra xung đột với các cuộc họp khác
+            $endTime = $request->end_time ?: Carbon::parse($request->meeting_time)->addHour();
+            $conflictingMeeting = $this->checkMeetingTimeConflict(
+                $request->class_id,
+                $request->meeting_time,
+                $endTime
+            );
+
+            if ($conflictingMeeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thời gian họp bị trùng với cuộc họp khác',
+                    'conflicting_meeting' => [
+                        'meeting_id' => $conflictingMeeting->meeting_id,
+                        'title' => $conflictingMeeting->title,
+                        'meeting_time' => $conflictingMeeting->meeting_time,
+                        'end_time' => $conflictingMeeting->end_time,
+                        'status' => $conflictingMeeting->status
+                    ]
                 ], 422);
             }
 
@@ -222,7 +243,6 @@ class MeetingController extends Controller
                 'data' => $meeting,
                 'google_meet' => $googleMeetData
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -273,7 +293,6 @@ class MeetingController extends Controller
                 'success' => true,
                 'data' => $meeting
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -335,6 +354,33 @@ class MeetingController extends Controller
                 ], 422);
             }
 
+            // Kiểm tra xung đột nếu có thay đổi thời gian
+            if ($request->has('meeting_time') || $request->has('end_time')) {
+                $newMeetingTime = $request->meeting_time ?? $meeting->meeting_time;
+                $newEndTime = $request->end_time ?? $meeting->end_time;
+
+                $conflictingMeeting = $this->checkMeetingTimeConflict(
+                    $meeting->class_id,
+                    $newMeetingTime,
+                    $newEndTime,
+                    $meeting->meeting_id  // Loại trừ meeting hiện tại
+                );
+
+                if ($conflictingMeeting) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Thời gian họp mới bị trùng với cuộc họp khác',
+                        'conflicting_meeting' => [
+                            'meeting_id' => $conflictingMeeting->meeting_id,
+                            'title' => $conflictingMeeting->title,
+                            'meeting_time' => $conflictingMeeting->meeting_time,
+                            'end_time' => $conflictingMeeting->end_time,
+                            'status' => $conflictingMeeting->status
+                        ]
+                    ], 422);
+                }
+            }
+
             // Cập nhật database
             $meeting->update($request->only([
                 'title',
@@ -376,7 +422,6 @@ class MeetingController extends Controller
                 'message' => 'Cập nhật cuộc họp thành công',
                 'data' => $meeting
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -436,13 +481,53 @@ class MeetingController extends Controller
                 'success' => true,
                 'message' => 'Xóa cuộc họp thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xóa cuộc họp: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Kiểm tra xung đột thời gian với các cuộc họp khác
+     * 
+     * @param int $classId ID của lớp
+     * @param string $meetingTime Thời gian bắt đầu họp mới
+     * @param string $endTime Thời gian kết thúc họp mới
+     * @param int|null $excludeMeetingId ID của meeting cần loại trừ (khi update)
+     * @return Meeting|null Trả về meeting bị conflict hoặc null nếu không có conflict
+     */
+    private function checkMeetingTimeConflict($classId, $meetingTime, $endTime, $excludeMeetingId = null)
+    {
+        // Query meetings của cùng lớp
+        $query = Meeting::where('class_id', $classId)
+            ->where('status', '!=', 'cancelled');
+
+        // Loại trừ meeting hiện tại nếu đang update
+        if ($excludeMeetingId) {
+            $query->where('meeting_id', '!=', $excludeMeetingId);
+        }
+
+        // Kiểm tra overlap: hai khoảng thời gian [A_start, A_end] và [B_start, B_end] overlap khi:
+        // A_start < B_end AND A_end > B_start
+        $conflictingMeeting = $query->where(function ($q) use ($meetingTime, $endTime) {
+            $q->where(function ($subQ) use ($meetingTime, $endTime) {
+                // Trường hợp 1: Meeting mới bắt đầu trong khoảng meeting cũ
+                $subQ->where('meeting_time', '<=', $meetingTime)
+                    ->where('end_time', '>', $meetingTime);
+            })->orWhere(function ($subQ) use ($meetingTime, $endTime) {
+                // Trường hợp 2: Meeting mới kết thúc trong khoảng meeting cũ
+                $subQ->where('meeting_time', '<', $endTime)
+                    ->where('end_time', '>=', $endTime);
+            })->orWhere(function ($subQ) use ($meetingTime, $endTime) {
+                // Trường hợp 3: Meeting mới bao trùm meeting cũ
+                $subQ->where('meeting_time', '>=', $meetingTime)
+                    ->where('end_time', '<=', $endTime);
+            });
+        })->first();
+
+        return $conflictingMeeting;
     }
 
     /**
@@ -538,7 +623,6 @@ class MeetingController extends Controller
                 'message' => 'Điểm danh thành công',
                 'data' => $meeting
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -682,7 +766,6 @@ class MeetingController extends Controller
             return response()->download($outputPath, $fileName, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             ])->deleteFileAfterSend(false);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -745,7 +828,6 @@ class MeetingController extends Controller
 
             $fileName = basename($filePath);
             return response()->download($filePath, $fileName);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -823,7 +905,6 @@ class MeetingController extends Controller
                     'file_url' => Storage::url($filePath)
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -883,7 +964,6 @@ class MeetingController extends Controller
                 'success' => true,
                 'message' => 'Xóa biên bản thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -944,7 +1024,6 @@ class MeetingController extends Controller
                 'message' => 'Cập nhật nội dung họp thành công',
                 'data' => $meeting
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1015,7 +1094,6 @@ class MeetingController extends Controller
                 'message' => 'Gửi feedback thành công',
                 'data' => $feedback
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1069,7 +1147,6 @@ class MeetingController extends Controller
                 'success' => true,
                 'data' => $feedbacks
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1142,7 +1219,6 @@ class MeetingController extends Controller
                     ]
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1241,7 +1317,6 @@ class MeetingController extends Controller
                     'event_link' => $result['event_link']
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1327,7 +1402,6 @@ class MeetingController extends Controller
                     'no_response' => $result['summary']['needsAction']
                 ]
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
