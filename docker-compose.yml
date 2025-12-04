@@ -21,19 +21,16 @@ services:
             - DB_DATABASE=${DB_DATABASE:-db_advisorsystem}
             - DB_USERNAME=${DB_USERNAME:-root}
             - DB_PASSWORD=${DB_PASSWORD:-1234}
+            - DB_CHARSET=utf8mb4
+            - DB_COLLATION=utf8mb4_unicode_ci
             - MONGODB_DSN=mongodb://mongodb:27017
-            - REDIS_HOST=redis
-            - REDIS_PASSWORD=null
-            - REDIS_PORT=6379
-            - QUEUE_CONNECTION=redis
-            - CACHE_DRIVER=redis
-            - SESSION_DRIVER=redis
+            - QUEUE_CONNECTION=database
+            - CACHE_DRIVER=file
+            - SESSION_DRIVER=file
         depends_on:
             mysql:
                 condition: service_healthy
             mongodb:
-                condition: service_started
-            redis:
                 condition: service_started
         networks:
             - advisor_network
@@ -65,11 +62,10 @@ services:
             - DB_DATABASE=${DB_DATABASE:-db_advisorsystem}
             - DB_USERNAME=${DB_USERNAME:-root}
             - DB_PASSWORD=${DB_PASSWORD:-1234}
+            - DB_CHARSET=utf8mb4
+            - DB_COLLATION=utf8mb4_unicode_ci
             - MONGODB_DSN=mongodb://mongodb:27017
-            - REDIS_HOST=redis
-            - REDIS_PASSWORD=null
-            - REDIS_PORT=6379
-            - QUEUE_CONNECTION=redis
+            - QUEUE_CONNECTION=database
         depends_on:
             app:
                 condition: service_started
@@ -101,16 +97,16 @@ services:
         ports:
             - "3307:3306"
         environment:
-            # Không set MYSQL_DATABASE để file SQL tự tạo database
             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-1234}
             MYSQL_ROOT_HOST: "%"
         volumes:
             - mysql_data:/var/lib/mysql
             - ./advisor_system.sql:/docker-entrypoint-initdb.d/init.sql:ro
+            - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
         networks:
             - advisor_network
         command: >
-            --default-authentication-plugin=caching_sha2_password --skip-log-bin --max_allowed_packet=256M --innodb_buffer_pool_size=256M
+            --default-authentication-plugin=caching_sha2_password  --skip-log-bin  --max_allowed_packet=256M  --innodb_buffer_pool_size=256M --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
         healthcheck:
             test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-1234}" ]
             interval: 5s
@@ -130,19 +126,6 @@ services:
         networks:
             - advisor_network
 
-    # Redis Cache & Queue
-    redis:
-        image: redis:alpine
-        container_name: advisor_system_redis
-        restart: unless-stopped
-        ports:
-            - "6379:6379"
-        volumes:
-            - redis_data:/data
-        networks:
-            - advisor_network
-        command: redis-server --appendonly yes
-
 networks:
     advisor_network:
         driver: bridge
@@ -151,6 +134,4 @@ volumes:
     mysql_data:
         driver: local
     mongodb_data:
-        driver: local
-    redis_data:
         driver: local

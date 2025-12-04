@@ -1,5 +1,5 @@
 # Dockerfile for Laravel Advisor System (Backend Only)
-# PHP 8.2 with MySQL, MongoDB, Redis support
+# PHP 8.2 with MySQL, MongoDB, Redis support + UTF-8 support
 
 FROM php:8.2-fpm-alpine AS base
 
@@ -19,7 +19,12 @@ RUN apk add --no-cache \
     make \
     openssl-dev \
     mysql-client \
-    bash
+    bash \
+    icu-data-full
+
+# Set locale environment for UTF-8 support
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
 
 # Install PHP extensions
 RUN docker-php-ext-install \
