@@ -36,6 +36,25 @@ Route::prefix('auth')->group(function () {
     Route::get('/me', [AuthController::class, 'me'])->middleware('auth.api');
 });
 
+// ========== Broadcasting Authentication ==========
+Route::post('/broadcasting/auth', function (Illuminate\Http\Request $request) {
+    // Get JWT payload from request (set by auth.api middleware)
+    $userRole = $request->input('current_role');
+    $userId = $request->input('current_user_id');
+
+    // Create a fake user object for broadcasting
+    $user = new stdClass();
+    $user->id = $userId;
+    $user->role = $userRole;
+
+    // Set the user for broadcasting
+    $request->setUserResolver(function () use ($user) {
+        return $user;
+    });
+
+    return Illuminate\Support\Facades\Broadcast::auth($request);
+})->middleware('auth.api');
+
 // ========== Protected Routes ==========
 Route::middleware(['auth.api'])->group(function () {
 
@@ -689,6 +708,32 @@ Route::middleware(['auth.api'])->group(function () {
 
         // Tìm kiếm tin nhắn
         Route::get('/messages/search', [DialogController::class, 'searchMessages']);
+
+        // Gửi trạng thái typing
+        Route::post('/typing', [DialogController::class, 'sendTypingStatus']);
+    });
+
+    // ============================================================
+    // MESSAGES ROUTES - Alias cho chat test interface
+    // ============================================================
+    Route::prefix('messages')->middleware(['check_role:student,advisor'])->group(function () {
+        // Lấy danh sách hội thoại
+        Route::get('/conversations', [DialogController::class, 'getConversations']);
+
+        // Gửi tin nhắn
+        Route::post('/send', [DialogController::class, 'sendMessage']);
+
+        // Đánh dấu đã đọc
+        Route::post('/{id}/read', [DialogController::class, 'markAsRead']);
+
+        // Xóa tin nhắn
+        Route::delete('/{id}', [DialogController::class, 'deleteMessage']);
+
+        // Số tin nhắn chưa đọc
+        Route::get('/unread-count', [DialogController::class, 'getUnreadCount']);
+
+        // Gửi trạng thái typing
+        Route::post('/typing', [DialogController::class, 'sendTypingStatus']);
     });
 });
 

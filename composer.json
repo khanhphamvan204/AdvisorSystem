@@ -9,6 +9,7 @@
         "php": "^8.2",
         "google/apiclient": "^2.18",
         "laravel/framework": "^12.0",
+        "laravel/reverb": "^1.6",
         "laravel/telescope": "^5.15",
         "laravel/tinker": "^2.10.1",
         "mongodb/laravel-mongodb": "*",

@@ -6,6 +6,9 @@ use App\Models\Message;
 use App\Models\Student;
 use App\Models\Advisor;
 use App\Models\ClassModel;
+use App\Events\MessageSent;
+use App\Events\MessageRead;
+use App\Events\UserTyping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +55,7 @@ class DialogController extends Controller
                         'partner_type' => 'advisor',
                         'last_message' => $lastMessage ? $lastMessage->content : null,
                         'last_message_time' => $lastMessage ? $lastMessage->sent_at : null,
+                        'has_attachment' => $lastMessage && $lastMessage->attachment_path ? true : false,
                         'unread_count' => Message::where('student_id', $userId)
                             ->where('advisor_id', $advisor->advisor_id)
                             ->where('sender_type', 'advisor')
@@ -65,7 +69,6 @@ class DialogController extends Controller
                     'data' => $conversations,
                     'message' => 'Lấy danh sách hội thoại thành công'
                 ], 200);
-
             } elseif ($role === 'advisor') {
                 // Lấy danh sách sinh viên trong các lớp mà advisor phụ trách
                 $classes = ClassModel::where('advisor_id', $userId)
@@ -99,6 +102,7 @@ class DialogController extends Controller
                             'class_name' => $class->class_name,
                             'last_message' => $lastMessage ? $lastMessage->content : null,
                             'last_message_time' => $lastMessage ? $lastMessage->sent_at : null,
+                            'has_attachment' => $lastMessage && $lastMessage->attachment_path ? true : false,
                             'unread_count' => $unreadCount
                         ];
                     }
@@ -118,14 +122,12 @@ class DialogController extends Controller
                     'data' => $conversations,
                     'message' => 'Lấy danh sách hội thoại thành công'
                 ], 200);
-
             } else {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vai trò không hợp lệ'
                 ], 403);
             }
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -172,7 +174,6 @@ class DialogController extends Controller
                         'message' => 'Bạn chỉ có thể xem tin nhắn với cố vấn của lớp mình'
                     ], 403);
                 }
-
             } elseif ($role === 'advisor') {
                 // Partner là student
                 $studentId = $partnerId;
@@ -186,7 +187,6 @@ class DialogController extends Controller
                         'message' => 'Bạn chỉ có thể xem tin nhắn với sinh viên trong lớp mình phụ trách'
                     ], 403);
                 }
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -200,45 +200,51 @@ class DialogController extends Controller
                 ->orderBy('sent_at', 'asc')
                 ->get();
 
-            // Debug: Kiểm tra TẤT CẢ tin nhắn
-            $allMessages = Message::where('student_id', $studentId)
-                ->where('advisor_id', $advisorId)
-                ->get();
-
-            // Đánh dấu tin nhắn đã đọc
+            // Đánh dấu tin nhắn đã đọc và broadcast event
             if ($role === 'student') {
-                // Debug: Kiểm tra tin nhắn chưa đọc
-                $unreadMessages = Message::where('student_id', $studentId)
+                $updatedMessages = Message::where('student_id', $studentId)
                     ->where('advisor_id', $advisorId)
                     ->where('sender_type', 'advisor')
                     ->where('is_read', 0)
                     ->get();
 
-                $updated = Message::where('student_id', $studentId)
-                    ->where('sender_type', 'advisor')
-                    ->where('is_read', 0)
-                    ->update(['is_read' => 1]);
+                foreach ($updatedMessages as $msg) {
+                    $msg->is_read = 1;
+                    $msg->save();
+
+                    // Broadcast MessageRead event
+                    broadcast(new MessageRead($msg, $userId, $role))->toOthers();
+                }
             } elseif ($role === 'advisor') {
-                // Debug: Kiểm tra tin nhắn chưa đọc
-                $unreadMessages = Message::where('student_id', $studentId)
+                $updatedMessages = Message::where('student_id', $studentId)
                     ->where('advisor_id', $advisorId)
                     ->where('sender_type', 'student')
                     ->where('is_read', 0)
                     ->get();
 
-                $updated = Message::where('student_id', $studentId)
-                    ->where('advisor_id', $advisorId)
-                    ->where('sender_type', 'student')
-                    ->where('is_read', 0)
-                    ->update(['is_read' => 1]);
+                foreach ($updatedMessages as $msg) {
+                    $msg->is_read = 1;
+                    $msg->save();
+
+                    // Broadcast MessageRead event
+                    broadcast(new MessageRead($msg, $userId, $role))->toOthers();
+                }
             }
+
+            // Thêm URL đầy đủ cho file đính kèm
+            $messagesData = $messages->map(function ($message) {
+                $data = $message->toArray();
+                if ($message->attachment_path) {
+                    $data['attachment_url'] = url('storage/' . $message->attachment_path);
+                }
+                return $data;
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $messages,
+                'data' => $messagesData,
                 'message' => 'Lấy tin nhắn thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -248,7 +254,7 @@ class DialogController extends Controller
     }
 
     /**
-     * Gửi tin nhắn
+     * Gửi tin nhắn với WebSocket real-time
      * Student gửi: partner_id = advisor_id
      * Advisor gửi: partner_id = student_id
      */
@@ -261,10 +267,12 @@ class DialogController extends Controller
             $validator = Validator::make($request->all(), [
                 'partner_id' => 'required|integer',
                 'content' => 'required|string',
-                'attachment_path' => 'nullable|string|max:255'
+                'attachment' => 'nullable|file|max:10240' // Max 10MB
             ], [
                 'partner_id.required' => 'Cần chọn người nhận tin nhắn',
-                'content.required' => 'Nội dung tin nhắn không được để trống'
+                'content.required' => 'Nội dung tin nhắn không được để trống',
+                'attachment.file' => 'File đính kèm không hợp lệ',
+                'attachment.max' => 'File đính kèm không được vượt quá 10MB'
             ]);
 
             if ($validator->fails()) {
@@ -292,6 +300,12 @@ class DialogController extends Controller
                     ], 403);
                 }
 
+                $senderInfo = [
+                    'id' => $student->student_id,
+                    'name' => $student->full_name,
+                    'avatar' => $student->avatar_url,
+                    'type' => 'student'
+                ];
             } elseif ($role === 'advisor') {
                 $studentId = $partnerId;
                 $advisorId = $userId;
@@ -306,11 +320,30 @@ class DialogController extends Controller
                     ], 403);
                 }
 
+                $advisor = Advisor::find($userId);
+                $senderInfo = [
+                    'id' => $advisor->advisor_id,
+                    'name' => $advisor->full_name,
+                    'avatar' => $advisor->avatar_url,
+                    'type' => 'advisor'
+                ];
             } else {
                 return response()->json([
                     'success' => false,
                     'message' => 'Vai trò không hợp lệ'
                 ], 403);
+            }
+
+            // Xử lý file đính kèm nếu có
+            $attachmentPath = null;
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $originalName = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+                $filename = time() . '_' . uniqid() . '_' . $originalName;
+
+                // Lưu file vào storage/app/public/message_attachments
+                $attachmentPath = $file->storeAs('message_attachments', $filename, 'public');
             }
 
             // Tạo tin nhắn
@@ -319,16 +352,25 @@ class DialogController extends Controller
                 'advisor_id' => $advisorId,
                 'sender_type' => $senderType,
                 'content' => $request->input('content'),
-                'attachment_path' => $request->input('attachment_path'),
+                'attachment_path' => $attachmentPath,
                 'is_read' => false
             ]);
 
+            // Thêm URL đầy đủ cho file đính kèm
+            $messageData = $message->toArray();
+            if ($message->attachment_path) {
+                $messageData['attachment_url'] = url('storage/' . $message->attachment_path);
+            }
+            $messageData['sender'] = $senderInfo;
+
+            // Broadcast tin nhắn qua WebSocket
+            broadcast(new MessageSent($message, $senderInfo))->toOthers();
+
             return response()->json([
                 'success' => true,
-                'data' => $message,
+                'data' => $messageData,
                 'message' => 'Gửi tin nhắn thành công'
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -338,7 +380,7 @@ class DialogController extends Controller
     }
 
     /**
-     * Đánh dấu tin nhắn đã đọc
+     * Đánh dấu tin nhắn đã đọc với WebSocket notification
      */
     public function markAsRead(Request $request, $messageId)
     {
@@ -375,11 +417,13 @@ class DialogController extends Controller
             $message->is_read = true;
             $message->save();
 
+            // Broadcast MessageRead event
+            broadcast(new MessageRead($message, $userId, $role))->toOthers();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Đánh dấu đã đọc thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -423,13 +467,20 @@ class DialogController extends Controller
                 }
             }
 
+            // Xóa file đính kèm nếu có
+            if ($message->attachment_path) {
+                $filePath = storage_path('app/public/' . $message->attachment_path);
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+            }
+
             $message->delete();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Xóa tin nhắn thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -463,13 +514,11 @@ class DialogController extends Controller
                     ->where('sender_type', 'advisor')
                     ->where('is_read', false)
                     ->count();
-
             } elseif ($role === 'advisor') {
                 $unreadCount = Message::where('advisor_id', $userId)
                     ->where('sender_type', 'student')
                     ->where('is_read', false)
                     ->count();
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -482,7 +531,6 @@ class DialogController extends Controller
                 'data' => ['unread_count' => $unreadCount],
                 'message' => 'Lấy số tin nhắn chưa đọc thành công'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -527,7 +575,6 @@ class DialogController extends Controller
                         'message' => 'Bạn chỉ có thể tìm kiếm tin nhắn với cố vấn của lớp mình'
                     ], 403);
                 }
-
             } elseif ($role === 'advisor') {
                 $studentId = $partnerId;
                 $advisorId = $userId;
@@ -540,7 +587,6 @@ class DialogController extends Controller
                         'message' => 'Bạn chỉ có thể tìm kiếm tin nhắn với sinh viên trong lớp mình phụ trách'
                     ], 403);
                 }
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -559,7 +605,80 @@ class DialogController extends Controller
                 'data' => $messages,
                 'message' => 'Tìm kiếm thành công'
             ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
+    /**
+     * Gửi thông báo đang gõ (typing indicator)
+     */
+    public function sendTypingStatus(Request $request)
+    {
+        try {
+            $role = $request->current_role;
+            $userId = $request->current_user_id;
+
+            $validator = Validator::make($request->all(), [
+                'partner_id' => 'required|integer',
+                'is_typing' => 'required|boolean'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $partnerId = $request->partner_id;
+
+            if ($role === 'student') {
+                $studentId = $userId;
+                $advisorId = $partnerId;
+
+                $student = Student::with('class')->find($userId);
+                if (!$student || !$student->class || $student->class->advisor_id != $advisorId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không có quyền'
+                    ], 403);
+                }
+            } elseif ($role === 'advisor') {
+                $studentId = $partnerId;
+                $advisorId = $userId;
+
+                $student = Student::with('class')->find($studentId);
+                if (!$student || !$student->class || $student->class->advisor_id != $userId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không có quyền'
+                    ], 403);
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vai trò không hợp lệ'
+                ], 403);
+            }
+
+            // Broadcast UserTyping event
+            broadcast(new UserTyping(
+                $studentId,
+                $advisorId,
+                $userId,
+                $role,
+                $request->input('is_typing')
+            ))->toOthers();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gửi trạng thái typing thành công'
+            ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
