@@ -40,8 +40,16 @@ class MessageSent implements ShouldBroadcastNow
 
     public function broadcastWith()
     {
+        $messageData = $this->message->toArray();
+
+        // Thêm URL đầy đủ cho file đính kèm
+        if ($this->message->attachment_path) {
+            $messageData['attachment_url'] = url('storage/' . $this->message->attachment_path);
+            $messageData['attachment_name'] = basename($this->message->attachment_path);
+        }
+
         return [
-            'message' => $this->message,
+            'message' => $messageData,
             'sender' => $this->senderInfo
         ];
     }
