@@ -1275,8 +1275,34 @@ private-chat.advisor.{advisorId}
         "sender_type": "student",
         "content": "Thầy ơi, em có câu hỏi ạ",
         "attachment_path": null,
+        "attachment_url": null,
+        "attachment_name": null,
         "is_read": false,
         "sent_at": "2025-12-06T15:30:00.000000Z"
+    },
+    "sender": {
+        "id": 1,
+        "role": "student",
+        "name": "Nguyễn Văn A"
+    }
+}
+```
+
+**Payload (với file đính kèm)**:
+
+```json
+{
+    "message": {
+        "id": 124,
+        "student_id": 1,
+        "advisor_id": 1,
+        "sender_type": "student",
+        "content": "Thầy ơi, em gửi thầy báo cáo ạ",
+        "attachment_path": "message_attachments/1733123789_xyz456_report.pdf",
+        "attachment_url": "http://localhost:8000/storage/message_attachments/1733123789_xyz456_report.pdf",
+        "attachment_name": "report.pdf",
+        "is_read": false,
+        "sent_at": "2025-12-06T15:32:00.000000Z"
     },
     "sender": {
         "id": 1,
@@ -1352,6 +1378,12 @@ echo.private(`chat.student.${studentId}`)
     .listen(".message.sent", (e) => {
         console.log("New message:", e.message);
         console.log("Sender:", e.sender);
+        
+        // Kiểm tra file đính kèm
+        if (e.message.attachment_url) {
+            console.log("File attachment:", e.message.attachment_name);
+            console.log("Download URL:", e.message.attachment_url);
+        }
 
         // Update UI
         if (e.sender.role === "advisor") {
@@ -1486,6 +1518,12 @@ class ChatComponent {
 
     handleNewMessage(event) {
         const { message, sender } = event;
+        
+        // Kiểm tra và xử lý file đính kèm
+        if (message.attachment_url) {
+            console.log('Received file:', message.attachment_name);
+            // Có thể hiển thị preview hoặc download link
+        }
 
         if (sender.id === this.currentUser.id) {
             // Own message
@@ -1725,6 +1763,321 @@ php artisan tinker
 -   [Testing Guide](./WEBSOCKET_TESTING.md) - Hướng dẫn test WebSocket
 -   [Laravel Broadcasting](https://laravel.com/docs/10.x/broadcasting)
 -   [Pusher Documentation](https://pusher.com/docs/channels/)
+
+---
+
+## 9. File Attachment Handling
+
+### Overview
+
+Hệ thống hỗ trợ gửi file đính kèm kèm theo tin nhắn. File được lưu trữ tại `storage/app/public/message_attachments` và có thể truy cập qua URL public.
+
+### File Upload Specifications
+
+- **Max file size**: 10MB
+- **Storage location**: `storage/app/public/message_attachments/`
+- **File naming**: `{timestamp}_{uniqid}_{original_name}`
+- **Access URL**: `http://localhost:8000/storage/message_attachments/{filename}`
+
+### Frontend Implementation
+
+#### 1. HTML Form with File Input
+
+```html
+<div class="message-input-container">
+    <input type="text" id="messageContent" placeholder="Type a message..." />
+    <input type="file" id="fileInput" style="display: none;" />
+    <button onclick="document.getElementById('fileInput').click()">
+        <i class="fas fa-paperclip"></i>
+    </button>
+    <button onclick="sendMessage()">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+</div>
+<div id="filePreview" style="display: none;">
+    <span id="fileName"></span>
+    <button onclick="clearFile()">×</button>
+</div>
+```
+
+#### 2. Send Message with File
+
+```javascript
+async function sendMessage(partnerId, content, fileInput = null) {
+    const formData = new FormData();
+    formData.append('partner_id', partnerId);
+    formData.append('content', content);
+    
+    // Thêm file nếu có
+    if (fileInput && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File không được vượt quá 10MB');
+            return;
+        }
+        
+        formData.append('attachment', file);
+    }
+    
+    const response = await fetch('/api/dialogs/messages', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            // KHÔNG set Content-Type, browser sẽ tự set với boundary
+        },
+        body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        console.log('Message sent!');
+        if (data.data.attachment_url) {
+            console.log('File uploaded:', data.data.attachment_url);
+        }
+    }
+    
+    return data;
+}
+```
+
+#### 3. Display Message with Attachment
+
+```javascript
+function displayMessage(message, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = message.sender_type === currentUser.role ? 'message-sent' : 'message-received';
+    
+    let attachmentHTML = '';
+    if (message.attachment_url) {
+        const fileName = message.attachment_name || 'file';
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+        
+        // Xác định icon dựa trên loại file
+        let fileIcon = 'fa-file';
+        if (['pdf'].includes(fileExtension)) {
+            fileIcon = 'fa-file-pdf';
+        } else if (['doc', 'docx'].includes(fileExtension)) {
+            fileIcon = 'fa-file-word';
+        } else if (['xls', 'xlsx'].includes(fileExtension)) {
+            fileIcon = 'fa-file-excel';
+        } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+            fileIcon = 'fa-file-image';
+        }
+        
+        attachmentHTML = `
+            <div class="message-attachment">
+                <i class="fas ${fileIcon}"></i>
+                <a href="${message.attachment_url}" target="_blank" download="${fileName}">
+                    ${fileName}
+                </a>
+            </div>
+        `;
+    }
+    
+    messageDiv.innerHTML = `
+        <div class="message-bubble">
+            <div class="message-sender">${sender.name}</div>
+            <div class="message-content">${escapeHtml(message.content)}</div>
+            ${attachmentHTML}
+            <div class="message-time">${formatTime(message.sent_at)}</div>
+        </div>
+    `;
+    
+    document.getElementById('chatMessages').appendChild(messageDiv);
+}
+```
+
+#### 4. WebSocket Event with Attachment
+
+```javascript
+echo.private(`chat.student.${studentId}`)
+    .listen('.message.sent', (e) => {
+        const { message, sender } = e;
+        
+        // Hiển thị tin nhắn
+        displayMessage(message, sender);
+        
+        // Xử lý file đính kèm nếu có
+        if (message.attachment_url) {
+            // Hiển thị notification về file mới
+            showNotification(`${sender.name} đã gửi file: ${message.attachment_name}`);
+            
+            // Có thể download tự động hoặc hiển thị preview
+            if (message.attachment_name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                // Preview image
+                previewImage(message.attachment_url);
+            }
+        }
+    });
+```
+
+### CSS Styling for Attachments
+
+```css
+.message-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.message-attachment i {
+    font-size: 24px;
+    color: #667eea;
+}
+
+.message-attachment a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.message-attachment a:hover {
+    text-decoration: underline;
+}
+
+#filePreview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #e3f2fd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+#filePreview button {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 20px;
+    cursor: pointer;
+}
+```
+
+### Complete Example with File Support
+
+```javascript
+class ChatManager {
+    constructor(currentUser, partnerId) {
+        this.currentUser = currentUser;
+        this.partnerId = partnerId;
+        this.fileInput = document.getElementById('fileInput');
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // File input change
+        this.fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                this.showFilePreview(e.target.files[0]);
+            }
+        });
+        
+        // Send button
+        document.getElementById('sendBtn').addEventListener('click', () => {
+            this.sendMessage();
+        });
+    }
+    
+    showFilePreview(file) {
+        const preview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        
+        fileName.textContent = file.name;
+        preview.style.display = 'flex';
+    }
+    
+    clearFile() {
+        this.fileInput.value = '';
+        document.getElementById('filePreview').style.display = 'none';
+    }
+    
+    async sendMessage() {
+        const content = document.getElementById('messageContent').value.trim();
+        const file = this.fileInput.files[0];
+        
+        if (!content && !file) {
+            alert('Vui lòng nhập nội dung hoặc chọn file');
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('partner_id', this.partnerId);
+        formData.append('content', content || '');
+        
+        if (file) {
+            formData.append('attachment', file);
+        }
+        
+        try {
+            const response = await fetch('/api/dialogs/messages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.getToken()}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Clear input
+                document.getElementById('messageContent').value = '';
+                this.clearFile();
+                
+                // Message sẽ được hiển thị qua WebSocket event
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            console.error('Send error:', error);
+            alert('Lỗi khi gửi tin nhắn');
+        }
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+// Initialize
+const chat = new ChatManager(currentUser, partnerId);
+```
+
+### Security Considerations
+
+1. **File Type Validation**: Backend nên validate MIME type để tránh upload file nguy hiểm
+2. **File Size Limit**: Hiện tại giới hạn 10MB, có thể điều chỉnh trong validation
+3. **Storage Security**: File được lưu trong `storage/app/public`, đảm bảo symlink đúng cách
+4. **Access Control**: Chỉ những người trong conversation mới có quyền truy cập file
+
+### Backend Configuration
+
+Đảm bảo đã tạo symbolic link cho storage:
+
+```bash
+php artisan storage:link
+```
+
+Cấu trúc thư mục:
+```
+storage/
+├── app/
+│   └── public/
+│       └── message_attachments/
+│           └── {files}
+└── ...
+
+public/
+└── storage -> ../storage/app/public
+```
 
 ---
 

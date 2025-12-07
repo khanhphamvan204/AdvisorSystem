@@ -128,6 +128,43 @@ http://localhost:8000/websocket-chat
 - Clear Messages: Xóa tin nhắn
 - Clear Logs: Xóa event logs
 
+### 6. File Attachment Support
+- Gửi file đính kèm kèm theo tin nhắn (max 10MB)
+- Nhận file đính kèm real-time qua WebSocket
+- Download file đính kèm
+- Preview file trong tin nhắn
+
+## 📎 Test File Attachment
+
+### Gửi File Đính Kèm
+1. Click nút file/paperclip để chọn file
+2. Chọn file từ máy tính (max 10MB)
+3. File preview sẽ hiển thị
+4. Nhập nội dung tin nhắn (có thể để trống)
+5. Click "Send" để gửi
+
+### Nhận File Real-time
+- File sẽ được broadcast qua WebSocket
+- Tin nhắn có file sẽ hiển thị icon và tên file
+- Click vào tên file để download
+- Event log sẽ hiển thị thông tin file
+
+### Kiểm Tra File Data trong WebSocket Event
+```javascript
+echo.private('chat.student.1')
+    .listen('.message.sent', (e) => {
+        console.log('Message:', e.message);
+        console.log('Attachment URL:', e.message.attachment_url);
+        console.log('Attachment Name:', e.message.attachment_name);
+    });
+```
+
+### Test File Types
+- **Documents**: PDF, DOC, DOCX, XLS, XLSX
+- **Images**: JPG, PNG, GIF
+- **Archives**: ZIP, RAR
+- **Text**: TXT, CSV
+
 ## 📊 Kiểm Tra WebSocket
 
 ### Các Events Được Test:

@@ -575,16 +575,15 @@ window.Echo = new Echo({
 ```http
 POST /api/messages/send
 Authorization: Bearer {token}
-Content-Type: application/json
+Content-Type: multipart/form-data
 
-{
-    "partner_id": 123,
-    "content": "Hello, this is a test message",
-    "attachment": null
-}
+Form Data:
+- partner_id: 123
+- content: "Hello, this is a test message"
+- attachment: [file] (optional, max 10MB)
 ```
 
-**Response:**
+**Response (without file):**
 
 ```json
 {
@@ -595,8 +594,38 @@ Content-Type: application/json
         "advisor_id": 123,
         "sender_type": "student",
         "content": "Hello, this is a test message",
+        "attachment_path": null,
+        "attachment_url": null,
+        "attachment_name": null,
         "is_read": false,
         "sent_at": "2025-12-06T10:30:00.000000Z",
+        "sender": {
+            "id": 456,
+            "name": "Nguyen Van A",
+            "avatar": "https://...",
+            "type": "student"
+        }
+    },
+    "message": "Gửi tin nhắn thành công"
+}
+```
+
+**Response (with file):**
+
+```json
+{
+    "success": true,
+    "data": {
+        "message_id": 2,
+        "student_id": 456,
+        "advisor_id": 123,
+        "sender_type": "student",
+        "content": "Thầy ơi, em gửi báo cáo ạ",
+        "attachment_path": "message_attachments/1733123789_xyz456_report.pdf",
+        "attachment_url": "http://localhost:8000/storage/message_attachments/1733123789_xyz456_report.pdf",
+        "attachment_name": "report.pdf",
+        "is_read": false,
+        "sent_at": "2025-12-06T10:32:00.000000Z",
         "sender": {
             "id": 456,
             "name": "Nguyen Van A",
