@@ -12,17 +12,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Validation\Rule;
 use App\Services\EmailService;
+use App\Services\FirebaseService;
 
 class NotificationController extends Controller
 {
     protected $emailService;
+    protected $firebaseService;
 
-    public function __construct(EmailService $emailService)
+    public function __construct(EmailService $emailService, FirebaseService $firebaseService)
     {
         $this->emailService = $emailService;
+        $this->firebaseService = $firebaseService;
     }
     /**
      * Lấy danh sách thông báo
@@ -182,6 +186,30 @@ class NotificationController extends Controller
             // // Điều này giúp API response nhanh hơn rất nhiều
             $this->emailService->queueBulkNotificationEmails($students, $notification);
 
+            // ========================================
+            // GỬI FCM PUSH NOTIFICATION
+            // ========================================
+            try {
+                $fcmToken = config('firebase.default_fcm_token');
+
+                if (!empty($fcmToken)) {
+                    $this->firebaseService->sendToDevice(
+                        $fcmToken,
+                        $notification->title,
+                        $notification->summary,
+                        [
+                            'notification_id' => (string) $notification->notification_id,
+                            'type' => $notification->type,
+                            'created_at' => now()->toISOString(),
+                        ]
+                    );
+
+                    Log::info('FCM notification sent for notification_id: ' . $notification->notification_id);
+                }
+            } catch (\Exception $fcmError) {
+                // Log lỗi FCM nhưng không làm fail toàn bộ request
+                Log::error('Failed to send FCM notification: ' . $fcmError->getMessage());
+            }
 
             DB::commit();
 

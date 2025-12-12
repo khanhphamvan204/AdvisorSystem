@@ -947,3 +947,31 @@ Route::delete('/auth/google/revoke', [GoogleAuthController::class, 'revokeAuth']
 // ============================================
 
 // ... các routes khác của bạn
+
+use App\Http\Controllers\FCMController;
+
+// ============================================
+// FCM (FIREBASE CLOUD MESSAGING) ROUTES
+// ============================================
+
+Route::middleware(['auth.api'])->prefix('fcm')->group(function () {
+
+    // ===== Send Notifications =====
+
+    // Gửi thông báo test đến một thiết bị
+    Route::post('/send-test', [FCMController::class, 'sendTestNotification']);
+
+    // Gửi thông báo đến nhiều thiết bị
+    Route::post('/send-multiple', [FCMController::class, 'sendToMultiple']);
+
+    // Gửi thông báo đến một topic
+    Route::post('/send-topic', [FCMController::class, 'sendToTopic']);
+
+    // ===== Topic Management =====
+
+    // Subscribe thiết bị vào topic
+    Route::post('/subscribe', [FCMController::class, 'subscribeTopic']);
+
+    // Unsubscribe thiết bị khỏi topic
+    Route::post('/unsubscribe', [FCMController::class, 'unsubscribeTopic']);
+});
