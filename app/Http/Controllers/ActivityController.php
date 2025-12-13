@@ -191,7 +191,7 @@ class ActivityController extends Controller
             'title' => 'required|string|max:255',
             'general_description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'start_time' => 'required|date|after:now', // Phải sau thời điểm hiện tại
+            'start_time' => 'required|date|after:now',
             'end_time' => 'required|date|after:start_time',
             'organizer_unit_id' => 'nullable|integer|exists:Units,unit_id',
             'status' => 'nullable|string|in:upcoming,ongoing,completed,cancelled',
@@ -204,6 +204,34 @@ class ActivityController extends Controller
             'roles.*.points_awarded' => 'required|integer|min:0',
             'roles.*.point_type' => 'required|in:ctxh,ren_luyen',
             'roles.*.max_slots' => 'nullable|integer|min:1'
+        ], [
+            'title.required' => 'Tiêu đề không được để trống',
+            'title.max' => 'Tiêu đề không được vượt quá 255 ký tự',
+            'location.max' => 'Địa điểm không được vượt quá 255 ký tự',
+            'start_time.required' => 'Thời gian bắt đầu không được để trống',
+            'start_time.date' => 'Thời gian bắt đầu không hợp lệ',
+            'start_time.after' => 'Thời gian bắt đầu phải sau thời điểm hiện tại',
+            'end_time.required' => 'Thời gian kết thúc không được để trống',
+            'end_time.date' => 'Thời gian kết thúc không hợp lệ',
+            'end_time.after' => 'Thời gian kết thúc phải sau thời gian bắt đầu',
+            'organizer_unit_id.exists' => 'Đơn vị tổ chức không tồn tại',
+            'status.in' => 'Trạng thái không hợp lệ',
+            'class_ids.required' => 'Phải chọn ít nhất một lớp',
+            'class_ids.array' => 'Danh sách lớp không hợp lệ',
+            'class_ids.min' => 'Phải chọn ít nhất một lớp',
+            'class_ids.*.exists' => 'Lớp học không tồn tại',
+            'roles.required' => 'Phải có ít nhất một vai trò',
+            'roles.array' => 'Danh sách vai trò không hợp lệ',
+            'roles.min' => 'Phải có ít nhất một vai trò',
+            'roles.*.role_name.required' => 'Tên vai trò không được để trống',
+            'roles.*.role_name.max' => 'Tên vai trò không được vượt quá 100 ký tự',
+            'roles.*.points_awarded.required' => 'Điểm thưởng không được để trống',
+            'roles.*.points_awarded.integer' => 'Điểm thưởng phải là số nguyên',
+            'roles.*.points_awarded.min' => 'Điểm thưởng phải lớn hơn hoặc bằng 0',
+            'roles.*.point_type.required' => 'Loại điểm không được để trống',
+            'roles.*.point_type.in' => 'Loại điểm không hợp lệ',
+            'roles.*.max_slots.integer' => 'Số lượng slot phải là số nguyên',
+            'roles.*.max_slots.min' => 'Số lượng slot phải lớn hơn 0'
         ]);
 
         if ($validator->fails()) {
@@ -327,6 +355,21 @@ class ActivityController extends Controller
             'status' => 'nullable|string|in:upcoming,ongoing,completed,cancelled',
             'class_ids' => 'sometimes|array|min:1',
             'class_ids.*' => 'integer|exists:Classes,class_id'
+        ], [
+            'title.required' => 'Tiêu đề không được để trống',
+            'title.max' => 'Tiêu đề không được vượt quá 255 ký tự',
+            'location.max' => 'Địa điểm không được vượt quá 255 ký tự',
+            'start_time.required' => 'Thời gian bắt đầu không được để trống',
+            'start_time.date' => 'Thời gian bắt đầu không hợp lệ',
+            'end_time.required' => 'Thời gian kết thúc không được để trống',
+            'end_time.date' => 'Thời gian kết thúc không hợp lệ',
+            'end_time.after' => 'Thời gian kết thúc phải sau thời gian bắt đầu',
+            'organizer_unit_id.exists' => 'Đơn vị tổ chức không tồn tại',
+            'status.in' => 'Trạng thái không hợp lệ',
+            'class_ids.required' => 'Phải chọn ít nhất một lớp',
+            'class_ids.array' => 'Danh sách lớp không hợp lệ',
+            'class_ids.min' => 'Phải chọn ít nhất một lớp',
+            'class_ids.*.exists' => 'Lớp học không tồn tại'
         ]);
 
         if ($validator->fails()) {
@@ -339,6 +382,31 @@ class ActivityController extends Controller
 
         DB::beginTransaction();
         try {
+            // Kiểm tra xem có thay đổi thời gian không và đã có sinh viên đăng ký chưa
+            $timeChanged = false;
+            $oldStartTime = null;
+            $oldEndTime = null;
+
+            if ($request->has('start_time') || $request->has('end_time')) {
+                $oldStartTime = $activity->start_time;
+                $oldEndTime = $activity->end_time;
+
+                // Kiểm tra có thực sự thay đổi không (so sánh timestamp để chính xác)
+                if ($request->has('start_time')) {
+                    $newStartTime = \Carbon\Carbon::parse($request->start_time);
+                    if (!$oldStartTime || $newStartTime->timestamp != $oldStartTime->timestamp) {
+                        $timeChanged = true;
+                    }
+                }
+
+                if ($request->has('end_time')) {
+                    $newEndTime = \Carbon\Carbon::parse($request->end_time);
+                    if (!$oldEndTime || $newEndTime->timestamp != $oldEndTime->timestamp) {
+                        $timeChanged = true;
+                    }
+                }
+            }
+
             $activity->update($request->only([
                 'title',
                 'general_description',
@@ -348,6 +416,62 @@ class ActivityController extends Controller
                 'organizer_unit_id',
                 'status'
             ]));
+
+            // Nếu thay đổi thời gian, gửi email thông báo cho sinh viên đã đăng ký
+            if ($timeChanged) {
+                $registeredStudents = Student::whereHas('activityRegistrations', function ($q) use ($activity) {
+                    $q->whereHas('role', function ($query) use ($activity) {
+                        $query->where('activity_id', $activity->activity_id);
+                    })
+                        ->whereIn('status', ['registered', 'attended']);
+                })->get();
+
+                if ($registeredStudents->count() > 0) {
+                    // Gửi email thông báo cho từng sinh viên
+                    $emailService = new \App\Services\EmailService();
+
+                    foreach ($registeredStudents as $student) {
+                        try {
+                            $data = [
+                                'type' => 'activity',
+                                'subject' => 'Thay đổi thời gian hoạt động: ' . $activity->title,
+                                'studentName' => $student->full_name,
+                                'activityTitle' => $activity->title,
+                                'activityDescription' => "⏰ THÔNG BÁO THAY ĐỔI THỜI GIAN\n\n" .
+                                    "Thời gian cũ:\n" .
+                                    "- Bắt đầu: " . ($oldStartTime ? $oldStartTime->format('H:i d/m/Y') : 'N/A') . "\n" .
+                                    "- Kết thúc: " . ($oldEndTime ? $oldEndTime->format('H:i d/m/Y') : 'N/A') . "\n\n" .
+                                    "Thời gian mới:\n" .
+                                    "- Bắt đầu: " . ($activity->start_time ? $activity->start_time->format('H:i d/m/Y') : 'N/A') . "\n" .
+                                    "- Kết thúc: " . ($activity->end_time ? $activity->end_time->format('H:i d/m/Y') : 'N/A') . "\n\n" .
+                                    ($activity->general_description ?? ''),
+                                'activityLocation' => $activity->location,
+                                'activityTime' => $activity->start_time ? $activity->start_time->format('H:i d/m/Y') : null,
+                                'activityLink' => url('/activities/' . $activity->activity_id),
+                            ];
+
+                            \Illuminate\Support\Facades\Mail::to($student->email)
+                                ->send(new \App\Mail\NotificationMail($data));
+
+                            Log::info('Sent activity time change email', [
+                                'student_id' => $student->student_id,
+                                'activity_id' => $activity->activity_id
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('Failed to send time change email', [
+                                'student_id' => $student->student_id,
+                                'activity_id' => $activity->activity_id,
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+
+                    Log::info('Activity time changed - emails sent', [
+                        'activity_id' => $activity->activity_id,
+                        'students_notified' => $registeredStudents->count()
+                    ]);
+                }
+            }
 
             if ($request->has('class_ids')) {
                 // Kiểm tra quyền
@@ -554,6 +678,14 @@ class ActivityController extends Controller
             'attendances' => 'required|array|min:1',
             'attendances.*.registration_id' => 'required|integer|exists:Activity_Registrations,registration_id',
             'attendances.*.status' => 'required|in:attended,absent'
+        ], [
+            'attendances.required' => 'Danh sách điểm danh không được để trống',
+            'attendances.array' => 'Danh sách điểm danh không hợp lệ',
+            'attendances.min' => 'Phải có ít nhất một sinh viên để điểm danh',
+            'attendances.*.registration_id.required' => 'ID đăng ký không được để trống',
+            'attendances.*.registration_id.exists' => 'Đăng ký không tồn tại',
+            'attendances.*.status.required' => 'Trạng thái không được để trống',
+            'attendances.*.status.in' => 'Trạng thái phải là "attended" hoặc "absent"'
         ]);
 
         if ($validator->fails()) {
@@ -1005,6 +1137,14 @@ class ActivityController extends Controller
             'assignments' => 'required|array|min:1',
             'assignments.*.student_id' => 'required|integer|exists:Students,student_id',
             'assignments.*.activity_role_id' => 'required|integer|exists:Activity_Roles,activity_role_id'
+        ], [
+            'assignments.required' => 'Danh sách phân công không được để trống',
+            'assignments.array' => 'Danh sách phân công không hợp lệ',
+            'assignments.min' => 'Phải có ít nhất một sinh viên để phân công',
+            'assignments.*.student_id.required' => 'ID sinh viên không được để trống',
+            'assignments.*.student_id.exists' => 'Sinh viên không tồn tại',
+            'assignments.*.activity_role_id.required' => 'ID vai trò không được để trống',
+            'assignments.*.activity_role_id.exists' => 'Vai trò hoạt động không tồn tại'
         ]);
 
         if ($validator->fails()) {
