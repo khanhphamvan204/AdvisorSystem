@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Illuminate\Support\Facades\Log;
 
 class ExcelHeaderService
 {
@@ -24,15 +25,20 @@ class ExcelHeaderService
         $sheet = $spreadsheet->getActiveSheet();
 
         // 1. INSERT LOGO (A1:A3)
-        $logoPath = public_path('images/logo/logo-huit.jpg');
-        if (file_exists($logoPath)) {
-            $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
-            $drawing->setName('Logo');
-            $drawing->setDescription('Logo HUIT');
-            $drawing->setPath($logoPath);
-            $drawing->setCoordinates('A1');
-            $drawing->setHeight(80);
-            $drawing->setWorksheet($sheet);
+        try {
+            $logoPath = public_path('images/logo/logo-huit.jpg');
+            if (file_exists($logoPath)) {
+                $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                $drawing->setName('Logo');
+                $drawing->setDescription('Logo HUIT');
+                $drawing->setPath($logoPath);
+                $drawing->setCoordinates('A1');
+                $drawing->setHeight(80);
+                $drawing->setWorksheet($sheet);
+            }
+        } catch (\Exception $e) {
+            // Log error but continue - logo is optional
+            Log::warning('Failed to insert logo in Excel: ' . $e->getMessage());
         }
 
         // 2. THÔNG TIN TRƯỜNG (bên trái - B1:D3)

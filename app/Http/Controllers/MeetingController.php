@@ -768,6 +768,11 @@ class MeetingController extends Controller
             $relativePath = 'meetings/' . $fileName;
             $meeting->update(['minutes_file_path' => $relativePath]);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             // Trả về file để download
             return response()->download($outputPath, $fileName, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -830,6 +835,11 @@ class MeetingController extends Controller
                     'success' => false,
                     'message' => 'Không tìm thấy file biên bản'
                 ], 404);
+            }
+
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
             }
 
             $fileName = basename($filePath);

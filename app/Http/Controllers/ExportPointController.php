@@ -50,6 +50,11 @@ class ExportPointController extends Controller
                 $request->semester_id
             );
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             // Trả về file download
             return response()->download(
                 $result['file_path'],
@@ -107,6 +112,11 @@ class ExportPointController extends Controller
                 $request->semester_id
             );
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             // Trả về file download
             return response()->download(
                 $result['file_path'],
@@ -154,6 +164,11 @@ class ExportPointController extends Controller
                 $request->class_id
             );
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             // Trả về file download
             return response()->download(
                 $result['file_path'],
@@ -195,6 +210,11 @@ class ExportPointController extends Controller
             $result = $this->exportService->exportSocialPointsByFaculty(
                 $admin->unit_id
             );
+
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
 
             // Trả về file download
             return response()->download(

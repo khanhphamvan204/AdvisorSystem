@@ -929,6 +929,11 @@ class AcademicMonitoringController extends Controller
 
             $writer->save($tempFile);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             return response()->download($tempFile, $fileName, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])->deleteFileAfterSend(true);

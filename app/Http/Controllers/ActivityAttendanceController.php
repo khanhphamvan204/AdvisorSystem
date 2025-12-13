@@ -37,6 +37,11 @@ class ActivityAttendanceController extends Controller
             ], $result['message'] === 'Bạn không có quyền xuất danh sách hoạt động này' ? 403 : 400);
         }
 
+        // Xóa tất cả output buffer trước khi download file
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
         // Trả về file để download
         return response()->download($result['file_path'], $result['file_name'])->deleteFileAfterSend(true);
     }
@@ -60,6 +65,11 @@ class ActivityAttendanceController extends Controller
                 'success' => false,
                 'message' => $result['message']
             ], $result['message'] === 'Bạn không có quyền xuất file mẫu cho hoạt động này' ? 403 : 400);
+        }
+
+        // Xóa tất cả output buffer trước khi download file
+        if (ob_get_length()) {
+            ob_end_clean();
         }
 
         return response()->download($result['file_path'], $result['file_name'])->deleteFileAfterSend(true);

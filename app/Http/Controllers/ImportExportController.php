@@ -474,6 +474,11 @@ class ImportExportController extends Controller
             $tempFile = tempnam(sys_get_temp_dir(), $fileName);
             $writer->save($tempFile);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
@@ -551,6 +556,11 @@ class ImportExportController extends Controller
             $tempFile = tempnam(sys_get_temp_dir(), $fileName);
             $writer->save($tempFile);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
@@ -587,6 +597,11 @@ class ImportExportController extends Controller
         $tempFile = tempnam(sys_get_temp_dir(), $fileName);
         $writer->save($tempFile);
 
+        // Xóa tất cả output buffer trước khi download file
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
@@ -620,6 +635,11 @@ class ImportExportController extends Controller
         $fileName = 'Template_Advisors.xlsx';
         $tempFile = tempnam(sys_get_temp_dir(), $fileName);
         $writer->save($tempFile);
+
+        // Xóa tất cả output buffer trước khi download file
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
@@ -675,6 +695,11 @@ class ImportExportController extends Controller
         $fileName = 'Template_Students.xlsx';
         $tempFile = tempnam(sys_get_temp_dir(), $fileName);
         $writer->save($tempFile);
+
+        // Xóa tất cả output buffer trước khi download file
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
 
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }

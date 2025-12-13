@@ -802,6 +802,11 @@ class GradeController extends Controller
                 'file_name' => $fileName
             ]);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
@@ -1064,6 +1069,11 @@ class GradeController extends Controller
                 'semester_id' => $semesterId,
                 'file_name' => $fileName
             ]);
+
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
 
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 

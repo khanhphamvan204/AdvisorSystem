@@ -651,6 +651,11 @@ class ScheduleImportController extends Controller
                 'role' => $request->current_role
             ]);
 
+            // Xóa tất cả output buffer trước khi download file
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             Log::error('Download template error', [
