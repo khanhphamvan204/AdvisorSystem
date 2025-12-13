@@ -181,13 +181,13 @@ class ActivityRoleController extends Controller
             ], 403);
         }
 
-        // // Không cho phép thêm vai trò cho hoạt động đã completed
-        // if ($activity->status === 'completed') {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Không thể thêm vai trò cho hoạt động đã hoàn thành'
-        //     ], 400);
-        // }
+        // Không cho phép thêm vai trò cho hoạt động đã completed
+        if ($activity->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể thêm vai trò cho hoạt động đã hoàn thành'
+            ], 400);
+        }
 
         $validator = Validator::make($request->all(), [
             'role_name' => 'required|string|max:100',
@@ -243,7 +243,6 @@ class ActivityRoleController extends Controller
                 'message' => 'Thêm vai trò thành công',
                 'data' => $role
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi tạo vai trò', [
@@ -284,13 +283,13 @@ class ActivityRoleController extends Controller
             ], 403);
         }
 
-        // // Không cho phép sửa vai trò của hoạt động đã completed
-        // if ($role->activity->status === 'completed') {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Không thể cập nhật vai trò của hoạt động đã hoàn thành'
-        //     ], 400);
-        // }
+        // Không cho phép sửa vai trò của hoạt động đã completed
+        if ($role->activity->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể cập nhật vai trò của hoạt động đã hoàn thành'
+            ], 400);
+        }
 
         $validator = Validator::make($request->all(), [
             'role_name' => 'sometimes|required|string|max:100',
@@ -361,7 +360,6 @@ class ActivityRoleController extends Controller
                 'message' => 'Cập nhật vai trò thành công',
                 'data' => $role
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi cập nhật vai trò', [
@@ -403,21 +401,21 @@ class ActivityRoleController extends Controller
             ], 403);
         }
 
-        // // Không cho phép xóa vai trò của hoạt động đã completed
-        // if ($role->activity->status === 'completed') {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Không thể xóa vai trò của hoạt động đã hoàn thành'
-        //     ], 400);
-        // }
+        // Không cho phép xóa vai trò của hoạt động đã completed
+        if ($role->activity->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa vai trò của hoạt động đã hoàn thành'
+            ], 400);
+        }
 
-        // // BẮT BUỘC: Không cho phép xóa nếu đã có sinh viên đăng ký
-        // if ($role->registrations_count > 0) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => "Không thể xóa vai trò đã có {$role->registrations_count} sinh viên đăng ký"
-        //     ], 400);
-        // }
+        // BẮT BUỘC: Không cho phép xóa nếu đã có sinh viên đăng ký
+        if ($role->registrations_count > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Không thể xóa vai trò đã có {$role->registrations_count} sinh viên đăng ký"
+            ], 400);
+        }
 
         DB::beginTransaction();
         try {
@@ -433,7 +431,6 @@ class ActivityRoleController extends Controller
                 'success' => true,
                 'message' => 'Xóa vai trò thành công'
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Lỗi khi xóa vai trò', [

@@ -309,13 +309,13 @@ class ActivityController extends Controller
             ], 403);
         }
 
-        // // Không cho phép sửa hoạt động đã completed
-        // if ($activity->status === 'completed') {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Không thể cập nhật hoạt động đã hoàn thành'
-        //     ], 400);
-        // }
+        // Không cho phép sửa hoạt động đã completed
+        if ($activity->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể cập nhật hoạt động đã hoàn thành'
+            ], 400);
+        }
 
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|required|string|max:255',
