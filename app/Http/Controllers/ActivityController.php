@@ -490,6 +490,38 @@ class ActivityController extends Controller
                     ], 403);
                 }
 
+                // Kiểm tra các lớp sẽ bị xóa có sinh viên đã đăng ký chưa
+                $currentClassIds = $activity->classes()->pluck('class_id')->toArray();
+                $removedClassIds = array_diff($currentClassIds, $request->class_ids);
+
+                if (!empty($removedClassIds)) {
+                    // Kiểm tra có sinh viên từ các lớp bị xóa đã đăng ký chưa
+                    $affectedStudentsCount = ActivityRegistration::whereHas('role', function ($q) use ($activity) {
+                        $q->where('activity_id', $activity->activity_id);
+                    })
+                        ->whereHas('student', function ($q) use ($removedClassIds) {
+                            $q->whereIn('class_id', $removedClassIds);
+                        })
+                        ->whereIn('status', ['registered', 'attended'])
+                        ->count();
+
+                    if ($affectedStudentsCount > 0) {
+                        DB::rollBack();
+
+                        // Lấy tên các lớp bị ảnh hưởng để hiển thị
+                        $affectedClasses = ClassModel::whereIn('class_id', $removedClassIds)
+                            ->pluck('class_name')
+                            ->toArray();
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Không thể xóa lớp vì đã có {$affectedStudentsCount} sinh viên đã đăng ký hoạt động",
+                            'affected_classes' => $affectedClasses,
+                            'affected_students_count' => $affectedStudentsCount
+                        ], 400);
+                    }
+                }
+
                 $activity->classes()->sync($request->class_ids);
             }
 
