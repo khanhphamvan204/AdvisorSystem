@@ -16,6 +16,12 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
 class ExportPointService
 {
+    protected ExcelHeaderService $excelHeaderService;
+
+    public function __construct(ExcelHeaderService $excelHeaderService)
+    {
+        $this->excelHeaderService = $excelHeaderService;
+    }
     /**
      * Xuất điểm rèn luyện theo lớp
      */
@@ -239,137 +245,76 @@ class ExportPointService
      */
     private function generateTrainingPointsExcel($studentsWithPoints, $entity, $semester, $type)
     {
-        $spreadsheet = new Spreadsheet();
+        // Tạo spreadsheet với header chuyên nghiệp
+        $spreadsheet = $this->excelHeaderService->createWithProfessionalHeader();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Thiết lập tiêu đề
-        $row = 1;
+        // Điền tiêu đề chính (dòng 5)
+        $this->excelHeaderService->fillTitle($sheet, 'BẢNG ĐIỂM RÈN LUYỆN', 5, 'I');
 
-        // Header: Tên trường
-        $sheet->setCellValueExplicit('A' . $row, 'TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG TP.HCM', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 14, true);
-        $row++;
+        // Điền thông tin chi tiết (bắt đầu từ dòng 7)
+        $infoData = [];
 
-        // Header: Tên khoa/lớp
         if ($type === 'faculty') {
-            $sheet->setCellValueExplicit('A' . $row, strtoupper($entity->unit_name), DataType::TYPE_STRING);
+            $infoData['Khoa:'] = $entity->unit_name;
         } else {
-            $sheet->setCellValueExplicit('A' . $row, strtoupper($entity->faculty->unit_name), DataType::TYPE_STRING);
+            $infoData['Khoa:'] = $entity->faculty->unit_name;
+            $infoData['Lớp:'] = $entity->class_name;
         }
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 13, true);
-        $row++;
 
-        // Dòng trống
-        $row++;
+        $infoData['Học kỳ:'] = $semester->semester_name . ' - Năm học: ' . $semester->academic_year;
+        $infoData['Ngày xuất:'] = date('d/m/Y H:i');
 
-        // Tiêu đề báo cáo
-        $sheet->setCellValueExplicit('A' . $row, 'BẢNG ĐIỂM RÈN LUYỆN', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 16, true, 'FF0000');
-        $row++;
-
-        // Thông tin học kỳ và lớp
-        if ($type === 'class') {
-            $sheet->setCellValueExplicit('A' . $row, 'Lớp: ' . $entity->class_name, DataType::TYPE_STRING);
-        }
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 12);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Học kỳ: ' . $semester->semester_name . ' - Năm học: ' . $semester->academic_year, DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 12);
-        $row++;
+        $row = $this->excelHeaderService->fillInfoSection($sheet, $infoData, 7, 'I');
 
         // Dòng trống
         $row++;
 
         // Header bảng dữ liệu
         $headers = ['STT', 'MSSV', 'Họ và tên', 'Lớp', 'Điểm ban đầu', 'Số HĐ tham dự', 'Số HĐ vắng', 'Điểm rèn luyện', 'Xếp loại'];
-        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-
-        foreach ($headers as $index => $header) {
-            $sheet->setCellValueExplicit($columns[$index] . $row, $header, DataType::TYPE_STRING);
-        }
-
-        $this->styleTableHeader($sheet, 'A' . $row . ':I' . $row);
+        $this->excelHeaderService->createTableHeader($sheet, $headers, $row);
         $row++;
 
-        // Dữ liệu sinh viên
+        // Chuẩn bị dữ liệu sinh viên
+        $tableData = [];
         $stt = 1;
         foreach ($studentsWithPoints as $data) {
             $student = $data['student'];
             $trainingPoints = $data['training_points'];
             $classification = $this->classifyTrainingPoints($trainingPoints);
 
-            $sheet->setCellValue('A' . $row, $stt);
-            $sheet->setCellValueExplicit('B' . $row, $student->user_code, DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('C' . $row, $student->full_name, DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('D' . $row, $type === 'faculty' ? $student->class->class_name : $entity->class_name, DataType::TYPE_STRING);
-            $sheet->setCellValue('E' . $row, 70); // Điểm ban đầu
-            $sheet->setCellValue('F' . $row, $data['attended_count']);
-            $sheet->setCellValue('G' . $row, $data['absent_count']);
-            $sheet->setCellValue('H' . $row, $trainingPoints);
-            $sheet->setCellValueExplicit('I' . $row, $classification, DataType::TYPE_STRING);
-
-            $this->styleDataRow($sheet, 'A' . $row . ':I' . $row);
-            $row++;
+            $tableData[] = [
+                $stt,
+                $student->user_code,
+                $student->full_name,
+                $type === 'faculty' ? $student->class->class_name : $entity->class_name,
+                70, // Điểm ban đầu
+                $data['attended_count'],
+                $data['absent_count'],
+                $trainingPoints,
+                $classification
+            ];
             $stt++;
         }
 
-        // Thống kê
-        $row++;
-        $totalStudents = $studentsWithPoints->count();
-        $avgPoints = $studentsWithPoints->avg('training_points');
+        // Điền dữ liệu bảng
+        $lastRow = $this->excelHeaderService->fillTableData($sheet, $tableData, $row);
+        $row = $lastRow;
 
-        $sheet->setCellValueExplicit('A' . $row, 'THỐNG KÊ CHUNG', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':I' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':I' . $row, 12, true);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Tổng số sinh viên: ' . $totalStudents, DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Điểm trung bình: ' . number_format($avgPoints, 2), DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        // Thống kê xếp loại
-        $classifications = [
-            'Xuất sắc' => $studentsWithPoints->filter(fn($s) => $s['training_points'] >= 90)->count(),
-            'Tốt' => $studentsWithPoints->filter(fn($s) => $s['training_points'] >= 80 && $s['training_points'] < 90)->count(),
-            'Khá' => $studentsWithPoints->filter(fn($s) => $s['training_points'] >= 65 && $s['training_points'] < 80)->count(),
-            'Trung bình' => $studentsWithPoints->filter(fn($s) => $s['training_points'] >= 50 && $s['training_points'] < 65)->count(),
-            'Yếu' => $studentsWithPoints->filter(fn($s) => $s['training_points'] >= 35 && $s['training_points'] < 50)->count(),
-            'Kém' => $studentsWithPoints->filter(fn($s) => $s['training_points'] < 35)->count(),
-        ];
-
-        $sheet->setCellValue('A' . $row, 'Phân bổ xếp loại:');
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        foreach ($classifications as $class => $count) {
-            if ($count > 0) {
-                $percentage = ($count / $totalStudents) * 100;
-                $sheet->setCellValue('A' . $row, '  - ' . $class . ': ' . $count . ' SV (' . number_format($percentage, 1) . '%)');
-                $sheet->mergeCells('A' . $row . ':D' . $row);
-                $row++;
-            }
-        }
-
-        // Thiết lập độ rộng cột
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(15);
-        $sheet->getColumnDimension('C')->setWidth(25);
-        $sheet->getColumnDimension('D')->setWidth(15);
-        $sheet->getColumnDimension('E')->setWidth(15);
-        $sheet->getColumnDimension('F')->setWidth(15);
-        $sheet->getColumnDimension('G')->setWidth(12);
-        $sheet->getColumnDimension('H')->setWidth(18);
-        $sheet->getColumnDimension('I')->setWidth(15);
+        // Auto format columns
+        $this->excelHeaderService->autoFormatColumns(
+            $sheet,
+            range('A', 'I'),
+            [
+                'C' => 30, // Họ tên rộng hơn
+                'D' => 18, // Lớp
+                'E' => 18, // Điểm ban đầu
+                'F' => 18, // Số HĐ tham dự
+                'G' => 15, // Số HĐ vắng
+                'H' => 18, // Điểm rèn luyện
+                'I' => 15  // Xếp loại
+            ]
+        );
 
         // Tạo file với encoding UTF-8
         $writer = new Xlsx($spreadsheet);
@@ -396,56 +341,27 @@ class ExportPointService
      */
     private function generateSocialPointsExcel($studentsWithPoints, $entity, $semester, $type)
     {
-        $spreadsheet = new Spreadsheet();
+        // Tạo spreadsheet với header chuyên nghiệp
+        $spreadsheet = $this->excelHeaderService->createWithProfessionalHeader();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Thiết lập tiêu đề
-        $row = 1;
+        // Điền tiêu đề chính (dòng 5)
+        $this->excelHeaderService->fillTitle($sheet, 'BẢNG ĐIỂM CÔNG TÁC XÃ HỘI (TÍCH LŨY)', 5, 'G');
 
-        // Header: Tên trường
-        $sheet->setCellValueExplicit('A' . $row, 'TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG TP.HCM', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 14, true);
-        $row++;
+        // Điền thông tin chi tiết (bắt đầu từ dòng 7)
+        $infoData = [];
 
-        // Header: Tên khoa/lớp
         if ($type === 'faculty') {
-            $sheet->setCellValueExplicit('A' . $row, strtoupper($entity->unit_name), DataType::TYPE_STRING);
+            $infoData['Khoa:'] = $entity->unit_name;
         } else {
-            $sheet->setCellValueExplicit('A' . $row, strtoupper($entity->faculty->unit_name), DataType::TYPE_STRING);
+            $infoData['Khoa:'] = $entity->faculty->unit_name;
+            $infoData['Lớp:'] = $entity->class_name;
         }
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 13, true);
-        $row++;
 
-        // Dòng trống
-        $row++;
+        $infoData['Tính đến:'] = date('d/m/Y H:i');
+        $infoData['Ghi chú:'] = '(Điểm CTXH được tích lũy từ đầu khóa học đến thời điểm hiện tại)';
 
-        // Tiêu đề báo cáo
-        $sheet->setCellValueExplicit('A' . $row, 'BẢNG ĐIỂM CÔNG TÁC XÃ HỘI (TÍCH LŨY)', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 16, true, 'FF0000');
-        $row++;
-
-        // Thông tin lớp
-        if ($type === 'class') {
-            $sheet->setCellValueExplicit('A' . $row, 'Lớp: ' . $entity->class_name, DataType::TYPE_STRING);
-        } else {
-            $sheet->setCellValueExplicit('A' . $row, 'Khoa: ' . $entity->unit_name, DataType::TYPE_STRING);
-        }
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 12);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Tính đến: ' . date('d/m/Y'), DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 12);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, '(Điểm CTXH được tích lũy từ đầu khóa học đến thời điểm hiện tại)', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 10, false, '666666');
-        $row++;
+        $row = $this->excelHeaderService->fillInfoSection($sheet, $infoData, 7, 'G');
 
         // Dòng trống
         $row++;
@@ -461,71 +377,42 @@ class ExportPointService
         $this->styleTableHeader($sheet, 'A' . $row . ':G' . $row);
         $row++;
 
-        // Dữ liệu sinh viên
+        // Chuẩn bị dữ liệu sinh viên
+        $tableData = [];
         $stt = 1;
         foreach ($studentsWithPoints as $data) {
             $student = $data['student'];
             $socialPoints = $data['social_points'];
             $classification = $this->classifySocialPoints($socialPoints);
 
-            $sheet->setCellValue('A' . $row, $stt);
-            $sheet->setCellValueExplicit('B' . $row, $student->user_code, DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('C' . $row, $student->full_name, DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('D' . $row, $type === 'faculty' ? $student->class->class_name : $entity->class_name, DataType::TYPE_STRING);
-            $sheet->setCellValue('E' . $row, $data['total_activities']);
-            $sheet->setCellValue('F' . $row, $socialPoints);
-            $sheet->setCellValueExplicit('G' . $row, $classification, DataType::TYPE_STRING);
-
-            $this->styleDataRow($sheet, 'A' . $row . ':G' . $row);
-            $row++;
+            $tableData[] = [
+                $stt,
+                $student->user_code,
+                $student->full_name,
+                $type === 'faculty' ? $student->class->class_name : $entity->class_name,
+                $data['total_activities'],
+                $socialPoints,
+                $classification
+            ];
             $stt++;
         }
 
-        // Thống kê
-        $row++;
-        $totalStudents = $studentsWithPoints->count();
-        $avgPoints = $studentsWithPoints->avg('social_points');
+        // Điền dữ liệu bảng
+        $lastRow = $this->excelHeaderService->fillTableData($sheet, $tableData, $row);
+        $row = $lastRow;
 
-        $sheet->setCellValueExplicit('A' . $row, 'THỐNG KÊ CHUNG', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':G' . $row);
-        $this->styleHeader($sheet, 'A' . $row . ':G' . $row, 12, true);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Tổng số sinh viên: ' . $totalStudents, DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        $sheet->setCellValueExplicit('A' . $row, 'Điểm trung bình: ' . number_format($avgPoints, 2), DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        // Thống kê xếp loại
-        $classifications = [
-            'Đạt' => $studentsWithPoints->filter(fn($s) => $s['social_points'] >= 170)->count(),
-            'Không đạt' => $studentsWithPoints->filter(fn($s) => $s['social_points'] < 170)->count(),
-        ];
-
-        $sheet->setCellValueExplicit('A' . $row, 'Phân bổ xếp loại:', DataType::TYPE_STRING);
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $row++;
-
-        foreach ($classifications as $class => $count) {
-            if ($count > 0) {
-                $percentage = ($count / $totalStudents) * 100;
-                $sheet->setCellValue('A' . $row, '  - ' . $class . ': ' . $count . ' SV (' . number_format($percentage, 1) . '%)');
-                $sheet->mergeCells('A' . $row . ':D' . $row);
-                $row++;
-            }
-        }
-
-        // Thiết lập độ rộng cột
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(15);
-        $sheet->getColumnDimension('C')->setWidth(25);
-        $sheet->getColumnDimension('D')->setWidth(15);
-        $sheet->getColumnDimension('E')->setWidth(15);
-        $sheet->getColumnDimension('F')->setWidth(18);
-        $sheet->getColumnDimension('G')->setWidth(15);
+        // Auto format columns
+        $this->excelHeaderService->autoFormatColumns(
+            $sheet,
+            range('A', 'G'),
+            [
+                'C' => 30, // Họ tên rộng hơn
+                'D' => 18, // Lớp
+                'E' => 15, // Số HĐ CTXH
+                'F' => 15, // Điểm CTXH
+                'G' => 15  // Xếp loại
+            ]
+        );
 
         // Tạo file với encoding UTF-8
         $writer = new Xlsx($spreadsheet);

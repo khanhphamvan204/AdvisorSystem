@@ -20,7 +20,7 @@ class ExportPointController extends Controller
      * Xuất điểm rèn luyện theo lớp
      * 
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
      */
     public function exportTrainingPointsByClass(Request $request)
     {
@@ -76,7 +76,7 @@ class ExportPointController extends Controller
      * Xuất điểm rèn luyện theo khoa (lấy faculty_id từ admin đang đăng nhập)
      * 
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
      */
     public function exportTrainingPointsByFaculty(Request $request)
     {
@@ -138,7 +138,7 @@ class ExportPointController extends Controller
      * Xuất điểm CTXH theo lớp (Tích lũy từ đầu đến giờ)
      * 
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
      */
     public function exportSocialPointsByClass(Request $request)
     {
@@ -190,7 +190,7 @@ class ExportPointController extends Controller
      * Xuất điểm CTXH theo khoa (Tích lũy từ đầu đến giờ, lấy faculty_id từ admin đang đăng nhập)
      * 
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
      */
     public function exportSocialPointsByFaculty(Request $request)
     {

@@ -70,12 +70,13 @@ class ExcelHeaderService
         $sheet->setCellValue('G2', 'Độc lập - Tự do - Hạnh phúc');
         $sheet->mergeCells('G2:I2');
 
-        // Style cho thông tin quốc gia - Times New Roman 13 + wrap text
+        // Style cho thông tin quốc gia - Times New Roman 13, KHÔNG wrap text
         $sheet->getStyle('G1')->applyFromArray([
             'font' => ['name' => 'Times New Roman', 'bold' => true, 'size' => 13],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'wrapText' => true
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => false
             ]
         ]);
 
@@ -83,25 +84,26 @@ class ExcelHeaderService
             'font' => ['name' => 'Times New Roman', 'bold' => true, 'size' => 13, 'underline' => true],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'wrapText' => true
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => false
             ]
         ]);
 
-        // Set row heights (tăng cho đủ chỗ)
+        // Set row heights
         $sheet->getRowDimension(1)->setRowHeight(25);
         $sheet->getRowDimension(2)->setRowHeight(25);
-        $sheet->getRowDimension(3)->setRowHeight(25);
+        $sheet->getRowDimension(3)->setRowHeight(20);
 
         // Set column widths để đủ chỗ hiển thị
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(18);
-        $sheet->getColumnDimension('C')->setWidth(30);
-        $sheet->getColumnDimension('D')->setWidth(15);
+        $sheet->getColumnDimension('A')->setWidth(12);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(35);
+        $sheet->getColumnDimension('D')->setWidth(18);
         $sheet->getColumnDimension('E')->setWidth(25);
-        $sheet->getColumnDimension('F')->setWidth(15);
-        $sheet->getColumnDimension('G')->setWidth(30); // Độ rộng vừa phải cho text "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM"
-        $sheet->getColumnDimension('H')->setWidth(18);
-        $sheet->getColumnDimension('I')->setWidth(15);
+        $sheet->getColumnDimension('F')->setWidth(18);
+        $sheet->getColumnDimension('G')->setWidth(25); // Tăng mạnh để text "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM" đủ chỗ
+        $sheet->getColumnDimension('H')->setWidth(25);
+        $sheet->getColumnDimension('I')->setWidth(25);
 
         return $spreadsheet;
     }
