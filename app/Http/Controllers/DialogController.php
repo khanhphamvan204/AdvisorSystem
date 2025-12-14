@@ -149,9 +149,19 @@ class DialogController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'partner_id' => 'required|integer'
+            ], [
+                'partner_id.required' => 'ID người nhận là bắt buộc',
+                'partner_id.integer' => 'ID người nhận phải là số nguyên'
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Get messages validation failed', [
+                    'role' => $role,
+                    'user_id' => $userId,
+                    'errors' => $validator->errors(),
+                    'data' => $request->all()
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -269,13 +279,22 @@ class DialogController extends Controller
                 'content' => 'required|string',
                 'attachment' => 'nullable|file|max:10240' // Max 10MB
             ], [
-                'partner_id.required' => 'Cần chọn người nhận tin nhắn',
-                'content.required' => 'Nội dung tin nhắn không được để trống',
+                'partner_id.required' => 'ID người nhận là bắt buộc',
+                'partner_id.integer' => 'ID người nhận phải là số nguyên',
+                'content.required' => 'Nội dung tin nhắn là bắt buộc',
+                'content.string' => 'Nội dung tin nhắn phải là chuỗi',
                 'attachment.file' => 'File đính kèm không hợp lệ',
                 'attachment.max' => 'File đính kèm không được vượt quá 10MB'
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Send message validation failed', [
+                    'role' => $role,
+                    'user_id' => $userId,
+                    'errors' => $validator->errors(),
+                    'data' => $request->except(['attachment'])
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -551,9 +570,22 @@ class DialogController extends Controller
             $validator = Validator::make($request->all(), [
                 'partner_id' => 'required|integer',
                 'keyword' => 'required|string|min:1'
+            ], [
+                'partner_id.required' => 'ID người nhận là bắt buộc',
+                'partner_id.integer' => 'ID người nhận phải là số nguyên',
+                'keyword.required' => 'Từ khóa tìm kiếm là bắt buộc',
+                'keyword.string' => 'Từ khóa tìm kiếm phải là chuỗi',
+                'keyword.min' => 'Từ khóa tìm kiếm phải có ít nhất 1 ký tự'
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Search messages validation failed', [
+                    'role' => $role,
+                    'user_id' => $userId,
+                    'errors' => $validator->errors(),
+                    'data' => $request->all()
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',
@@ -625,9 +657,21 @@ class DialogController extends Controller
             $validator = Validator::make($request->all(), [
                 'partner_id' => 'required|integer',
                 'is_typing' => 'required|boolean'
+            ], [
+                'partner_id.required' => 'ID người nhận là bắt buộc',
+                'partner_id.integer' => 'ID người nhận phải là số nguyên',
+                'is_typing.required' => 'Trạng thái gõ là bắt buộc',
+                'is_typing.boolean' => 'Trạng thái gõ phải là giá trị boolean'
             ]);
 
             if ($validator->fails()) {
+                Log::warning('Send typing status validation failed', [
+                    'role' => $role,
+                    'user_id' => $userId,
+                    'errors' => $validator->errors(),
+                    'data' => $request->all()
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Dữ liệu không hợp lệ',

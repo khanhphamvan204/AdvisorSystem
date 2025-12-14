@@ -72,7 +72,6 @@ class GradeController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get student grades', [
                 'student_id' => $studentId,
@@ -178,7 +177,6 @@ class GradeController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get student grades', [
                 'user_id' => $userId,
@@ -214,9 +212,26 @@ class GradeController extends Controller
             'course_id' => 'required|exists:Courses,course_id',
             'semester_id' => 'required|exists:Semesters,semester_id',
             'grade_value' => 'required|numeric|min:0|max:10'
+        ], [
+            'student_id.required' => 'Mã sinh viên là bắt buộc',
+            'student_id.exists' => 'Sinh viên không tồn tại',
+            'course_id.required' => 'Mã môn học là bắt buộc',
+            'course_id.exists' => 'Môn học không tồn tại',
+            'semester_id.required' => 'Học kỳ là bắt buộc',
+            'semester_id.exists' => 'Học kỳ không tồn tại',
+            'grade_value.required' => 'Điểm là bắt buộc',
+            'grade_value.numeric' => 'Điểm phải là số',
+            'grade_value.min' => 'Điểm phải từ 0 đến 10',
+            'grade_value.max' => 'Điểm phải từ 0 đến 10'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Grade creation validation failed', [
+                'admin_id' => $request->current_user_id,
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu không hợp lệ',
@@ -307,7 +322,6 @@ class GradeController extends Controller
                     ]
                 ]
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to create grade', [
@@ -366,9 +380,21 @@ class GradeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'grade_value' => 'required|numeric|min:0|max:10'
+        ], [
+            'grade_value.required' => 'Điểm là bắt buộc',
+            'grade_value.numeric' => 'Điểm phải là số',
+            'grade_value.min' => 'Điểm phải từ 0 đến 10',
+            'grade_value.max' => 'Điểm phải từ 0 đến 10'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Grade update validation failed', [
+                'admin_id' => $request->current_user_id,
+                'grade_id' => $gradeId,
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu không hợp lệ',
@@ -416,7 +442,6 @@ class GradeController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update grade', [
@@ -453,9 +478,29 @@ class GradeController extends Controller
             'grades' => 'required|array|min:1',
             'grades.*.student_id' => 'required|exists:Students,student_id',
             'grades.*.grade_value' => 'required|numeric|min:0|max:10'
+        ], [
+            'semester_id.required' => 'Học kỳ là bắt buộc',
+            'semester_id.exists' => 'Học kỳ không tồn tại',
+            'course_id.required' => 'Mã môn học là bắt buộc',
+            'course_id.exists' => 'Môn học không tồn tại',
+            'grades.required' => 'Danh sách điểm là bắt buộc',
+            'grades.array' => 'Danh sách điểm phải là mảng',
+            'grades.min' => 'Danh sách điểm phải có ít nhất 1 bản ghi',
+            'grades.*.student_id.required' => 'Mã sinh viên là bắt buộc',
+            'grades.*.student_id.exists' => 'Sinh viên không tồn tại',
+            'grades.*.grade_value.required' => 'Điểm là bắt buộc',
+            'grades.*.grade_value.numeric' => 'Điểm phải là số',
+            'grades.*.grade_value.min' => 'Điểm phải từ 0 đến 10',
+            'grades.*.grade_value.max' => 'Điểm phải từ 0 đến 10'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Batch import validation failed', [
+                'admin_id' => $request->current_user_id,
+                'errors' => $validator->errors(),
+                'data' => $request->except(['grades'])
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu không hợp lệ',
@@ -570,7 +615,6 @@ class GradeController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to batch import grades', [
@@ -645,7 +689,6 @@ class GradeController extends Controller
                 'success' => true,
                 'message' => 'Xóa điểm thành công'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to delete grade', [
                 'admin_id' => $request->current_user_id,
@@ -753,7 +796,6 @@ class GradeController extends Controller
                     'students_grades' => $gradesData
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to export class grades', [
                 'class_id' => $classId,
@@ -808,7 +850,6 @@ class GradeController extends Controller
             }
 
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
-
         } catch (\Exception $e) {
             Log::error('Failed to download template', [
                 'admin_id' => $request->current_user_id,
@@ -839,9 +880,19 @@ class GradeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'file' => 'required|file|mimes:xlsx,xls|max:5120'
+        ], [
+            'file.required' => 'File Excel là bắt buộc',
+            'file.file' => 'File không hợp lệ',
+            'file.mimes' => 'File phải có định dạng xlsx hoặc xls',
+            'file.max' => 'Kích thước file không được vượt quá 5MB'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Excel import validation failed', [
+                'admin_id' => $request->current_user_id,
+                'errors' => $validator->errors()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'File không hợp lệ',
@@ -884,7 +935,6 @@ class GradeController extends Controller
                 'message' => $message,
                 'data' => $results
             ]);
-
         } catch (\Exception $e) {
             // XÓA FILE KHI LỖI
             Storage::delete($filePath);
@@ -1076,7 +1126,6 @@ class GradeController extends Controller
             }
 
             return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
-
         } catch (\Exception $e) {
             Log::error('Failed to export grades to Excel', [
                 'admin_id' => $adminId,
@@ -1211,7 +1260,6 @@ class GradeController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get faculty students grades', [
                 'admin_id' => $adminId,
@@ -1389,7 +1437,6 @@ class GradeController extends Controller
                     'class_statistics' => $classStats
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get faculty grades overview', [
                 'admin_id' => $adminId,

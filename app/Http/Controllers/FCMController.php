@@ -28,12 +28,26 @@ class FCMController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'required|string',
             'data' => 'nullable|array',
+        ], [
+            'fcm_token.required' => 'FCM token là bắt buộc',
+            'fcm_token.string' => 'FCM token phải là chuỗi',
+            'title.required' => 'Tiêu đề thông báo là bắt buộc',
+            'title.string' => 'Tiêu đề thông báo phải là chuỗi',
+            'title.max' => 'Tiêu đề thông báo không được vượt quá 255 ký tự',
+            'body.required' => 'Nội dung thông báo là bắt buộc',
+            'body.string' => 'Nội dung thông báo phải là chuỗi',
+            'data.array' => 'Dữ liệu bổ sung phải là mảng'
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Send test notification validation failed', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Dữ liệu không hợp lệ',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -80,12 +94,28 @@ class FCMController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'required|string',
             'data' => 'nullable|array',
+        ], [
+            'fcm_tokens.required' => 'Danh sách FCM token là bắt buộc',
+            'fcm_tokens.array' => 'Danh sách FCM token phải là mảng',
+            'fcm_tokens.*.required' => 'Mỗi FCM token là bắt buộc',
+            'fcm_tokens.*.string' => 'Mỗi FCM token phải là chuỗi',
+            'title.required' => 'Tiêu đề thông báo là bắt buộc',
+            'title.string' => 'Tiêu đề thông báo phải là chuỗi',
+            'title.max' => 'Tiêu đề thông báo không được vượt quá 255 ký tự',
+            'body.required' => 'Nội dung thông báo là bắt buộc',
+            'body.string' => 'Nội dung thông báo phải là chuỗi',
+            'data.array' => 'Dữ liệu bổ sung phải là mảng'
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Send to multiple devices validation failed', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Dữ liệu không hợp lệ',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -124,12 +154,26 @@ class FCMController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'required|string',
             'data' => 'nullable|array',
+        ], [
+            'topic.required' => 'Chủ đề thông báo là bắt buộc',
+            'topic.string' => 'Chủ đề thông báo phải là chuỗi',
+            'title.required' => 'Tiêu đề thông báo là bắt buộc',
+            'title.string' => 'Tiêu đề thông báo phải là chuỗi',
+            'title.max' => 'Tiêu đề thông báo không được vượt quá 255 ký tự',
+            'body.required' => 'Nội dung thông báo là bắt buộc',
+            'body.string' => 'Nội dung thông báo phải là chuỗi',
+            'data.array' => 'Dữ liệu bổ sung phải là mảng'
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Send to topic validation failed', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Dữ liệu không hợp lệ',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -173,12 +217,22 @@ class FCMController extends Controller
         $validator = Validator::make($request->all(), [
             'fcm_token' => 'required|string',
             'topic' => 'required|string',
+        ], [
+            'fcm_token.required' => 'FCM token là bắt buộc',
+            'fcm_token.string' => 'FCM token phải là chuỗi',
+            'topic.required' => 'Chủ đề là bắt buộc',
+            'topic.string' => 'Chủ đề phải là chuỗi'
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Subscribe to topic validation failed', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Dữ liệu không hợp lệ',
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -209,12 +263,22 @@ class FCMController extends Controller
         $validator = Validator::make($request->all(), [
             'fcm_token' => 'required|string',
             'topic' => 'required|string',
+        ], [
+            'fcm_token.required' => 'FCM token là bắt buộc',
+            'fcm_token.string' => 'FCM token phải là chuỗi',
+            'topic.required' => 'Chủ đề là bắt buộc',
+            'topic.string' => 'Chủ đề phải là chuỗi'
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Unsubscribe from topic validation failed', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Dữ liệu không hợp lệ',
                 'errors' => $validator->errors(),
             ], 422);
         }

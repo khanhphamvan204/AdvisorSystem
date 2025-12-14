@@ -195,7 +195,21 @@ class ActivityRoleController extends Controller
             'requirements' => 'nullable|string|max:1000',
             'points_awarded' => 'required|integer|min:0|max:100',
             'point_type' => 'required|in:ctxh,ren_luyen',
-            'max_slots' => 'nullable|integer|min:1|max:1000' // Giới hạn slots
+            'max_slots' => 'nullable|integer|min:1|max:1000'
+        ], [
+            'role_name.required' => 'Tên vai trò không được để trống',
+            'role_name.max' => 'Tên vai trò không được vượt quá 100 ký tự',
+            'description.max' => 'Mô tả không được vượt quá 1000 ký tự',
+            'requirements.max' => 'Yêu cầu không được vượt quá 1000 ký tự',
+            'points_awarded.required' => 'Điểm thưởng không được để trống',
+            'points_awarded.integer' => 'Điểm thưởng phải là số nguyên',
+            'points_awarded.min' => 'Điểm thưởng phải lớn hơn hoặc bằng 0',
+            'points_awarded.max' => 'Điểm thưởng không được vượt quá 100',
+            'point_type.required' => 'Loại điểm không được để trống',
+            'point_type.in' => 'Loại điểm phải là "ctxh" hoặc "ren_luyen"',
+            'max_slots.integer' => 'Số lượng slot phải là số nguyên',
+            'max_slots.min' => 'Số lượng slot phải lớn hơn 0',
+            'max_slots.max' => 'Số lượng slot không được vượt quá 1000'
         ]);
 
         if ($validator->fails()) {
@@ -298,6 +312,20 @@ class ActivityRoleController extends Controller
             'points_awarded' => 'sometimes|required|integer|min:0|max:100',
             'point_type' => 'sometimes|required|in:ctxh,ren_luyen',
             'max_slots' => 'nullable|integer|min:1|max:1000'
+        ], [
+            'role_name.required' => 'Tên vai trò không được để trống',
+            'role_name.max' => 'Tên vai trò không được vượt quá 100 ký tự',
+            'description.max' => 'Mô tả không được vượt quá 1000 ký tự',
+            'requirements.max' => 'Yêu cầu không được vượt quá 1000 ký tự',
+            'points_awarded.required' => 'Điểm thưởng không được để trống',
+            'points_awarded.integer' => 'Điểm thưởng phải là số nguyên',
+            'points_awarded.min' => 'Điểm thưởng phải lớn hơn hoặc bằng 0',
+            'points_awarded.max' => 'Điểm thưởng không được vượt quá 100',
+            'point_type.required' => 'Loại điểm không được để trống',
+            'point_type.in' => 'Loại điểm phải là "ctxh" hoặc "ren_luyen"',
+            'max_slots.integer' => 'Số lượng slot phải là số nguyên',
+            'max_slots.min' => 'Số lượng slot phải lớn hơn 0',
+            'max_slots.max' => 'Số lượng slot không được vượt quá 1000'
         ]);
 
         if ($validator->fails()) {

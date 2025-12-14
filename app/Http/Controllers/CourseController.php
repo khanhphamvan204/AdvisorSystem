@@ -58,7 +58,6 @@ class CourseController extends Controller
                     })
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get courses list', [
                 'error' => $e->getMessage()
@@ -124,7 +123,6 @@ class CourseController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get course detail', [
                 'course_id' => $courseId,
@@ -162,9 +160,30 @@ class CourseController extends Controller
             'course_name' => 'required|string|max:100',
             'credits' => 'required|integer|min:1|max:10',
             'unit_id' => 'required|integer|exists:Units,unit_id'
+        ], [
+            'course_code.required' => 'Mã môn học là bắt buộc',
+            'course_code.string' => 'Mã môn học phải là chuỗi',
+            'course_code.max' => 'Mã môn học không được vượt quá 20 ký tự',
+            'course_code.unique' => 'Mã môn học đã tồn tại',
+            'course_name.required' => 'Tên môn học là bắt buộc',
+            'course_name.string' => 'Tên môn học phải là chuỗi',
+            'course_name.max' => 'Tên môn học không được vượt quá 100 ký tự',
+            'credits.required' => 'Số tín chỉ là bắt buộc',
+            'credits.integer' => 'Số tín chỉ phải là số nguyên',
+            'credits.min' => 'Số tín chỉ phải ít nhất là 1',
+            'credits.max' => 'Số tín chỉ không được vượt quá 10',
+            'unit_id.required' => 'Khoa là bắt buộc',
+            'unit_id.integer' => 'Khoa phải là số nguyên',
+            'unit_id.exists' => 'Khoa không tồn tại'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Course creation validation failed', [
+                'admin_id' => $adminId,
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu không hợp lệ',
@@ -204,7 +223,6 @@ class CourseController extends Controller
                     'course' => $course
                 ]
             ], 201);
-
         } catch (\Exception $e) {
             Log::error('Failed to create course', [
                 'admin_id' => $adminId,
@@ -259,9 +277,27 @@ class CourseController extends Controller
             'course_name' => 'sometimes|string|max:100',
             'credits' => 'sometimes|integer|min:1|max:10',
             'unit_id' => 'sometimes|integer|exists:Units,unit_id'
+        ], [
+            'course_code.string' => 'Mã môn học phải là chuỗi',
+            'course_code.max' => 'Mã môn học không được vượt quá 20 ký tự',
+            'course_code.unique' => 'Mã môn học đã tồn tại',
+            'course_name.string' => 'Tên môn học phải là chuỗi',
+            'course_name.max' => 'Tên môn học không được vượt quá 100 ký tự',
+            'credits.integer' => 'Số tín chỉ phải là số nguyên',
+            'credits.min' => 'Số tín chỉ phải ít nhất là 1',
+            'credits.max' => 'Số tín chỉ không được vượt quá 10',
+            'unit_id.integer' => 'Khoa phải là số nguyên',
+            'unit_id.exists' => 'Khoa không tồn tại'
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Course update validation failed', [
+                'admin_id' => $adminId,
+                'course_id' => $courseId,
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Dữ liệu không hợp lệ',
@@ -307,7 +343,6 @@ class CourseController extends Controller
                     'course' => $course
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to update course', [
                 'admin_id' => $adminId,
@@ -381,7 +416,6 @@ class CourseController extends Controller
                 'success' => true,
                 'message' => 'Xóa môn học thành công'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to delete course', [
                 'admin_id' => $adminId,
@@ -442,7 +476,6 @@ class CourseController extends Controller
                     'total_courses' => $courses->count()
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get admin unit courses', [
                 'admin_id' => $adminId,
@@ -507,7 +540,6 @@ class CourseController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get student courses', [
                 'student_id' => $studentId,
@@ -601,7 +633,6 @@ class CourseController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Failed to get course students', [
                 'course_id' => $courseId,
