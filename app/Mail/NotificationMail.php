@@ -41,7 +41,7 @@ class NotificationMail extends Mailable
             view: 'emails.notification',
             with: [
                 'type' => $this->data['type'],
-                'studentName' => $this->data['studentName'],
+                'studentName' => $this->data['studentName'] ?? '',
                 'title' => $this->data['title'] ?? '',
 
                 // Notification data
@@ -68,6 +68,13 @@ class NotificationMail extends Mailable
                 'meetingLocation' => $this->data['meetingLocation'] ?? '',
                 'meetingTime' => $this->data['meetingTime'] ?? '',
                 'meetingLink' => $this->data['meetingLink'] ?? null,
+
+                // Student dropout data
+                'advisorName' => $this->data['advisorName'] ?? '',
+                'studentCode' => $this->data['studentCode'] ?? '',
+                'studentEmail' => $this->data['studentEmail'] ?? '',
+                'studentPhone' => $this->data['studentPhone'] ?? '',
+                'className' => $this->data['className'] ?? '',
             ],
         );
     }

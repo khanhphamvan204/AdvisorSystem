@@ -7,6 +7,7 @@ use App\Models\ClassModel;
 use App\Models\Advisor;
 use App\Models\Semester;
 use App\Services\PointCalculationService;
+use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
@@ -578,11 +579,26 @@ class StudentController extends Controller
                 }
             }
 
+            // Lưu trạng thái cũ trước khi cập nhật
+            $oldStatus = $student->status;
+
             // Cập nhật các trường
             $student->update($request->all());
 
             // Reload student với relationships
             $student->load(['class', 'class.advisor', 'class.faculty']);
+
+            // Gửi email cho giảng viên nếu sinh viên chuyển sang trạng thái bỏ học
+            if ($request->has('status') && $request->status === 'dropped' && $oldStatus !== 'dropped') {
+                if ($student->class && $student->class->advisor) {
+                    // Refresh lại student data để đảm bảo có đầy đủ thông tin
+                    $student->refresh();
+                    $student->load(['class']);
+
+                    $emailService = new EmailService();
+                    $emailService->sendStudentDropoutNotificationToAdvisor($student, $student->class->advisor);
+                }
+            }
 
             return response()->json([
                 'success' => true,

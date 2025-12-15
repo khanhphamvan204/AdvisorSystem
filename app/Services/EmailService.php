@@ -249,4 +249,48 @@ class EmailService
             'total' => count($students)
         ];
     }
+
+    /**
+     * Gửi email thông báo cho giảng viên khi sinh viên bỏ học
+     */
+    public function sendStudentDropoutNotificationToAdvisor($student, $advisor)
+    {
+        try {
+            if (!$advisor || !$advisor->email) {
+                Log::warning('Cannot send dropout notification - advisor email missing', [
+                    'student_id' => $student->student_id,
+                    'advisor_id' => $advisor ? $advisor->advisor_id : null
+                ]);
+                return false;
+            }
+
+            $data = [
+                'type' => 'student_dropout',
+                'subject' => 'Thông báo sinh viên bỏ học - ' . $student->full_name,
+                'advisorName' => $advisor->full_name,
+                'studentName' => $student->full_name,
+                'studentCode' => $student->user_code,
+                'studentEmail' => $student->email,
+                'studentPhone' => $student->phone_number ?? 'Chưa cập nhật',
+                'className' => $student->class ? $student->class->class_name : 'N/A',
+            ];
+
+            Mail::to($advisor->email)->send(new NotificationMail($data));
+
+            Log::info('Dropout notification email sent to advisor', [
+                'student_id' => $student->student_id,
+                'advisor_id' => $advisor->advisor_id,
+                'advisor_email' => $advisor->email
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send dropout notification to advisor', [
+                'student_id' => $student->student_id,
+                'advisor_id' => $advisor ? $advisor->advisor_id : null,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
 }
