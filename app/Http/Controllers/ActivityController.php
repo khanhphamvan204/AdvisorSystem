@@ -491,7 +491,7 @@ class ActivityController extends Controller
                 }
 
                 // Kiểm tra các lớp sẽ bị xóa có sinh viên đã đăng ký chưa
-                $currentClassIds = $activity->classes()->pluck('class_id')->toArray();
+                $currentClassIds = $activity->classes()->pluck('Classes.class_id')->toArray();
                 $removedClassIds = array_diff($currentClassIds, $request->class_ids);
 
                 if (!empty($removedClassIds)) {
