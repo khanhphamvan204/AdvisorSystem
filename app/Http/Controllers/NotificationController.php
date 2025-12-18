@@ -290,7 +290,7 @@ class NotificationController extends Controller
             $notification->my_response = NotificationResponse::where('notification_id', $id)
                 ->where('student_id', $userId)
                 ->with('advisor')
-                ->first();
+                ->get();
         }
 
         return response()->json(['success' => true, 'data' => $notification]);
