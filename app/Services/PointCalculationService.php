@@ -193,11 +193,12 @@ class PointCalculationService
 
     /**
      * Lấy chi tiết TẤT CẢ các hoạt động CTXH từ đầu khóa đến học kỳ
+     * Bao gồm cả hoạt động tham dự (attended) và vắng mặt (absent)
      */
     public static function getSocialActivitiesDetail($studentId, $upToSemesterId = null)
     {
         $query = ActivityRegistration::where('student_id', $studentId)
-            ->where('status', 'attended')
+            ->whereIn('status', ['attended', 'absent']) // Lấy cả attended và absent
             ->whereHas('role', function ($query) {
                 $query->where('point_type', 'ctxh');
             });
@@ -211,14 +212,24 @@ class PointCalculationService
             }
         }
 
-        $registrations = $query->with(['role.activity'])->get();
+        $registrations = $query->with(['role.activity'])
+            ->orderBy('registration_time', 'desc')
+            ->get();
 
         return $registrations->map(function ($reg) {
+            $pointsAwarded = $reg->role->points_awarded;
+            // CTXH chỉ cộng điểm khi attended, không trừ điểm khi absent
+            $actualPoints = $reg->status === 'attended' ? $pointsAwarded : 0;
+
             return [
+                'registration_id' => $reg->registration_id,
                 'activity_id' => $reg->role->activity->activity_id,
                 'activity_title' => $reg->role->activity->title,
                 'role_name' => $reg->role->role_name,
-                'points_awarded' => $reg->role->points_awarded,
+                'status' => $reg->status,
+                'status_text' => $reg->status === 'attended' ? 'Đã tham dự' : 'Vắng mặt',
+                'points_awarded' => $pointsAwarded,
+                'actual_points' => $actualPoints,
                 'activity_date' => $reg->role->activity->start_time->format('d/m/Y'),
                 'location' => $reg->role->activity->location,
                 'registration_time' => $reg->registration_time->format('d/m/Y H:i')
