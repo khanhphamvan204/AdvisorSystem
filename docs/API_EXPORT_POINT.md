@@ -8,6 +8,7 @@ API cho phép Admin xuất điểm rèn luyện và điểm công tác xã hội
 
 -   ✅ **Điểm rèn luyện**: Tính theo từng học kỳ (70 điểm ban đầu + attended - absent)
 -   ✅ **Điểm CTXH**: Tích lũy từ đầu khóa đến thời điểm hiện tại (không cần chọn học kỳ)
+-   ✅ **Danh sách thiếu điểm CTXH**: Lọc và xuất chỉ sinh viên có điểm < 170 để dễ dàng theo dõi
 -   ✅ Sử dụng `PointCalculationService` để đảm bảo logic tính điểm nhất quán
 -   ✅ Xuất file Excel với thống kê chi tiết và phân bổ xếp loại
 
@@ -236,7 +237,8 @@ GET /admin/export/social-points/class?class_id=1
 4. **Lớp**: Tên lớp
 5. **Số HĐ CTXH**: Tổng số hoạt động CTXH đã tham dự (tích lũy)
 6. **Điểm CTXH**: Tổng điểm CTXH tích lũy
-7. **Xếp loại**: Đạt (≥170) / Không đạt (<170)
+7. **Số điểm còn thiếu**: Số điểm cần để đạt 170 (170 - điểm hiện tại, nếu < 170)
+8. **Xếp loại**: Đạt (≥170) / Không đạt (<170)
 
 ---
 
@@ -273,6 +275,142 @@ GET /admin/export/social-points/faculty
 -   **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
 -   **Content-Disposition**: `attachment; filename="DiemCTXH_TichLuy_Khoa Công nghệ Thông tin_20250327144535.xlsx"`
 -   File sẽ tự động download về máy người dùng
+
+---
+
+## 5. XUẤT DANH SÁCH SINH VIÊN THIẾU ĐIỂM CTXH THEO LỚP
+
+### Endpoint
+
+```
+GET /admin/export/social-points/insufficient/class
+```
+
+### Mô tả
+
+API này xuất danh sách **CHỈ các sinh viên chưa đạt chuẩn CTXH** (điểm < 170) của một lớp. Giúp Admin dễ dàng theo dõi và nhắc nhở sinh viên cần tham gia thêm hoạt động.
+
+### Headers
+
+```json
+{
+    "Authorization": "Bearer {token}"
+}
+```
+
+### Query Parameters
+
+| Tham số  | Kiểu dữ liệu | Bắt buộc | Mô tả                    |
+| -------- | ------------ | -------- | ------------------------ |
+| class_id | integer      | Có       | ID của lớp cần xuất điểm |
+
+### Ví dụ Request
+
+```
+GET /admin/export/social-points/insufficient/class?class_id=1
+```
+
+### Logic lọc dữ liệu
+
+-   **Chỉ xuất sinh viên có điểm CTXH < 170**
+-   Tính tích lũy từ đầu khóa đến hiện tại
+-   Sắp xếp theo tên sinh viên
+
+### Response Success (200)
+
+**File Excel được tải về trực tiếp**
+
+-   **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+-   **Content-Disposition**: `attachment; filename="SinhVienThieuDiemCTXH_DH21CNTT_20250622221430.xlsx"`
+-   File sẽ tự động download về máy người dùng
+
+### Cấu trúc file Excel xuất ra
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG TP.HCM                          │
+│                   KHOA CÔNG NGHỆ THÔNG TIN                                │
+│                                                                            │
+│            DANH SÁCH SINH VIÊN THIẾU ĐIỂM CTXH                           │
+│                         Lớp: DH21CNTT                                     │
+│                    Tính đến: 22/12/2025 22:14                            │
+│                  Tiêu chuẩn: 170 điểm CTXH                               │
+│               Số SV thiếu điểm: 15 sinh viên                             │
+│                                                                            │
+├─────┬─────────┬──────────────┬──────────┬────────┬────────┬────────┬─────┤
+│ STT │  MSSV   │  Họ và tên   │   Lớp    │ Số HĐ  │ Điểm   │  Số    │ Xếp │
+│     │         │              │          │  CTXH  │  CTXH  │ điểm   │loại │
+│     │         │              │          │        │        │còn     │     │
+│     │         │              │          │        │        │thiếu   │     │
+├─────┼─────────┼──────────────┼──────────┼────────┼────────┼────────┼─────┤
+│  1  │ 210002  │ Trần Thị Bình│ DH21CNTT │   28   │  150   │   20   │Không│
+│     │         │              │          │        │        │        │ đạt │
+│  2  │ 210005  │ Lê Văn Cường │ DH21CNTT │   20   │  120   │   50   │Không│
+│     │         │              │          │        │        │        │ đạt │
+│  3  │ 210008  │ Phạm Thị Dung│ DH21CNTT │   15   │   95   │   75   │Không│
+│     │         │              │          │        │        │        │ đạt │
+└─────┴─────────┴──────────────┴──────────┴────────┴────────┴────────┴─────┘
+```
+
+**Các cột trong bảng:**
+
+1. **STT**: Số thứ tự
+2. **MSSV**: Mã số sinh viên
+3. **Họ và tên**: Họ tên đầy đủ
+4. **Lớp**: Tên lớp
+5. **Số HĐ CTXH**: Tổng số hoạt động CTXH đã tham dự
+6. **Điểm CTXH**: Tổng điểm CTXH hiện tại
+7. **Số điểm còn thiếu**: Số điểm cần để đạt 170 (170 - điểm hiện tại)
+8. **Xếp loại**: Không đạt (tất cả đều < 170)
+
+---
+
+## 6. XUẤT DANH SÁCH SINH VIÊN THIẾU ĐIỂM CTXH THEO KHOA
+
+### Endpoint
+
+```
+GET /admin/export/social-points/insufficient/faculty
+```
+
+### Mô tả
+
+API này xuất danh sách **CHỈ các sinh viên chưa đạt chuẩn CTXH** (điểm < 170) của toàn khoa. Giúp Admin có cái nhìn tổng quan về tình hình sinh viên thiếu điểm CTXH trong khoa.
+
+### Headers
+
+```json
+{
+    "Authorization": "Bearer {token}"
+}
+```
+
+### Query Parameters
+
+**Không cần tham số** - `faculty_id` được lấy tự động từ `unit_id` của admin đang đăng nhập.
+
+### Ví dụ Request
+
+```
+GET /admin/export/social-points/insufficient/faculty
+```
+
+### Logic lọc dữ liệu
+
+-   **Chỉ xuất sinh viên có điểm CTXH < 170**
+-   Bao gồm tất cả lớp trong khoa
+-   Tính tích lũy từ đầu khóa đến hiện tại
+-   Sắp xếp theo tên sinh viên
+
+### Response Success (200)
+
+**File Excel được tải về trực tiếp**
+
+-   **Content-Type**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+-   **Content-Disposition**: `attachment; filename="SinhVienThieuDiemCTXH_Khoa Công nghệ Thông tin_20250622221535.xlsx"`
+-   File sẽ tự động download về máy người dùng
+
+**Lưu ý**: File xuất theo khoa sẽ chứa sinh viên thiếu điểm CTXH từ tất cả các lớp thuộc khoa của admin đang đăng nhập.
 
 ---
 
@@ -405,6 +543,22 @@ curl -X GET "https://your-domain.com/api/admin/export/social-points/faculty" \
   -o DiemCTXH.xlsx
 ```
 
+### Xuất danh sách sinh viên thiếu điểm CTXH theo lớp
+
+```bash
+curl -X GET "https://your-domain.com/api/admin/export/social-points/insufficient/class?class_id=1" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -o SinhVienThieuDiemCTXH.xlsx
+```
+
+### Xuất danh sách sinh viên thiếu điểm CTXH theo khoa
+
+```bash
+curl -X GET "https://your-domain.com/api/admin/export/social-points/insufficient/faculty" \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc..." \
+  -o SinhVienThieuDiemCTXH_Khoa.xlsx
+```
+
 ---
 
 ## LƯU Ý QUAN TRỌNG
@@ -429,6 +583,7 @@ curl -X GET "https://your-domain.com/api/admin/export/social-points/faculty" \
 -   URL download: `https://domain.com/storage/exports/filename.xlsx`
 -   Tên file rèn luyện: `DiemRenLuyen_{Tên}_HocKy_{Timestamp}.xlsx`
 -   Tên file CTXH: `DiemCTXH_TichLuy_{Tên}_{Timestamp}.xlsx`
+-   Tên file SV thiếu điểm CTXH: `SinhVienThieuDiemCTXH_{Tên}_{Timestamp}.xlsx`
 
 ### 4. Dữ liệu
 

@@ -241,6 +241,108 @@ class ExportPointService
     }
 
     /**
+     * Xuất danh sách sinh viên thiếu điểm CTXH theo lớp (< 170 điểm)
+     */
+    public function exportInsufficientSocialPointsByClass(int $classId)
+    {
+        // Lấy thông tin lớp
+        $class = ClassModel::with('faculty')->findOrFail($classId);
+
+        // Lấy danh sách sinh viên và sắp xếp theo tên (chữ cuối cùng)
+        $students = Student::where('class_id', $classId)
+            ->where('status', 'studying')
+            ->get()
+            ->sortBy(function ($student) {
+                $nameParts = explode(' ', trim($student->full_name));
+                return end($nameParts); // Lấy tên (phần cuối)
+            })
+            ->values(); // Reset lại keys sau khi sort
+
+        // Tính điểm CTXH cho từng sinh viên và lọc những sinh viên thiếu điểm
+        $studentsWithPoints = $students->map(function ($student) {
+            try {
+                // Không truyền $semesterId => tính tích lũy từ đầu đến giờ
+                $socialPoints = PointCalculationService::calculateSocialPoints(
+                    $student->student_id
+                );
+
+                // Lấy chi tiết hoạt động CTXH từ đầu đến giờ
+                $activities = PointCalculationService::getSocialActivitiesDetail(
+                    $student->student_id
+                );
+
+                return [
+                    'student' => $student,
+                    'social_points' => $socialPoints,
+                    'total_activities' => count($activities)
+                ];
+            } catch (\Exception $e) {
+                return [
+                    'student' => $student,
+                    'social_points' => 0,
+                    'total_activities' => 0,
+                    'error' => $e->getMessage()
+                ];
+            }
+        })->filter(function ($data) {
+            // Chỉ lấy sinh viên có điểm CTXH < 170
+            return $data['social_points'] < 170;
+        })->values();
+
+        return $this->generateInsufficientSocialPointsExcel($studentsWithPoints, $class, null, 'class');
+    }
+
+    /**
+     * Xuất danh sách sinh viên thiếu điểm CTXH theo khoa (< 170 điểm)
+     */
+    public function exportInsufficientSocialPointsByFaculty(int $facultyId)
+    {
+        // Lấy thông tin khoa
+        $faculty = Unit::where('type', 'faculty')->findOrFail($facultyId);
+
+        // Lấy danh sách sinh viên thuộc các lớp của khoa
+        $students = Student::whereHas('class', function ($query) use ($facultyId) {
+            $query->where('faculty_id', $facultyId);
+        })
+            ->where('status', 'studying')
+            ->with('class')
+            ->orderBy('full_name')
+            ->get();
+
+        // Tính điểm CTXH cho từng sinh viên và lọc những sinh viên thiếu điểm
+        $studentsWithPoints = $students->map(function ($student) {
+            try {
+                // Không truyền $semesterId => tính tích lũy từ đầu đến giờ
+                $socialPoints = PointCalculationService::calculateSocialPoints(
+                    $student->student_id
+                );
+
+                $activities = PointCalculationService::getSocialActivitiesDetail(
+                    $student->student_id
+                );
+
+                return [
+                    'student' => $student,
+                    'social_points' => $socialPoints,
+                    'total_activities' => count($activities)
+                ];
+            } catch (\Exception $e) {
+                return [
+                    'student' => $student,
+                    'social_points' => 0,
+                    'total_activities' => 0,
+                    'error' => $e->getMessage()
+                ];
+            }
+        })->filter(function ($data) {
+            // Chỉ lấy sinh viên có điểm CTXH < 170
+            return $data['social_points'] < 170;
+        })->values();
+
+        return $this->generateInsufficientSocialPointsExcel($studentsWithPoints, $faculty, null, 'faculty');
+    }
+
+    /**
      * Tạo file Excel điểm rèn luyện
      */
     private function generateTrainingPointsExcel($studentsWithPoints, $entity, $semester, $type)
@@ -346,7 +448,7 @@ class ExportPointService
         $sheet = $spreadsheet->getActiveSheet();
 
         // Điền tiêu đề chính (dòng 5)
-        $this->excelHeaderService->fillTitle($sheet, 'BẢNG ĐIỂM CÔNG TÁC XÃ HỘI (TÍCH LŨY)', 5, 'G');
+        $this->excelHeaderService->fillTitle($sheet, 'BẢNG ĐIỂM CÔNG TÁC XÃ HỘI (TÍCH LŨY)', 5, 'H');
 
         // Điền thông tin chi tiết (bắt đầu từ dòng 7)
         $infoData = [];
@@ -361,20 +463,20 @@ class ExportPointService
         $infoData['Tính đến:'] = date('d/m/Y H:i');
         $infoData['Ghi chú:'] = '(Điểm CTXH được tích lũy từ đầu khóa học đến thời điểm hiện tại)';
 
-        $row = $this->excelHeaderService->fillInfoSection($sheet, $infoData, 7, 'G');
+        $row = $this->excelHeaderService->fillInfoSection($sheet, $infoData, 7, 'H');
 
         // Dòng trống
         $row++;
 
         // Header bảng dữ liệu
-        $headers = ['STT', 'MSSV', 'Họ và tên', 'Lớp', 'Số HĐ CTXH', 'Điểm CTXH', 'Xếp loại'];
-        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+        $headers = ['STT', 'MSSV', 'Họ và tên', 'Lớp', 'Số HĐ CTXH', 'Điểm CTXH', 'Số điểm còn thiếu', 'Xếp loại'];
+        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
         foreach ($headers as $index => $header) {
             $sheet->setCellValueExplicit($columns[$index] . $row, $header, DataType::TYPE_STRING);
         }
 
-        $this->styleTableHeader($sheet, 'A' . $row . ':G' . $row);
+        $this->styleTableHeader($sheet, 'A' . $row . ':H' . $row);
         $row++;
 
         // Chuẩn bị dữ liệu sinh viên
@@ -384,6 +486,7 @@ class ExportPointService
             $student = $data['student'];
             $socialPoints = $data['social_points'];
             $classification = $this->classifySocialPoints($socialPoints);
+            $remainingPoints = $this->calculateRemainingSocialPoints($socialPoints);
 
             $tableData[] = [
                 $stt,
@@ -392,6 +495,7 @@ class ExportPointService
                 $type === 'faculty' ? $student->class->class_name : $entity->class_name,
                 $data['total_activities'],
                 $socialPoints,
+                $remainingPoints,
                 $classification
             ];
             $stt++;
@@ -404,13 +508,14 @@ class ExportPointService
         // Auto format columns
         $this->excelHeaderService->autoFormatColumns(
             $sheet,
-            range('A', 'G'),
+            range('A', 'H'),
             [
                 'C' => 30, // Họ tên rộng hơn
                 'D' => 18, // Lớp
                 'E' => 15, // Số HĐ CTXH
                 'F' => 15, // Điểm CTXH
-                'G' => 15  // Xếp loại
+                'G' => 18, // Số điểm còn thiếu
+                'H' => 15  // Xếp loại
             ]
         );
 
@@ -419,6 +524,108 @@ class ExportPointService
         $writer->setPreCalculateFormulas(false);
 
         $fileName = 'DiemCTXH_TichLuy_' . ($type === 'class' ? $entity->class_name : $entity->unit_name) . '_' . date('YmdHis') . '.xlsx';
+        $filePath = storage_path('app/public/exports/' . $fileName);
+
+        if (!file_exists(storage_path('app/public/exports'))) {
+            mkdir(storage_path('app/public/exports'), 0755, true);
+        }
+
+        $writer->save($filePath);
+
+        return [
+            'file_path' => $filePath,
+            'file_name' => $fileName,
+            'download_url' => url('storage/exports/' . $fileName)
+        ];
+    }
+
+    /**
+     * Tạo file Excel cho danh sách sinh viên thiếu điểm CTXH
+     */
+    private function generateInsufficientSocialPointsExcel($studentsWithPoints, $entity, $semester, $type)
+    {
+        // Tạo spreadsheet với header chuyên nghiệp
+        $spreadsheet = $this->excelHeaderService->createWithProfessionalHeader();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Điền tiêu đề chính (dòng 5)
+        $this->excelHeaderService->fillTitle($sheet, 'DANH SÁCH SINH VIÊN THIẾU ĐIỂM CTXH', 5, 'H');
+
+        // Điền thông tin chi tiết (bắt đầu từ dòng 7)
+        $infoData = [];
+
+        if ($type === 'faculty') {
+            $infoData['Khoa:'] = $entity->unit_name;
+        } else {
+            $infoData['Khoa:'] = $entity->faculty->unit_name;
+            $infoData['Lớp:'] = $entity->class_name;
+        }
+
+        $infoData['Tính đến:'] = date('d/m/Y H:i');
+        $infoData['Tiêu chuẩn:'] = '170 điểm CTXH';
+        $infoData['Số SV thiếu điểm:'] = $studentsWithPoints->count() . ' sinh viên';
+
+        $row = $this->excelHeaderService->fillInfoSection($sheet, $infoData, 7, 'H');
+
+        // Dòng trống
+        $row++;
+
+        // Header bảng dữ liệu
+        $headers = ['STT', 'MSSV', 'Họ và tên', 'Lớp', 'Số HĐ CTXH', 'Điểm CTXH', 'Số điểm còn thiếu', 'Xếp loại'];
+        $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+        foreach ($headers as $index => $header) {
+            $sheet->setCellValueExplicit($columns[$index] . $row, $header, DataType::TYPE_STRING);
+        }
+
+        $this->styleTableHeader($sheet, 'A' . $row . ':H' . $row);
+        $row++;
+
+        // Chuẩn bị dữ liệu sinh viên
+        $tableData = [];
+        $stt = 1;
+        foreach ($studentsWithPoints as $data) {
+            $student = $data['student'];
+            $socialPoints = $data['social_points'];
+            $classification = $this->classifySocialPoints($socialPoints);
+            $remainingPoints = $this->calculateRemainingSocialPoints($socialPoints);
+
+            $tableData[] = [
+                $stt,
+                $student->user_code,
+                $student->full_name,
+                $type === 'faculty' ? $student->class->class_name : $entity->class_name,
+                $data['total_activities'],
+                $socialPoints,
+                $remainingPoints,
+                $classification
+            ];
+            $stt++;
+        }
+
+        // Điền dữ liệu bảng
+        $lastRow = $this->excelHeaderService->fillTableData($sheet, $tableData, $row);
+        $row = $lastRow;
+
+        // Auto format columns
+        $this->excelHeaderService->autoFormatColumns(
+            $sheet,
+            range('A', 'H'),
+            [
+                'C' => 30, // Họ tên rộng hơn
+                'D' => 18, // Lớp
+                'E' => 15, // Số HĐ CTXH
+                'F' => 15, // Điểm CTXH
+                'G' => 18, // Số điểm còn thiếu
+                'H' => 15  // Xếp loại
+            ]
+        );
+
+        // Tạo file với encoding UTF-8
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+
+        $fileName = 'SinhVienThieuDiemCTXH_' . ($type === 'class' ? $entity->class_name : $entity->unit_name) . '_' . date('YmdHis') . '.xlsx';
         $filePath = storage_path('app/public/exports/' . $fileName);
 
         if (!file_exists(storage_path('app/public/exports'))) {
@@ -534,5 +741,17 @@ class ExportPointService
         if ($point >= 170)
             return 'Đạt';
         return 'Không đạt';
+    }
+
+    /**
+     * Tính số điểm còn thiếu để đạt chuẩn (điểm CTXH)
+     */
+    private function calculateRemainingSocialPoints($currentPoints)
+    {
+        $requiredPoints = 170;
+        if ($currentPoints < $requiredPoints) {
+            return $requiredPoints - $currentPoints;
+        }
+        return 0; // Đã đạt chuẩn
     }
 }

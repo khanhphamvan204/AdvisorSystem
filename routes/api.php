@@ -449,6 +449,12 @@ Route::middleware(['auth.api'])->group(function () {
 
         // Xuất điểm CTXH theo khoa
         Route::get('/social-points/faculty', [ExportPointController::class, 'exportSocialPointsByFaculty']);
+
+        // Xuất danh sách sinh viên thiếu điểm CTXH theo lớp
+        Route::get('/social-points/insufficient/class', [ExportPointController::class, 'exportInsufficientSocialPointsByClass']);
+
+        // Xuất danh sách sinh viên thiếu điểm CTXH theo khoa
+        Route::get('/social-points/insufficient/faculty', [ExportPointController::class, 'exportInsufficientSocialPointsByFaculty']);
     });
 
 
