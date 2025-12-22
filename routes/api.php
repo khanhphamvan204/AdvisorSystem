@@ -26,6 +26,7 @@ use App\Http\Controllers\PointFeedbackController;
 use App\Http\Controllers\StudentMonitoringNoteController;
 use App\Http\Controllers\ActivityAttendanceController;
 use App\Http\Controllers\ExportPointController;
+use App\Http\Controllers\DialogueController;
 
 
 // ========== Authentication Routes ==========
@@ -873,6 +874,38 @@ Route::middleware(['auth.api'])->prefix('monitoring-notes')->group(function () {
         ->middleware('check_role:advisor');
 });
 
+// ===================================================================
+// Ý KIẾN ĐỐI THOẠI (DIALOGUES)
+// ===================================================================
+Route::middleware(['auth.api'])->prefix('dialogues')->group(function () {
+
+    // Xem danh sách ý kiến đối thoại (có phân quyền tự động trong controller)
+    // Student: Xem ý kiến của mình
+    // Advisor: Xem ý kiến của sinh viên trong lớp mình phụ trách
+    // Admin: Xem ý kiến của các lớp trong khoa mình quản lý
+    Route::get('/', [DialogueController::class, 'index']);
+
+    // ===== SPECIFIC ROUTES (phải đặt TRƯỚC wildcard routes) =====
+
+    // Thống kê tổng hợp ý kiến đối thoại (Advisor và Admin only)
+    Route::get('/statistics/overview', [DialogueController::class, 'getStatistics'])
+        ->middleware('check_role:advisor,admin');
+
+    // Báo cáo chi tiết theo lớp (Advisor và Admin only)
+    Route::get('/reports/by-class', [DialogueController::class, 'getReportByClass'])
+        ->middleware('check_role:advisor,admin');
+
+    // Xuất báo cáo (Advisor và Admin only) - Đang phát triển
+    Route::get('/export', [DialogueController::class, 'exportReport'])
+        ->middleware('check_role:advisor,admin');
+
+    // ===== WILDCARD ROUTE (phải đặt SAU specific routes) =====
+
+    // Xem chi tiết một ý kiến đối thoại
+    // source: meeting hoặc notification
+    Route::get('/{source}/{id}', [DialogueController::class, 'show']);
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -946,7 +979,6 @@ Route::delete('/auth/google/revoke', [GoogleAuthController::class, 'revokeAuth']
 // MEETING ROUTES (existing routes)
 // ============================================
 
-// ... các routes khác của bạn
 
 use App\Http\Controllers\FCMController;
 
