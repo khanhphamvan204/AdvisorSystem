@@ -127,14 +127,18 @@ GET /api/meetings
 
 **Query Parameters:**
 
-| Parameter   | Type    | Required | Description                                                |
-| ----------- | ------- | -------- | ---------------------------------------------------------- |
-| `class_id`  | integer | No       | Lọc theo lớp (chỉ advisor/admin)                           |
-| `status`    | string  | No       | Lọc theo trạng thái: `scheduled`, `completed`, `cancelled` |
-| `from_date` | date    | No       | Lọc từ ngày (YYYY-MM-DD)                                   |
-| `to_date`   | date    | No       | Lọc đến ngày (YYYY-MM-DD)                                  |
+| Parameter  | Type    | Required | Description                                                |
+| ---------- | ------- | -------- | ---------------------------------------------------------- |
+| `month`    | string  | No       | Lọc theo tháng (YYYY-MM, ví dụ: 2025-03)                   |
+| `class_id` | integer | No       | Lọc theo lớp (chỉ advisor/admin)                           |
+| `status`   | string  | No       | Lọc theo trạng thái: `scheduled`, `completed`, `cancelled` |
 
-**Response Success (200):**
+**Lưu ý:**
+
+-   Khi **không có** `month`: Trả về tất cả cuộc họp (theo quyền)
+-   Khi **có** `month`: Lọc cuộc họp trong tháng đó + bổ sung danh sách lớp chưa có meeting (chỉ admin/advisor)
+
+**Response Success (200) - Không có month:**
 
 ```json
 {
@@ -152,6 +156,41 @@ GET /api/meetings
             "end_time": "2025-03-15 11:30:00",
             "status": "completed",
             "minutes_file_path": "meetings/BienBan_DH21CNTT_15032025.docx"
+        }
+    ]
+}
+```
+
+**Response Success (200) - Có month:**
+
+```json
+{
+    "success": true,
+    "month": "2025-03",
+    "data": [
+        {
+            "meeting_id": 1,
+            "advisor_id": 1,
+            "class_id": 1,
+            "title": "Họp lớp DH21CNTT tháng 3/2025",
+            "...": "..."
+        }
+    ],
+    "classes_without_meetings": [
+        {
+            "class_id": 4,
+            "class_name": "DH23CNTT",
+            "description": "Lớp Đại học 2023 ngành Công nghệ Thông tin",
+            "students_count": 25,
+            "advisor": {
+                "advisor_id": 1,
+                "full_name": "ThS. Trần Văn An",
+                "email": "gv.an@school.edu.vn"
+            },
+            "faculty": {
+                "unit_id": 1,
+                "unit_name": "Khoa Công nghệ Thông tin"
+            }
         }
     ]
 }
@@ -565,11 +604,15 @@ GET /api/meetings/statistics/overview
 
 **Query Parameters:**
 
-| Parameter   | Type    | Description  |
-| ----------- | ------- | ------------ |
-| `from_date` | date    | Từ ngày      |
-| `to_date`   | date    | Đến ngày     |
-| `class_id`  | integer | Lọc theo lớp |
+| Parameter  | Type    | Required | Description                              |
+| ---------- | ------- | -------- | ---------------------------------------- |
+| `month`    | string  | No       | Lọc theo tháng (YYYY-MM, ví dụ: 2025-12) |
+| `class_id` | integer | No       | Lọc theo lớp                             |
+
+**Lưu ý:**
+
+-   Khi **không có** `month`: Trả về thống kê tất cả cuộc họp (theo quyền)
+-   Khi **có** `month`: Chỉ thống kê các cuộc họp trong tháng đó
 
 **Response Success (200):**
 
@@ -589,6 +632,19 @@ GET /api/meetings/statistics/overview
         }
     }
 }
+```
+
+**Ví dụ sử dụng:**
+
+```javascript
+// Thống kê tất cả cuộc họp
+GET /api/meetings/statistics/overview
+
+// Thống kê tháng 12/2025
+GET /api/meetings/statistics/overview?month=2025-12
+
+// Thống kê tháng 12/2025 của lớp ID 1
+GET /api/meetings/statistics/overview?month=2025-12&class_id=1
 ```
 
 ---

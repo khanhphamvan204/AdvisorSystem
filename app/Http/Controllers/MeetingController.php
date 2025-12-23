@@ -35,6 +35,41 @@ class MeetingController extends Controller
 
             $query = Meeting::with(['advisor', 'class', 'attendees.student']);
 
+            // Biến để lưu thông tin tháng và lớp chưa có meeting
+            $month = null;
+            $classesWithoutMeetings = [];
+
+            // Xử lý lọc theo tháng (nếu có)
+            if ($request->has('month')) {
+                $validator = Validator::make($request->all(), [
+                    'month' => ['required', 'regex:/^\d{4}-\d{2}$/']
+                ], [
+                    'month.regex' => 'Tháng phải có định dạng YYYY-MM (ví dụ: 2025-03)'
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Dữ liệu không hợp lệ',
+                        'errors' => $validator->errors()
+                    ], 422);
+                }
+
+                try {
+                    $month = $request->month;
+                    $startOfMonth = Carbon::parse($month . '-01')->startOfDay();
+                    $endOfMonth = $startOfMonth->copy()->endOfMonth()->endOfDay();
+
+                    // Lọc meetings theo tháng
+                    $query->whereBetween('meeting_time', [$startOfMonth, $endOfMonth]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tháng không hợp lệ'
+                    ], 422);
+                }
+            }
+
             // Phân quyền lọc dữ liệu
             if ($userRole === 'student') {
                 // Sinh viên chỉ xem cuộc họp của lớp mình
@@ -62,25 +97,66 @@ class MeetingController extends Controller
                 $query->where('status', $request->status);
             }
 
-            // Lọc theo thời gian
-            if ($request->has('from_date')) {
-                $query->where('meeting_time', '>=', $request->from_date);
-            }
-            if ($request->has('to_date')) {
-                $query->where('meeting_time', '<=', $request->to_date);
-            }
-
             // Sắp xếp
             $query->orderBy('meeting_time', 'desc');
 
-            // Phân trang
             $meetings = $query->get();
 
-            return response()->json([
+            // Lấy danh sách lớp chưa có meeting (chỉ khi có tham số month)
+            if ($month && in_array($userRole, ['advisor', 'admin'])) {
+                $startOfMonth = Carbon::parse($month . '-01')->startOfDay();
+                $endOfMonth = $startOfMonth->copy()->endOfMonth()->endOfDay();
+
+                $classQuery = ClassModel::with(['advisor', 'faculty'])
+                    ->withCount('students')
+                    ->whereDoesntHave('meetings', function ($q) use ($startOfMonth, $endOfMonth) {
+                        $q->whereBetween('meeting_time', [$startOfMonth, $endOfMonth]);
+                    });
+
+                // Phân quyền
+                if ($userRole === 'advisor') {
+                    $classQuery->where('advisor_id', $userId);
+                }
+
+                // Lọc theo class_id nếu có
+                if ($request->has('class_id')) {
+                    $classQuery->where('class_id', $request->class_id);
+                }
+
+                $classesWithoutMeetings = $classQuery->get()->map(function ($class) {
+                    return [
+                        'class_id' => $class->class_id,
+                        'class_name' => $class->class_name,
+                        'description' => $class->description,
+                        'students_count' => $class->students_count,
+                        'advisor' => $class->advisor ? [
+                            'advisor_id' => $class->advisor->advisor_id,
+                            'full_name' => $class->advisor->full_name,
+                            'email' => $class->advisor->email
+                        ] : null,
+                        'faculty' => $class->faculty ? [
+                            'unit_id' => $class->faculty->unit_id,
+                            'unit_name' => $class->faculty->unit_name
+                        ] : null
+                    ];
+                });
+            }
+
+            // Response
+            $response = [
                 'success' => true,
                 'data' => $meetings
-            ], 200);
+            ];
+
+            // Thêm thông tin tháng và lớp chưa có meeting nếu có
+            if ($month) {
+                $response['month'] = $month;
+                $response['classes_without_meetings'] = $classesWithoutMeetings;
+            }
+
+            return response()->json($response, 200);
         } catch (\Exception $e) {
+            Log::error('Lỗi khi lấy danh sách cuộc họp: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi lấy danh sách cuộc họp: ' . $e->getMessage()
@@ -1180,6 +1256,29 @@ class MeetingController extends Controller
             $userRole = $request->current_role;
             $userId = $request->current_user_id;
 
+            // Validate tham số đầu vào
+            $validator = Validator::make($request->all(), [
+                'month' => ['nullable', 'regex:/^\d{4}-\d{2}$/'],
+                'class_id' => 'nullable|integer|exists:classes,class_id'
+            ], [
+                'month.regex' => 'Tháng phải có định dạng YYYY-MM (ví dụ: 2025-12)',
+                'class_id.integer' => 'ID lớp phải là số nguyên',
+                'class_id.exists' => 'Lớp không tồn tại'
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('Validation failed in getStatistics', [
+                    'errors' => $validator->errors()->toArray(),
+                    'input' => $request->all()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dữ liệu không hợp lệ',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $query = Meeting::query();
 
             // Phân quyền
@@ -1187,12 +1286,12 @@ class MeetingController extends Controller
                 $query->where('advisor_id', $userId);
             }
 
-            // Lọc theo thời gian
-            if ($request->has('from_date')) {
-                $query->where('meeting_time', '>=', $request->from_date);
-            }
-            if ($request->has('to_date')) {
-                $query->where('meeting_time', '<=', $request->to_date);
+            // Lọc theo tháng
+            if ($request->has('month') && $request->month) {
+                $startOfMonth = Carbon::parse($request->month . '-01')->startOfDay();
+                $endOfMonth = Carbon::parse($request->month . '-01')->endOfMonth()->endOfDay();
+
+                $query->whereBetween('meeting_time', [$startOfMonth, $endOfMonth]);
             }
 
             // Lọc theo lớp
