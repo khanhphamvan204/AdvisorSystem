@@ -534,6 +534,14 @@ class MeetingController extends Controller
                 ], 403);
             }
 
+            // Không cho xóa cuộc họp đã hoàn thành
+            if ($meeting->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể xóa cuộc họp đã hoàn thành. Cuộc họp này đã có biên bản và dữ liệu điểm danh.'
+                ], 400);
+            }
+
             // Xóa trên Google Calendar nếu có Google Meet link
             if ($meeting->meeting_link && strpos($meeting->meeting_link, 'meet.google.com') !== false) {
                 $result = $this->googleCalendarService->deleteMeeting($meeting->meeting_id);
