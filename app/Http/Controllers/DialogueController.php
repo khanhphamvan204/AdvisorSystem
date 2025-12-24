@@ -765,6 +765,12 @@ class DialogueController extends Controller
             $tableData = [];
             $stt = 1;
             foreach ($allDialogues as $dialogue) {
+                // Xử lý cột phản hồi: Meeting không có phản hồi (để trống), Notification thì hiển thị phản hồi hoặc "Chưa phản hồi"
+                $advisorResponse = '';
+                if ($dialogue['source'] === 'notification') {
+                    $advisorResponse = $dialogue['advisor_response'] ?? 'Chưa phản hồi';
+                }
+
                 $tableData[] = [
                     $stt,
                     $dialogue['source'] === 'meeting' ? 'Cuộc họp' : 'Thông báo',
@@ -773,7 +779,7 @@ class DialogueController extends Controller
                     $dialogue['student_name'],
                     $dialogue['class_name'],
                     $dialogue['content'],
-                    $dialogue['advisor_response'] ?? 'Chưa phản hồi',
+                    $advisorResponse,
                     $dialogue['status'] === 'pending' ? 'Chưa xử lý' : 'Đã xử lý',
                     $dialogue['created_at'] ? $dialogue['created_at']->format('d/m/Y H:i') : '',
                     $dialogue['response_at'] ? $dialogue['response_at']->format('d/m/Y H:i') : ''
