@@ -757,7 +757,7 @@ class DialogueController extends Controller
             $row++;
 
             // Header bảng dữ liệu
-            $headers = ['STT', 'Nguồn', 'Tiêu đề', 'MSSV', 'Họ tên SV', 'Lớp', 'Nội dung', 'Phản hồi', 'Trạng thái', 'Ngày tạo', 'Ngày phản hồi'];
+            $headers = ['STT', 'Nguồn', 'Tiêu đề', 'MSSV', 'Họ tên SV', 'Lớp', 'Nội dung', 'Phản hồi', 'Ngày tạo', 'Ngày phản hồi'];
             $excelHeaderService->createTableHeader($sheet, $headers, $row);
             $row++;
 
@@ -780,7 +780,6 @@ class DialogueController extends Controller
                     $dialogue['class_name'],
                     $dialogue['content'],
                     $advisorResponse,
-                    $dialogue['status'] === 'pending' ? 'Chưa xử lý' : 'Đã xử lý',
                     $dialogue['created_at'] ? $dialogue['created_at']->format('d/m/Y H:i') : '',
                     $dialogue['response_at'] ? $dialogue['response_at']->format('d/m/Y H:i') : ''
                 ];
@@ -793,7 +792,7 @@ class DialogueController extends Controller
             // Auto format columns
             $excelHeaderService->autoFormatColumns(
                 $sheet,
-                range('A', 'K'),
+                range('A', 'J'),
                 [
                     'B' => 15,  // Nguồn
                     'C' => 30,  // Tiêu đề
@@ -802,9 +801,8 @@ class DialogueController extends Controller
                     'F' => 15,  // Lớp
                     'G' => 40,  // Nội dung
                     'H' => 40,  // Phản hồi
-                    'I' => 15,  // Trạng thái
-                    'J' => 18,  // Ngày tạo
-                    'K' => 18   // Ngày phản hồi
+                    'I' => 18,  // Ngày tạo
+                    'J' => 18   // Ngày phản hồi
                 ]
             );
 
