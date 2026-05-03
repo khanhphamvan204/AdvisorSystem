@@ -18,6 +18,14 @@ class NotificationRecipient extends Model
         'read_at' => 'datetime',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function notification(): BelongsTo
     {
         return $this->belongsTo(Notification::class, 'notification_id', 'notification_id');

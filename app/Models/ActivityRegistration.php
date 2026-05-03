@@ -18,6 +18,14 @@ class ActivityRegistration extends Model
         'registration_time' => 'datetime',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function role(): BelongsTo
     {
         return $this->belongsTo(ActivityRole::class, 'activity_role_id', 'activity_role_id');

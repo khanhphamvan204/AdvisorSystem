@@ -18,6 +18,14 @@ class CancellationRequest extends Model
         'requested_at' => 'datetime',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function registration(): BelongsTo
     {
         return $this->belongsTo(ActivityRegistration::class, 'registration_id', 'registration_id');

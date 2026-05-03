@@ -20,6 +20,14 @@ class Notification extends Model
         'type' => 'string',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function advisor(): BelongsTo
     {
         return $this->belongsTo(Advisor::class, 'advisor_id', 'advisor_id');

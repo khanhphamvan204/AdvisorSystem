@@ -99,6 +99,10 @@ class GoogleCalendarService
         try {
             $eventId = $this->generateEventId($meetingId);
 
+            // Đảm bảo thời gian được parse theo timezone Việt Nam
+            $startTime = Carbon::parse($startTime)->timezone('Asia/Ho_Chi_Minh');
+            $endTime = Carbon::parse($endTime)->timezone('Asia/Ho_Chi_Minh');
+
             // Tạo danh sách attendees
             $attendees = [];
             foreach ($attendeeEmails as $email) {
@@ -203,6 +207,8 @@ class GoogleCalendarService
             }
 
             if ($startTime) {
+                // Đảm bảo thời gian được parse theo timezone Việt Nam
+                $startTime = Carbon::parse($startTime)->timezone('Asia/Ho_Chi_Minh');
                 $start = new EventDateTime();
                 $start->setDateTime($startTime->toRfc3339String());
                 $start->setTimeZone('Asia/Ho_Chi_Minh');
@@ -210,6 +216,8 @@ class GoogleCalendarService
             }
 
             if ($endTime) {
+                // Đảm bảo thời gian được parse theo timezone Việt Nam
+                $endTime = Carbon::parse($endTime)->timezone('Asia/Ho_Chi_Minh');
                 $end = new EventDateTime();
                 $end->setDateTime($endTime->toRfc3339String());
                 $end->setTimeZone('Asia/Ho_Chi_Minh');

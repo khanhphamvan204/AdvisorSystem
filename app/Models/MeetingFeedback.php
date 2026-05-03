@@ -17,6 +17,14 @@ class MeetingFeedback extends Model
         'created_at' => 'datetime',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     public function meeting(): BelongsTo
     {
         return $this->belongsTo(Meeting::class, 'meeting_id', 'meeting_id');

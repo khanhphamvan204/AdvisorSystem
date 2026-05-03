@@ -193,9 +193,11 @@ class MeetingController extends Controller
                 'summary' => 'nullable|string',
                 'meeting_link' => 'nullable|url|max:2083',
                 'location' => 'nullable|string|max:255',
-                'meeting_time' => 'required|date',
+                'meeting_time' => 'required|date|after:now',
                 'end_time' => 'nullable|date|after:meeting_time',
                 'auto_create_meet' => 'nullable|boolean' // Tham số mới
+            ], [
+                'meeting_time.after' => 'Thời gian họp phải sau thời điểm hiện tại'
             ]);
 
             if ($validator->fails()) {
@@ -413,10 +415,12 @@ class MeetingController extends Controller
                 'summary' => 'nullable|string',
                 'meeting_link' => 'nullable|url|max:2083',
                 'location' => 'nullable|string|max:255',
-                'meeting_time' => 'sometimes|date',
+                'meeting_time' => 'sometimes|date|after:now',
                 'end_time' => 'nullable|date|after:meeting_time',
                 'status' => 'sometimes|in:scheduled,completed,cancelled',
                 'sync_to_google' => 'nullable|boolean'
+            ], [
+                'meeting_time.after' => 'Thời gian họp phải sau thời điểm hiện tại'
             ]);
 
             if ($validator->fails()) {
@@ -589,21 +593,34 @@ class MeetingController extends Controller
             $query->where('meeting_id', '!=', $excludeMeetingId);
         }
 
+        // Nếu không có end_time, chỉ kiểm tra trùng meeting_time
+        if (!$endTime) {
+            $conflictingMeeting = $query->where('meeting_time', $meetingTime)->first();
+            return $conflictingMeeting;
+        }
+
         // Kiểm tra overlap: hai khoảng thời gian [A_start, A_end] và [B_start, B_end] overlap khi:
         // A_start < B_end AND A_end > B_start
         $conflictingMeeting = $query->where(function ($q) use ($meetingTime, $endTime) {
             $q->where(function ($subQ) use ($meetingTime, $endTime) {
                 // Trường hợp 1: Meeting mới bắt đầu trong khoảng meeting cũ
                 $subQ->where('meeting_time', '<=', $meetingTime)
+                    ->whereNotNull('end_time')
                     ->where('end_time', '>', $meetingTime);
             })->orWhere(function ($subQ) use ($meetingTime, $endTime) {
                 // Trường hợp 2: Meeting mới kết thúc trong khoảng meeting cũ
                 $subQ->where('meeting_time', '<', $endTime)
+                    ->whereNotNull('end_time')
                     ->where('end_time', '>=', $endTime);
             })->orWhere(function ($subQ) use ($meetingTime, $endTime) {
                 // Trường hợp 3: Meeting mới bao trùm meeting cũ
                 $subQ->where('meeting_time', '>=', $meetingTime)
+                    ->whereNotNull('end_time')
                     ->where('end_time', '<=', $endTime);
+            })->orWhere(function ($subQ) use ($meetingTime) {
+                // Trường hợp 4: Meeting cũ không có end_time nhưng cùng meeting_time
+                $subQ->whereNull('end_time')
+                    ->where('meeting_time', $meetingTime);
             });
         })->first();
 

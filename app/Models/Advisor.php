@@ -33,6 +33,14 @@ class Advisor extends Model implements JWTSubject
         'last_login' => 'datetime',
     ];
 
+    /**
+     * Serialize datetime theo timezone hiện tại thay vì UTC
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d H:i:s');
+    }
+
     // (Các hàm quan hệ của bạn giữ nguyên)
     public function unit(): BelongsTo
     {

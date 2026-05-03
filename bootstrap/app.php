@@ -15,14 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withSchedule(function ($schedule) {
-        // Tự động cập nhật trạng thái hoạt động mỗi ngày lúc 00:01
+        // Tự động cập nhật trạng thái hoạt động vào các thời điểm: 00:01, 08:01, 12:01, 18:01
         $schedule->command('activities:update-status')
-            ->dailyAt('00:01')
-            ->timezone('Asia/Ho_Chi_Minh');
-
-        // Chạy thêm vào các thời điểm trong ngày để đảm bảo chính xác
-        $schedule->command('activities:update-status')
-            ->cron('1 8,12,18 * * *')  // 8:01, 12:01, 18:01 mỗi ngày
+            ->cron('1 0,8,12,18 * * *')
             ->timezone('Asia/Ho_Chi_Minh');
     })
     ->withMiddleware(function (Middleware $middleware) {
